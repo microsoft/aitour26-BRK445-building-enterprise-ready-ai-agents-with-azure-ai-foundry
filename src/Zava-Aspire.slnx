@@ -1,0 +1,39 @@
+<Solution>
+  <Folder Name="/1 Aspire/">
+    <Project Path="ZavaAppHost/ZavaAppHost.csproj" />
+    <Project Path="ZavaServiceDefaults/ZavaServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/2 Models/">
+    <Project Path="CartEntities/CartEntities.csproj" />
+    <Project Path="DataEntities/DataEntities.csproj" />
+    <Project Path="SearchEntities/SearchEntities.csproj" />
+    <Project Path="SharedEntities/SharedEntities.csproj" />
+    <Project Path="VectorEntities/VectorEntities.csproj" />
+  </Folder>
+  <Folder Name="/3 Store/">
+    <Project Path="Store/Store.csproj" />
+  </Folder>
+  <Folder Name="/4 Agent Services/">
+    <Project Path="MultiAgentDemo/MultiAgentDemo.csproj" />
+    <Project Path="SingleAgentDemo/SingleAgentDemo.csproj" />
+  </Folder>
+  <Folder Name="/5 Business Services/">
+    <Project Path="AgentsCatalogService/AgentsCatalogService.csproj" />
+    <Project Path="AnalyzePhotoService/AnalyzePhotoService.csproj" />
+    <Project Path="CustomerInformationService/CustomerInformationService.csproj" />
+    <Project Path="InventoryService/InventoryService.csproj" />
+    <Project Path="LocationService/LocationService.csproj" />
+    <Project Path="MatchmakingService/MatchmakingService.csproj" />
+    <Project Path="NavigationService/NavigationService.csproj" />
+    <Project Path="Products/Products.csproj" />
+    <Project Path="ToolReasoningService/ToolReasoningService.csproj" />
+  </Folder>
+  <Folder Name="/6 Support/">
+    <Project Path="ZavaAIFoundrySKAgentsProvider/ZavaAIFoundrySKAgentsProvider.csproj" />
+    <Project Path="ZavaSemanticKernelProvider/ZavaSemanticKernelProvider.csproj" Id="d61cff59-07e4-4184-bc7d-98c294c39149" />
+  </Folder>
+  <Folder Name="/9 Tests/">
+    <Project Path="Products.Tests/Products.Tests.csproj" />
+    <Project Path="Store.Tests/Store.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,6 @@
+@AnalyzePhotoService_HostAddress = http://localhost:5124
+
+GET {{AnalyzePhotoService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

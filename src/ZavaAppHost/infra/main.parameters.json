@@ -1,0 +1,43 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "principalId": {
+        "value": "${AZURE_PRINCIPAL_ID}"
+      },
+      "aifoundryproject": {
+        "value": "${AZURE_AIFOUNDRYPROJECT}"
+      },
+      "customerinformationagentid": {
+        "value": "${AZURE_CUSTOMERINFORMATIONAGENTID}"
+      },
+      "inventoryagentid": {
+        "value": "${AZURE_INVENTORYAGENTID}"
+      },
+      "locationserviceagentid": {
+        "value": "${AZURE_LOCATIONSERVICEAGENTID}"
+      },
+      "navigationagentid": {
+        "value": "${AZURE_NAVIGATIONAGENTID}"
+      },
+      "photoanalyzeragentid": {
+        "value": "${AZURE_PHOTOANALYZERAGENTID}"
+      },
+      "productmatchmakingagentid": {
+        "value": "${AZURE_PRODUCTMATCHMAKINGAGENTID}"
+      },
+      "sql_password": {
+        "value": "${AZURE_SQL_PASSWORD}"
+      },
+      "toolreasoningagentid": {
+        "value": "${AZURE_TOOLREASONINGAGENTID}"
+      },
+      "environmentName": {
+        "value": "${AZURE_ENV_NAME}"
+      },
+      "location": {
+        "value": "${AZURE_LOCATION}"
+      }
+    }
+  }
+  

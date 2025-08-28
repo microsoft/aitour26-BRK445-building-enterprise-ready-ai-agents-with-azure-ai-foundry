@@ -1,0 +1,250 @@
+#pragma warning disable SKEXP0110
+
+using Azure.AI.Agents.Persistent;
+using Azure.AI.Projects;
+using Azure.Core;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Identity.Client;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Agents.AzureAI;
+using Shared.Models;
+using SharedEntities;
+using ZavaAIFoundrySKAgentsProvider;
+using static Microsoft.SemanticKernel.Agents.AzureAI.AzureAIAgent;
+
+namespace InventoryService.Controllers;
+
+[ApiController]
+[Route("api")]
+public class InventoryController : ControllerBase
+{
+    private readonly ILogger<InventoryController> _logger;
+    private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
+    private AzureAIAgent _agent;
+
+    private static readonly Dictionary<string, ToolRecommendation> _inventory = new()
+    {
+        { "PAINT-ROLLER-9IN", new ToolRecommendation { Name = "Paint Roller", Sku = "PAINT-ROLLER-9IN", IsAvailable = true, Price = 12.99m, Description = "9-inch paint roller for smooth walls" } },
+        { "BRUSH-SET-3PC", new ToolRecommendation { Name = "Paint Brush Set", Sku = "BRUSH-SET-3PC", IsAvailable = true, Price = 24.99m, Description = "3-piece brush set for detail work" } },
+        { "DROP-CLOTH-9X12", new ToolRecommendation { Name = "Drop Cloth", Sku = "DROP-CLOTH-9X12", IsAvailable = true, Price = 8.99m, Description = "Plastic drop cloth protection" } },
+        { "SAW-CIRCULAR-7IN", new ToolRecommendation { Name = "Circular Saw", Sku = "SAW-CIRCULAR-7IN", IsAvailable = true, Price = 89.99m, Description = "7.25-inch circular saw for wood cutting" } },
+        { "STAIN-WOOD-QT", new ToolRecommendation { Name = "Wood Stain", Sku = "STAIN-WOOD-QT", IsAvailable = false, Price = 15.99m, Description = "1-quart wood stain in natural color" } },
+        { "SAFETY-GLASSES", new ToolRecommendation { Name = "Safety Glasses", Sku = "SAFETY-GLASSES", IsAvailable = true, Price = 5.99m, Description = "Safety glasses for eye protection" } },
+        { "GLOVES-WORK-L", new ToolRecommendation { Name = "Work Gloves", Sku = "GLOVES-WORK-L", IsAvailable = true, Price = 7.99m, Description = "Heavy-duty work gloves" } },
+        { "DRILL-CORDLESS", new ToolRecommendation { Name = "Cordless Drill", Sku = "DRILL-CORDLESS", IsAvailable = true, Price = 79.99m, Description = "18V cordless drill with battery" } },
+        { "LEVEL-2FT", new ToolRecommendation { Name = "Level", Sku = "LEVEL-2FT", IsAvailable = true, Price = 19.99m, Description = "2-foot aluminum level" } },
+        { "TILE-CUTTER", new ToolRecommendation { Name = "Tile Cutter", Sku = "TILE-CUTTER", IsAvailable = false, Price = 45.99m, Description = "Manual tile cutting tool" } }
+    };
+
+    public InventoryController(
+        ILogger<InventoryController> logger,
+        AIFoundryAgentProvider aIFoundryAgentProvider)
+    {
+        _logger = logger;
+        _aIFoundryAgentProvider = aIFoundryAgentProvider;
+    }
+
+    [HttpPost("search")]
+    public async Task<ActionResult<ToolRecommendation[]>> SearchInventoryAsync([FromBody] InventorySearchRequest request)
+    {
+        try
+        {
+            _logger.LogInformation($"Searching inventory for search Query; {request.SearchQuery}");
+
+            // Instruct the agent to ONLY return sku identifiers, concatenated by commas.
+            // If no products match, the agent MUST return a string with a single comma: "," (two characters: comma only).
+            var aiPrompt = @$"
+# Context
+User Query: {request.SearchQuery}
+
+# Tasks
+Search the inventory for products that may match the user query.
+Analyze the user query and extract the product name or SKU that the user is referring to.
+
+Return ONLY the product SKU identifiers, separated by commas, with no additional text, explanation, or formatting.  
+If there are NO matching products, return a string that contains only a single comma: ','  
+Example response: 'PAINT-ROLLER-9IN,BRUSH-SET-3PC,SAW-CIRCULAR-7IN'  
+";
+
+
+            // Create a Semantic Kernel agent based on the agent definition
+            var agentResponse = string.Empty;
+            _agent = await _aIFoundryAgentProvider.GetAzureAIAgent();
+
+            AzureAIAgentThread agentThread = new(client: _agent.Client);
+            await foreach (ChatMessageContent response in _agent.InvokeAsync(aiPrompt, agentThread))
+            {
+                _logger.LogInformation("Received response from agent: {Content}", response.Content);
+                agentResponse += (response.Content);
+            }
+
+            // If the agent returned exactly a single comma, treat that as "no results".
+            var skusFromAgent = agentResponse?.Split(',')
+                .Select(s => s.Trim())
+                .Where(s => s != null)
+                .ToArray() ?? Array.Empty<string>();
+
+            var results = new List<ToolRecommendation>();
+
+            // Handle the explicit "no products" signal from the agent: a single comma or empty/whitespace response
+            var responseNormalized = agentResponse?.Trim();
+            var noProductsSignal = string.Equals(responseNormalized, ",", StringComparison.Ordinal);
+
+            if (noProductsSignal || skusFromAgent.Length == 0 || skusFromAgent.All(s => string.IsNullOrWhiteSpace(s)))
+            {
+                // Create a default recommendation list indicating nothing was found.
+                results.Add(new ToolRecommendation
+                {
+                    Name = "No matching products found",
+                    Sku = string.Empty,
+                    IsAvailable = false,
+                    Price = 0m,
+                    Description = $"No products matched the query: '{request.SearchQuery}'"
+                });
+            }
+            else
+            {
+                // Filter out any empty entries that may appear if the agent returned leading/trailing commas
+                var filteredSkus = skusFromAgent
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToArray();
+
+                results = GetDefaultListOfRecommendations(filteredSkus);
+            }
+
+            return Ok(results.ToArray());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching inventory");
+            return StatusCode(500, "An error occurred while searching inventory");
+        }
+    }
+
+    public ToolRecommendation GetToolRecommendation(string sku)
+    {
+
+        ToolRecommendation toolRecommendation = new();
+
+        if (_inventory.TryGetValue(sku, out var item))
+        {
+            // Simulate some dynamic pricing and availability
+            toolRecommendation = new ToolRecommendation
+            {
+                Name = item.Name,
+                Sku = item.Sku,
+                IsAvailable = item.IsAvailable && Random.Shared.NextDouble() > 0.1, // 10% chance of being out of stock
+                Price = item.Price * (decimal)(0.9 + Random.Shared.NextDouble() * 0.2), // Price variation ±10%
+                Description = item.Description
+            };
+        }
+        return toolRecommendation;
+    }
+
+    public List<ToolRecommendation> GetDefaultListOfRecommendations(string[] skus)
+    {
+        var results = new List<ToolRecommendation>();
+
+        foreach (var sku in skus)
+        {
+            if (_inventory.TryGetValue(sku, out var item))
+            {
+                // Simulate some dynamic pricing and availability
+                var enrichedItem = new ToolRecommendation
+                {
+                    Name = item.Name,
+                    Sku = item.Sku,
+                    IsAvailable = item.IsAvailable && Random.Shared.NextDouble() > 0.1, // 10% chance of being out of stock
+                    Price = item.Price * (decimal)(0.9 + Random.Shared.NextDouble() * 0.2), // Price variation ±10%
+                    Description = item.Description
+                };
+                results.Add(enrichedItem);
+            }
+            else
+            {
+                // Create a generic item for unknown SKUs
+                results.Add(new ToolRecommendation
+                {
+                    Name = $"Tool for SKU {sku}",
+                    Sku = sku,
+                    IsAvailable = false,
+                    Price = 29.99m,
+                    Description = $"Product not found in current inventory"
+                });
+            }
+        }
+
+        return results;
+    }
+
+    [HttpGet("search/{sku}")]
+    public ActionResult<ToolRecommendation> GetItem(string sku)
+    {
+        try
+        {
+            _logger.LogInformation("Getting inventory item for SKU: {Sku}", sku);
+
+            if (_inventory.TryGetValue(sku, out var item))
+            {
+                return Ok(item);
+            }
+
+            return NotFound($"Item with SKU {sku} not found");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting inventory item for SKU: {Sku}", sku);
+            return StatusCode(500, "An error occurred while retrieving the item");
+        }
+    }
+
+    [HttpGet("available")]
+    public ActionResult<ToolRecommendation[]> GetAvailableItems()
+    {
+        try
+        {
+            _logger.LogInformation("Getting all available inventory items");
+
+            var availableItems = _inventory.Values.Where(item => item.IsAvailable).ToArray();
+            return Ok(availableItems);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available inventory items");
+            return StatusCode(500, "An error occurred while retrieving available items");
+        }
+    }
+
+    [HttpPost("check-availability")]
+    public async Task<ActionResult<Dictionary<string, bool>>> CheckAvailabilityAsync([FromBody] string[] skus)
+    {
+        try
+        {
+            _logger.LogInformation("Checking availability for {Count} SKUs", skus.Length);
+
+            // Simulate availability check delay
+            await Task.Delay(300);
+
+            var availability = new Dictionary<string, bool>();
+
+            foreach (var sku in skus)
+            {
+                if (_inventory.TryGetValue(sku, out var item))
+                {
+                    availability[sku] = item.IsAvailable;
+                }
+                else
+                {
+                    availability[sku] = false;
+                }
+            }
+
+            return Ok(availability);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking availability");
+            return StatusCode(500, "An error occurred while checking availability");
+        }
+    }
+}

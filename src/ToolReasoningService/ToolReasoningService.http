@@ -1,0 +1,6 @@
+@ToolReasoningService_HostAddress = http://localhost:5170
+
+GET {{ToolReasoningService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

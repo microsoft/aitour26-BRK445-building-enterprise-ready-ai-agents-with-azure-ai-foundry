@@ -1,0 +1,333 @@
+@page "/agent-tester"
+@using SharedEntities
+@using Store.Services
+@inject AgentCatalogService AgentCatalogService
+@inject ILogger<AgentTester> Logger
+@attribute [StreamRendering(true)]
+@rendermode InteractiveServer
+
+<PageTitle>Agent Tester</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="display-6 mb-2">Agent Tester</h1>
+                    <p class="text-muted">Test and interact with our AI agents to see how they can help with your DIY projects.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-robot me-2"></i>Agent Testing Interface
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (isLoading)
+                    {
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3 text-muted">Loading agents...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="request" OnValidSubmit="HandleSubmit">
+                            <DataAnnotationsValidator />
+
+                            <div class="mb-3">
+                                <label for="agentSelect" class="form-label fw-semibold">
+                                    <i class="bi bi-cpu me-1"></i>Select Agent
+                                </label>
+                                <select @bind="request.AgentId" class="form-select" id="agentSelect" disabled="@isSubmitting">
+                                    <option value="">-- Choose an agent --</option>
+                                    @foreach (var agent in availableAgents)
+                                    {
+                                        <option value="@agent.AgentId">@agent.AgentName</option>
+                                    }
+                                </select>
+                                @if (!string.IsNullOrEmpty(request.AgentId))
+                                {
+                                    var selectedAgent = availableAgents.FirstOrDefault(a => a.AgentId == request.AgentId);
+                                    if (selectedAgent != null)
+                                    {
+                                        <div class="form-text text-info">
+                                            <i class="bi bi-info-circle me-1"></i>@selectedAgent.Description
+                                        </div>
+                                    }
+                                }
+                                <ValidationMessage For="() => request.AgentId" class="text-danger" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="questionInput" class="form-label fw-semibold">
+                                    <i class="bi bi-chat-dots me-1"></i>Your Question
+                                </label>
+                                <textarea @bind="request.Question"
+                                          class="form-control"
+                                          id="questionInput"
+                                          rows="3"
+                                          placeholder="Ask the agent a question about your DIY project..."
+                                          disabled="@isSubmitting"></textarea>
+                                <ValidationMessage For="() => request.Question" class="text-danger" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Sample Inventory Prompts</label>
+                                <div class="d-flex flex-column gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary text-start" @onclick="SetPrompt_ToolMatch" disabled="@isSubmitting">
+                                        <strong>Tool match for a customer</strong>
+                                        <div class="small text-muted">Insert prompt to compare reusable vs missing tools for a customer given materials (paint, wood)</div>
+                                    </button>
+
+                                    <button type="button" class="btn btn-sm btn-outline-primary text-start" @onclick="SetPrompt_ShoppingList" disabled="@isSubmitting">
+                                        <strong>Project shopping list (budget)</strong>
+                                        <div class="small text-muted">Insert prompt to build a shopping list for a deck project under a budget</div>
+                                    </button>
+
+                                    <button type="button" class="btn btn-sm btn-outline-primary text-start" @onclick="SetPrompt_UpsellBundles" disabled="@isSubmitting">
+                                        <strong>Personalized upsell bundles</strong>
+                                        <div class="small text-muted">Insert prompt to propose 3 product bundles based on a customer's skills</div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit"
+                                        class="btn btn-primary"
+                                        disabled="@(isSubmitting || string.IsNullOrWhiteSpace(request.AgentId) || string.IsNullOrWhiteSpace(request.Question))">
+                                    @if (isSubmitting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        <span>Testing Agent...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-send me-1"></i>
+                                        <span>Test Agent</span>
+                                    }
+                                </button>
+
+                                <button type="button"
+                                        class="btn btn-outline-secondary"
+                                        @onclick="LoadSampleQuestion"
+                                        disabled="@isSubmitting">
+                                    <i class="bi bi-lightbulb me-1"></i>Sample Question
+                                </button>
+
+                                <button type="button"
+                                        class="btn btn-outline-danger"
+                                        @onclick="ClearForm"
+                                        disabled="@isSubmitting">
+                                    <i class="bi bi-x-circle me-1"></i>Clear
+                                </button>
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @if (testResult != null)
+        {
+            <div class="col-lg-8 col-xl-6 mt-4 mt-lg-0">
+                <div class="card shadow-sm">
+                    <div class="card-header @(testResult.IsSuccessful ? "bg-success" : "bg-danger") text-white">
+                        <h5 class="mb-0">
+                            <i class="bi @(testResult.IsSuccessful ? "bi-check-circle" : "bi-exclamation-triangle") me-2"></i>
+                            Agent Response
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <strong class="text-primary">@testResult.AgentName</strong>
+                                    <small class="text-muted ms-2">@testResult.Timestamp.ToString("HH:mm:ss")</small>
+                                </div>
+                                <span class="badge @(testResult.IsSuccessful ? "bg-success" : "bg-danger")">
+                                    @(testResult.IsSuccessful ? "Success" : "Error")
+                                </span>
+                            </div>
+
+                            <div class="border-start border-3 border-info ps-3 mb-3">
+                                <strong class="text-dark">Question:</strong>
+                                <p class="mb-0 text-muted">@testResult.Question</p>
+                            </div>
+                        </div>
+
+                        <div class="response-content">
+                            <strong class="text-dark">Response:</strong>
+                            <div class="mt-2 p-3 bg-light rounded">
+                                @if (testResult.IsSuccessful)
+                                {
+                                    <div class="text-dark">
+                                        @((MarkupString)testResult.Response.Replace("\n", "<br/>"))
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-danger">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        @testResult.ErrorMessage
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .response-content {
+        white-space: pre-wrap;
+    }
+
+    .form-select:focus,
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+    .card {
+        border: none;
+        border-radius: 12px;
+    }
+
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+    }
+</style>
+
+@code {
+    private AgentTesterRequest request = new() { UserId = "USER-001" };
+    private AgentTesterResponse? testResult;
+    private AvailableAgent[] availableAgents = Array.Empty<AvailableAgent>();
+    private bool isLoading = false;
+    private bool isSubmitting = false;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAvailableAgents();
+    }
+
+    private async Task LoadAvailableAgents()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            Logger.LogInformation("Loading available agents");
+            var agentListResponse = await AgentCatalogService.GetAvailableAgentsAsync();
+            availableAgents = agentListResponse.Agents;
+
+            Logger.LogInformation("Loaded {Count} agents", availableAgents.Length);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading available agents");
+            errorMessage = "Failed to load available agents. Please try again.";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            isSubmitting = true;
+            errorMessage = string.Empty;
+            StateHasChanged();
+
+            Logger.LogInformation("Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
+
+            testResult = await AgentCatalogService.TestAgentAsync(request);
+
+            Logger.LogInformation("Agent test completed successfully");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error testing agent");
+            errorMessage = "An error occurred while testing the agent. Please try again.";
+
+            testResult = new AgentTesterResponse
+            {
+                AgentId = request.AgentId,
+                AgentName = availableAgents.FirstOrDefault(a => a.AgentId == request.AgentId)?.AgentName ?? "Unknown Agent",
+                Question = request.Question,
+                Response = "Sorry, an error occurred while processing your request.",
+                IsSuccessful = false,
+                ErrorMessage = ex.Message
+            };
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void LoadSampleQuestion()
+    {
+        if (string.IsNullOrWhiteSpace(request.AgentId))
+        {
+            request.AgentId = availableAgents.FirstOrDefault()?.AgentId ?? "";
+        }
+
+        request.Question = request.AgentId.ToLower() switch
+        {
+            "toolreasoningagent" => "I want to paint my living room. What tools do I need?",
+            "photoanalysisagent" => "Can you help me analyze a photo of my project area?",
+            "inventoryagent" => "Do you have paint rollers in stock?",
+            _ => "What can you help me with for my DIY project?"
+        };
+
+        StateHasChanged();
+    }
+
+    private void SetPrompt_ToolMatch()
+    {
+        // Prompt 1: Tool match for a customer (reusable vs missing)
+        request.Question = "Using the indexed customer and product documents, evaluate tools for customer `1` (John Smith) given detected materials: \"paint\" and \"wood\". Return two sections:\n\n1) \"reusable\": list tools John already owns that are useful for the detected materials; for each item include {name, reason}.\n2) \"missing\": list recommended tools to buy; for each include {name, sku (if available), price, one-line justification, priority: (essential|recommended|optional)}.\n\nPrioritize low-cost essentials first and keep results concise (max 6 missing tools). Output as JSON with top-level keys \"reusable\" and \"missing\".";
+        StateHasChanged();
+    }
+
+    private void SetPrompt_ShoppingList()
+    {
+        // Prompt 2: Project shopping list with budget
+        request.Question = "I am refinishing a small deck. Materials: \"pressure-treated lumber\", \"wood stain\", \"finish nails\". Budget: $200. From the indexed product documents, return up to 8 recommended products that cover the project. For each product include {name, sku (if available), price, one-line reason}. Also return \"totalEstimatedPrice\" (sum of prices) and a short \"safetyItems\" list (must-haves). Provide a concise bullet-list and totals; if estimated total exceeds budget, indicate items to remove to meet the budget.";
+        StateHasChanged();
+    }
+
+    private void SetPrompt_UpsellBundles()
+    {
+        // Prompt 3: Personalized upsell bundles for a customer
+        request.Question = "Using customer `2` (Sarah Johnson)'s profile (skills: \"intermediate DIY\", \"woodworking\", \"tiling\") and the product catalog, propose 3 personalized product bundles for upsell. For each bundle provide:\n- bundleName\n- products: list of {name, sku (if available), price}\n- one-line marketing pitch\n- estimatedBundleTotal\n\nReturn results as a short markdown list (one bundle per section) and include the estimated total for each bundle.";
+        StateHasChanged();
+    }
+
+    private void ClearForm()
+    {
+        request = new AgentTesterRequest { UserId = "USER-001" };
+        testResult = null;
+        errorMessage = string.Empty;
+        StateHasChanged();
+    }
+}

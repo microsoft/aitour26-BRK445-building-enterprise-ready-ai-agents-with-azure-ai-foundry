@@ -1,0 +1,254 @@
+@page "/scenario1-single-agent"
+@using Store.Models
+@using Store.Services
+@using Microsoft.AspNetCore.Components.Web
+@using SharedEntities
+@inject SingleAgentService SingleAgentService
+@inject ILogger<Scenario1SingleAgent> Logger
+
+@attribute [StreamRendering(true)]
+@rendermode InteractiveServer
+
+
+<PageTitle>Zava Store - Single Agent Analysis</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <span class="bi bi-robot me-2"></span>
+                Scenario 1: Single Agent Analysis
+            </h1>
+            <p class="lead text-muted">
+                Upload an image of your project and get AI-powered tool recommendations based on your existing tools and
+                skills.
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <span class="bi bi-upload me-2"></span>
+                        Upload Project Image
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="mb-3">
+                            <label for="projectImage" class="form-label">Project Image</label>
+                            <InputFile class="form-control" id="projectImage" accept="image/*" OnChange="@OnImageSelected" />
+                            <div class="form-text">
+                                Upload an image of your room, project, or area you want to work on.
+                            </div>
+                            @if (imagePreviewUrl != null)
+                            {
+                                <div class="mt-3 text-center">
+                                    <img src="@imagePreviewUrl" alt="Image Preview" class="img-fluid rounded border"
+                                         style="max-height: 250px;" />
+                                </div>
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="prompt" class="form-label">Project Description</label>
+                            <div class="input-group">
+                                <InputTextArea @bind-Value="analysisRequest.Prompt" class="form-control" id="prompt"
+                                               rows="3"
+                                               placeholder="e.g., I want to paint this room blue. What tools do I need?" />
+                                <button type="button" class="btn btn-outline-secondary" @onclick="SetDefaultPrompt">
+                                    Use
+                                    Default
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="customerId" class="form-label">Customer ID</label>
+                            <InputText @bind-Value="analysisRequest.CustomerId" class="form-control" id="customerId"
+                                       placeholder="e.g., CUST-001" />
+                        </div>
+
+                        <button id="btnAnalyze" class="btn btn-primary" @onclick="SubmitAnalysis"
+                                disabled="@isSubmitting" type="submit">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Analyzing...</span>
+                            }
+                            else
+                            {
+                                <span class="bi bi-search me-2"></span>
+                                <span>Analyze Project</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            @if (analysisResult != null)
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <span class="bi bi-lightbulb me-2"></span>
+                            Analysis Results
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6>Image Analysis:</h6>
+                            <p class="text-muted">@analysisResult.Analysis</p>
+                        </div>
+
+                        @if (analysisResult.ReusableTools.Any())
+                        {
+                            <div class="mb-3">
+                                <h6>Your Existing Tools You Can Use:</h6>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach (var tool in analysisResult.ReusableTools)
+                                    {
+                                        <span class="badge bg-success">@tool</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (analysisResult.RecommendedTools.Any())
+                        {
+                            <div class="mb-3">
+                                <h6>Recommended Tools to Purchase:</h6>
+                                <div class="row g-2">
+                                    @foreach (var tool in analysisResult.RecommendedTools)
+                                    {
+                                        <div class="col-12">
+                                            <div class="card card-body p-2">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <strong>@tool.Name</strong>
+                                                        <br>
+                                                        <small class="text-muted">SKU: @tool.Sku</small>
+                                                        <br>
+                                                        <small>@tool.Description</small>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <span class="badge @(tool.IsAvailable ? "bg-success" : "bg-danger")">
+                                                            @(tool.IsAvailable ? "In Stock" : "Out of Stock")
+                                                        </span>
+                                                        <br>
+                                                        <strong class="text-primary">$@tool.Price.ToString("F2")</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <h6>AI Reasoning:</h6>
+                            <Markdown>@analysisResult.Reasoning</Markdown>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    <h6 class="alert-heading">
+                        <span class="bi bi-exclamation-triangle me-2"></span>
+                        Error
+                    </h6>
+                    @errorMessage
+                </div>
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-body text-center text-muted">
+                        <span class="bi bi-image display-1 d-block mb-3"></span>
+                        <p>Upload an image and describe your project to get AI-powered tool recommendations.</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private SingleAgentAnalysisRequestModel analysisRequest = new() { CustomerId = "CUST-001", Prompt = string.Empty };
+    private const string DefaultPrompt = "I want to paint this room blue. What tools do I need?";
+    private void SetDefaultPrompt()
+    {
+        analysisRequest.Prompt = DefaultPrompt;
+        StateHasChanged();
+    }
+    private SingleAgentAnalysisResponse? analysisResult;
+    private IBrowserFile? selectedFile;
+    private string? imagePreviewUrl;
+    private bool isSubmitting = false;
+    private string errorMessage = string.Empty;
+
+    private void OnImageSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async void SubmitAnalysis()
+    {
+        if (selectedFile == null)
+        {
+            errorMessage = "Please select an image file.";
+            return;
+        }
+
+        // Fix: Ensure Prompt is not null and trim whitespace
+        if (string.IsNullOrWhiteSpace(analysisRequest.Prompt))
+        {
+            errorMessage = "Please provide a project description.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(analysisRequest.CustomerId))
+        {
+            errorMessage = "Please provide a customer ID.";
+            return;
+        }
+
+        isSubmitting = true;
+        errorMessage = string.Empty;
+        analysisResult = null;
+
+        try
+        {
+            analysisRequest.Image = selectedFile;
+            // Defensive: Ensure Prompt is not null or whitespace before sending
+            if (string.IsNullOrWhiteSpace(analysisRequest.Prompt))
+            {
+                analysisRequest.Prompt = DefaultPrompt;
+            }
+            var sharedRequest = await analysisRequest.ToSharedEntityAsync();
+            analysisResult = await SingleAgentService.AnalyzeAsync(sharedRequest);
+
+            if (analysisResult == null)
+            {
+                errorMessage = "Analysis service is currently unavailable. Please try again later.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error calling single agent service");
+            errorMessage = "An error occurred while analyzing your project. Please try again.";
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+}
