@@ -2,6 +2,8 @@
 
 Thanks for creating content for AI Tour 26.
 
+[Bruno edit!]
+
 One of our opportunities from FY25 was make a more consistent experience for attendees.  Following this template, and keeping users in these repos, will help us achieve this opportunity for this year's AI Tour.
 
 Steps:
