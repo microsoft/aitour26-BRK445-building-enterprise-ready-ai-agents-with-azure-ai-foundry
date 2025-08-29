@@ -27,7 +27,7 @@ The workshop mixes short live demos with recorded segments for reference.
 | 07 mins | Introduction & Content |  |
 | 06 mins | demos | [AI Foundry Agents](https://aka.ms/AAxri1g) (external) |
 | 04 mins | Content | |
-| 06 mins | demos | [Aspire + Semantic Kernel](https://aka.ms/AAxrpqj) (external) |
+| 06 mins | demos | [Aspire + Single Agent](https://aka.ms/AAxrpqj) (external) |
 | 03 mins | Content | |
 | 07 mins | demos | [Multi-Agent Orchestration](https://aka.ms/AAxrab6) (external) |
 | 04 mins | Content | |
