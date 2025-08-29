@@ -1,5 +1,9 @@
-## Source Code
-Place source code you're sharing in your session in this folder!
+## Source code
 
-## Instructions
-Follow the steps in the [docs folder](../docs) to get started.
+Place the source code you're sharing for the session in this folder.
+
+## How to use this code for the session
+
+For step-by-step instructions on how to start the services, run demos, and deliver the session content, see the session delivery guide:
+
+- `session-delivery-resources\readme.md` — contains run instructions, presenter notes, demo scripts, and required configuration.
