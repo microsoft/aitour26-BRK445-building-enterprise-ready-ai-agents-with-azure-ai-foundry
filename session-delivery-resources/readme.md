@@ -16,6 +16,7 @@ Prior to delivering the workshop please:
 | Full Session TTT | [TTT Video](https://aka.ms/AAxrpql) | External | Full train-the-trainer recorded session |
 | Demo source code | [`/src` demo source](../src) | Internal | Demo source code used in the live demos |
 | Prerequisites | [`Prerequisites`](./docs/Prerequisites.md) | Internal | Tooling and access required to run the demos |
+| Cloud Resources | [`Needed Cloud Resources`](./docs/02.NeededCloudResources.md) | Internal | Cloud resources required to run the demos |
 | How to run demo locally | [`HowToRunDemoLocally`](./docs/HowToRunDemoLocally.md) | Internal | Step-by-step instructions to build and run the demo locally |
 
 ## 🚀Get Started
