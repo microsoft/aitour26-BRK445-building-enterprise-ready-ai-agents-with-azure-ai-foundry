@@ -26,15 +26,15 @@ The workshop mixes short live demos with recorded segments for reference.
 
 | Time        | Description | Video Links |  
 --------------|------------- | ------------- |  
-06 mins  |Introduction |  |  
+07 mins  |Introduction & Content |  |  
 06 mins  |demos | [AI Foundry Agents](https://aka.ms/AAxri1g) |  
-06 mins  |Introduction |  |  
+04 mins  |Content |  |  
 06 mins | demos | [Aspire + Semantic Kernel](https://aka.ms/AAxrpqj))  
-06 mins  |Introduction |  |  
+03 mins  |Content |  |  
 07 mins | demos | [Multi-Agent Orchestration](https://aka.ms/AAxrab6) |  
-06 mins  |Introduction |  |  
+04 mins  |Content |  |  
 02 mins | demos | [Azure Monitor & AI Foundry Diagnostics](https://aka.ms/AAxrpqk) |  
-06 mins  |Introduction |  |  
+04 mins  |Content |  |  
 
 ### 🏋️Preparation
 Essential Pre-Session Requirements
