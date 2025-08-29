@@ -2,6 +2,9 @@
 
 ![AI Tour banner](img/Banner-MS-AI-Tour-26.png)
 
+[![Microsoft Azure AI Foundry Discord](https://dcbadge.limes.pink/api/server/ByRwuEEgH4)](https://discord.com/invite/ByRwuEEgH4)
+[![Azure AI Foundry Developer Forum](https://img.shields.io/badge/GitHub-Azure_AI_Foundry_Developer_Forum-blue?style=for-the-badge&logo=github&color=adff2f&logoColor=fff)](https://aka.ms/foundry/forum)
+
 Azure AI Foundry Agent Service: Building enterprise-ready AI Agents with Azure AI Foundry
 
 This repository contains the sample code, services, and materials used in BRK445: "Building enterprise-ready AI Agents with Azure AI Foundry" presented at Microsoft AI Tour 2026. The solution demonstrates patterns for designing, implementing, and deploying multi-service AI agents with governance, reuse, and responsible-AI considerations.
@@ -66,11 +69,6 @@ Check the [Session Delivery Resources folder](./session-delivery-resources/) for
     </td>
 
 </tr></table>
-
-##
-
-[![Microsoft Azure AI Foundry Discord](https://dcbadge.limes.pink/api/server/ByRwuEEgH4)](https://discord.com/invite/ByRwuEEgH4)
-[![Azure AI Foundry Developer Forum](https://img.shields.io/badge/GitHub-Azure_AI_Foundry_Developer_Forum-blue?style=for-the-badge&logo=github&color=adff2f&logoColor=fff)](https://aka.ms/foundry/forum)
 
 ## Responsible AI
 
