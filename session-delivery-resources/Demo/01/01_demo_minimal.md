@@ -9,4 +9,4 @@ Video: [brk445-slide 08-demo.mp4](https://aka.ms/AAxri1g) — 00:05:29
 
 Related guides:
 
-[Full user manual](./01_demo_userguide.md.md)
+[Full user manual](./01_demo_userguide.md)
