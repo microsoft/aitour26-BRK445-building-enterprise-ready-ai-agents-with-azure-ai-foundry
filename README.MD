@@ -1,127 +1,75 @@
-# Welcome AI Tour 26 Creators!
+# Microsoft AI Tour 2026 — BRK445
 
-Thanks for creating content for AI Tour 26.
+![AI Tour banner](img/Banner-MS-AI-Tour-26.png)
 
-[Bruno edit!]
+Azure AI Foundry Agent Service: Building enterprise-ready AI Agents with Azure AI Foundry
 
-One of our opportunities from FY25 was make a more consistent experience for attendees.  Following this template, and keeping users in these repos, will help us achieve this opportunity for this year's AI Tour.
+This repository contains the sample code, services, and materials used in BRK445: "Building enterprise-ready AI Agents with Azure AI Foundry" presented at Microsoft AI Tour 2026. The solution demonstrates patterns for designing, implementing, and deploying multi-service AI agents with governance, reuse, and responsible-AI considerations.
 
-Steps:
+If you are delivering this session, check the `session-delivery-resources/` folder for slides, scripts, and demos.
 
-## Docs using MKDocs
-If you are interested in using mkdocs, this repo is configured for it.
-1. update the `mkdocs.yml` file to reference your session. Look particularly for the `site_name`, `site_author`, and `repo_name` tags.
-1. Subfolders in the docs folder will show up as tabs in the navigation bar.
+## Quick links
 
-If you want to disable mkdocs:
-1. Delete the mkdocs.yml file. 
-1. Delete the references to it in [docs/README.md](./docs/README.md)
-1. Delete the docs/assets folder and its contents.
+- Source code: `src/`
+- Session delivery resources: `session-delivery-resources/`
 
-## Other folders
-Note the data, docs, src, lab, session-delivery-resources folders. 
-1. Remove folders that you dont need.
-1. Please keep and use the folders that you do need.  e.g. put your data in the data folder, and put your docs in the docs folder.
+## What you'll learn
 
-## Update Readme
-1. Fill out the content below in this file, below the banner graphic.
+In this session you will learn practical techniques to:
 
-## Update Repo Info
+- Design agent architectures that separate reasoning, tools, and orchestration
+- Integrate Azure AI Foundry (Azure AI Studio) services with local microservices
+- Add safety, evaluation, and observability to generative AI agents
+- Package and run multi-service demos locally and in Azure
 
-1. Note the data, docs, src, lab, session-delivery-resources folders. 
+### Target audience
 
-    1. Remove folders that you dont need, but please keep and use the folders that you do need.  e.g. put your data in the data folder, and put your docs in the docs folder.
+Developers, architects, and AI engineers who build production-grade agentic applications with Azure AI services and need guidance on patterns for security, governance, and reliability.
 
-1. Fill out the content below in this file, below the banner graphic.
+## What's in this repository
 
-1. Update the Repo Info for this repo 
-    1. Click the gear icon⚙️ in the upper right.
-    1. Set a good description of this repo.
-    1. Add the technologies that you're using in this session.  E.g. the same items that are in the Technologies Used section below.
+- `src/` — Example source code used by the demos (C#, .NET 9).  
+- `session-delivery-resources/` — slides, demos, and presenter notes
 
-1. Please embed links to Learn with your campaign codes!
+## Technologies used
 
-## Questions?
-Send them to Mike Kinsman, Erik Weis, and cc Anthony Bartolo.
+- C# / .NET 9 / .NET Aspire for orchestration
+- Azure AI Foundry / Azure AI Foundry Agents
+- Docker
 
-## Last step
-Delete this line and everything above it!
+## 🔗 Session Resources
 
+Check the [Session Delivery Resources folder](./session-delivery-resources/) for the whole set of materials.
 
-<p align="center">
-<img src="img/Banner-MS-AI-Tour-26.png" alt="decorative banner" width="1200"/>
-</p>
-
-# [Microsoft AI Tour 2026](https://aitour.microsoft.com)
-
-## 🔥BRKXXX: Azure AI Foundry Agent Service: Transforming workflows with Azure AI Foundry
-
-If you will be delivering this session, check the [session-delivery-sources](./session-delivery-resources/) folder for slides, scripts, and other resources.
-
-### Session Description
-
-*Add Session Description*
-
-
-### 🧠 Learning Outcomes
-
-By the end of this session, learners will be able to:
-
--  
--
--
-
-### 💻 Technologies Used
-
-1.
-1.
-1.
-
-### 🔗 Session Resources
-| Resources          | Links                             | Description        |
-|:-------------------|:----------------------------------|:-------------------|
-| Additional Resources for this session | https://learn.microsoft.com | Links specific to this session |
-
-### 📚 Continued Learning Resources
-| Resources          | Links                             | Description        |
-|:-------------------|:----------------------------------|:-------------------|
-| AI Tour 2026 Resource Center | https://aka.ms/AITour26-Resource-center | Links to all repos for AI Tour 26 Sessions |
-| Azure AI Foundry Community Discord | [![Microsoft Azure AI Foundry Discord](https://dcbadge.limes.pink/api/server/ByRwuEEgH4)](https://discord.com/invite/ByRwuEEgH4)| Connect with the Azure AI Foundry Community! |
-| Learn at AI Tour | https://aka.ms/LearnAtAITour | Continue learning on Microsoft Learn |
-
-### 🌐 Multi-Language Support
-
-*languages will go here when its time to localize*
+| Resource | Path |
+|---|---:|
+| Presenter Guide (full) | [session-delivery-resources/readme.md](session-delivery-resources/readme.md)
+| Slides | [EN-US_BRK445_Tech_FY26.pptx](https://aka.ms/AAxri1f) |
 
 ## Content Owners
-
-<!-- TODO: Add yourself as a content owner
-1. Change the src in the image tag to {your github url}.png
-2. Change INSERT NAME HERE to your name
-3. Change the github url in the final href to your url. -->
-
 
 <table>
 <tr>
     <td align="center"><a href="http://github.com/mikekinsman">
-        <img src="https://github.com/mikekinsman.png" width="100px;" alt="INSERT NAME HERE"
-"/><br />
-        <sub><b> INSERT NAME HERE
-</b></sub></a><br />
-            <a href="https://github.com/mikekinsman" title="talk">📢</a> 
+        <img src="https://github.com/elbruno.png" width="100px;" alt="Bruno Capuano"/>
+        <br />
+        <sub><b>Bruno Capuano</b></sub></a>
+        <br />
+        <a href="https://github.com/elbruno" title="talk">📢</a>
     </td>
-    <td align="center"><a href="http://github.com/mikekinsman">
-        <img src="https://github.com/mikekinsman.png" width="100px;" alt="INSERT NAME HERE
-"/><br />
-        <sub><b>INSERT NAME HERE
-</b></sub></a><br />
-            <a href="https://github.com/mikekinsman" title="talk">📢</a> 
+    <td align="center"><a href="https://github.com/kinfey">
+        <img src="https://github.com/kinfey.png" width="100px;" alt="Bruno Capuano"/>
+        <br />
+        <sub><b>Kinfey Lo</b></sub></a>
+        <br />
+        <a href="https://github.com/kinfey" title="talk">📢</a>
     </td>
+
 </tr></table>
 
-## 
+##
 
-## Responsible AI 
+## Responsible AI
 
 Microsoft is committed to helping our customers use our AI products responsibly, sharing our learnings, and building trust-based partnerships through tools like Transparency Notes and Impact Assessments. Many of these resources can be found at [https://aka.ms/RAI](https://aka.ms/RAI).
 Microsoft’s approach to responsible AI is grounded in our AI principles of fairness, reliability and safety, privacy and security, inclusiveness, transparency, and accountability.
@@ -132,4 +80,4 @@ The recommended approach to mitigating these risks is to include a safety system
 
 Another aspect to take into account is the overall application performance. With multi-modal and multi-models applications, we consider performance to mean that the system performs as you and your users expect, including not generating harmful outputs. It's important to assess the performance of your overall application using [Performance and Quality and Risk and Safety evaluators](https://learn.microsoft.com/azure/ai-studio/concepts/evaluation-metrics-built-in). You also have the ability to create and evaluate with [custom evaluators](https://learn.microsoft.com/azure/ai-studio/how-to/develop/evaluate-sdk#custom-evaluators).
 
-You can evaluate your AI application in your development environment using the [Azure AI Evaluation SDK](https://microsoft.github.io/promptflow/index.html). Given either a test dataset or a target, your generative AI application generations are quantitatively measured with built-in evaluators or custom evaluators of your choice. To get started with the azure ai evaluation sdk to evaluate your system, you can follow the [quickstart guide](https://learn.microsoft.com/azure/ai-studio/how-to/develop/flow-evaluate-sdk). Once you execute an evaluation run, you can [visualize the results in Azure AI Foundry portal ](https://learn.microsoft.com/azure/ai-studio/how-to/evaluate-flow-results).
+You can evaluate your AI application in your development environment using the [Azure AI Evaluation SDK](https://microsoft.github.io/promptflow/index.html). Given either a test dataset or a target, your generative AI application generations are quantitatively measured with built-in evaluators or custom evaluators of your choice. To get started with the azure ai evaluation sdk to evaluate your system, you can follow the [quickstart guide](https://learn.microsoft.com/azure/ai-studio/how-to/develop/flow-evaluate-sdk). Once you execute an evaluation run, you can [visualize the results in Azure AI Foundry portal](https://learn.microsoft.com/azure/ai-studio/how-to/evaluate-flow-results).
