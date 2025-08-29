@@ -6,3 +6,8 @@ Video: [brk445-slide 14-demo.mp4](https://aka.ms/AAxrpqj) — 00:05:42
 4. Photo analysis flow: Upload/choose an image; agent triggers cloud-based photo analysis and generates a description (e.g., "small living room with wooden flooring, white walls"). [00:02:10 – 00:03:03]
 5. Agent reasoning & inventory matching: The single agent runs a stepwise flow (analyze → fetch customer info → reason → match tools with inventory → recommend actions). [00:03:15 – 00:04:13]
 6. Observability & tracing: Aspire traces show timings (e.g., photo analysis ~12s, thread build ~4s); traces available via Application Insights and cloud deployment for real-time monitoring. [00:04:24 – 00:05:06]
+
+
+Related guides:
+
+[Full user manual](./02_demo_userguide.md)

@@ -6,3 +6,8 @@ Video: [brk445-slide 24-demo.mp4](https://aka.ms/AAxrpqk) — 00:01:30
 4. Identify a model or third-party service outage (example: suspected GPT‑5 / GPT5 mini chat outage). [00:00:46 – 00:00:57]
 5. Correlate tracing and monitoring data: compare Azure Monitor call logs with AI Foundry tracing to locate failing requests and determine root cause. [00:00:51 – 00:01:06]
 6. Next steps: capture trace IDs, logs, and screenshots; create verification tasks with timestamps and priority for engineering follow-up. [00:01:06 – 00:01:30]
+
+
+Related guides:
+
+[Full user manual](./04_demo_userguide.md)

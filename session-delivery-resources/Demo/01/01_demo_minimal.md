@@ -6,3 +6,7 @@ Video: [brk445-slide 08-demo.mp4](https://aka.ms/AAxri1g) — 00:05:29
 4. Data & connectors: Connect agents to external data sources (Azure AI Search, SharePoint, Bing), third-party APIs (OpenAPI), and integrate with Azure Functions / Logic Apps. [00:00:52 – 00:01:58]
 5. Playground demo: Run the inventory agent with a tailored sample prompt (e.g., search for customer "John Smith"). The agent calls external services (Azure Search) and returns structured JSON results; thread logs show the call flow. [00:02:34 – 00:03:48]
 6. Management & observability: Use the project management center for user access and connected resources; traceability is available (model/agent traces). The demo uses a GPT‑5 mini model and shows web requests to LLM and database lookups. [00:03:59 – 00:05:27]
+
+Related guides:
+
+[Full user manual](./01_demo_userguide.md.md)
