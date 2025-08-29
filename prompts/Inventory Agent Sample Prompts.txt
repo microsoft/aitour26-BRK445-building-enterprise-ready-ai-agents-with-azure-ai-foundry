@@ -1,0 +1,22 @@
+Inventory Agent Sample Prompts
+---
+
+# Context
+User Query: I can't find the product 'Paint Sprayer - TurboSpray 750', I'm in this store, can you help?  
+
+# Tasks
+Search the inventory for products that may match the user query.
+Analyze the user query and extract the product name or SKU that the user is referring to.
+
+Return ONLY the product SKU identifiers, separated by commas, with no additional text, explanation, or formatting.  
+If there are NO matching products, return a string that contains only a single comma: ','  
+Example response: 'PAINT-ROLLER-9IN,BRUSH-SET-3PC,SAW-CIRCULAR-7IN'  
+
+---
+
+Using the indexed customer and product documents, evaluate tools for customer `1` (John Smith) given detected materials: "paint" and "wood". Return two sections:
+
+1) "reusable": list tools John already owns that are useful for the detected materials; for each item include {name, reason}.
+2) "missing": list recommended tools to buy; for each include {name, sku (if available), price, one-line justification, priority: (essential|recommended|optional)}.
+
+Prioritize low-cost essentials first and keep results concise (max 6 missing tools). Output as JSON with top-level keys "reusable" and "missing".
