@@ -13,7 +13,7 @@ Prior to delivering the workshop please:
 | Resource | Link | Type | Description |
 |---|---|---:|---|
 | Session Delivery Deck | [Deck](https://aka.ms/AAxri1f) | External | Main slide deck for the session |
-| Full Session TTT | [TTT Video](https://aka.ms/AAxrpql) | External | Full train-the-trainer recorded session |
+| Full Session Recording | [Recording](https://youtu.be/AwKSBaA2HXQ) | External | Full train-the-trainer recorded session |
 | Demo source code | [`/src` demo source](../src) | Internal | Demo source code used in the live demos |
 | Prerequisites | [`Prerequisites`](./docs/Prerequisites.md) | Internal | Tooling and access required to run the demos |
 | Cloud Resources | [`Needed Cloud Resources`](./docs/02.NeededCloudResources.md) | Internal | Cloud resources required to run the demos |
