@@ -34,7 +34,8 @@ public class ReasoningController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Generating reasoning for prompt: {Prompt}", request.Prompt);
+            var sanitizedPrompt = request.Prompt?.Replace("\r", "").Replace("\n", "");
+            _logger.LogInformation("Generating reasoning for prompt: {Prompt}", sanitizedPrompt);
 
             // Use Semantic Kernel for AI reasoning
             var reasoning = await GenerateDetailedReasoningWithAI(request);
