@@ -1,4 +1,5 @@
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaAgentFxAgentsProvider;
 using ZavaSemanticKernelProvider;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +25,13 @@ builder.Services.AddSingleton(sp =>
     var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
     var agentId = config.GetConnectionString("photoanalyzeragentid");
     return new AIFoundryAgentProvider(aiFoundryProjectConnection, agentId);
+});
+
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetService<IConfiguration>();
+    var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
+    return new AgentFxAgentProvider(aiFoundryProjectConnection);
 });
 
 var app = builder.Build();
