@@ -8,6 +8,7 @@ using Shared.Models;
 using SharedEntities;
 using System.Text.Json;
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaAgentFxAgentsProvider;
 
 namespace CustomerInformationService.Controllers;
 
@@ -17,6 +18,7 @@ public class CustomerController : ControllerBase
 {
     private readonly ILogger<CustomerController> _logger;
     private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
+    private readonly AgentFxAgentProvider _agentFxAgentProvider;
     private AzureAIAgent _agent;
 
     private static readonly Dictionary<string, CustomerInformation> _customers = new()
@@ -27,10 +29,12 @@ public class CustomerController : ControllerBase
     };
 
     public CustomerController(ILogger<CustomerController> logger,
-        AIFoundryAgentProvider aIFoundryAgentProvider)
+        AIFoundryAgentProvider aIFoundryAgentProvider,
+        AgentFxAgentProvider agentFxAgentProvider)
     {
         _logger = logger;
         _aIFoundryAgentProvider = aIFoundryAgentProvider;
+        _agentFxAgentProvider = agentFxAgentProvider;
     }
 
     // Extracts the first top-level JSON object from a string. Returns null if none found.
@@ -58,14 +62,19 @@ public class CustomerController : ControllerBase
         return null;
     }
 
-    [HttpGet("{customerId}")]
-    public async Task<ActionResult<CustomerInformation>> GetCustomer(string customerId)
+    private string BuildCustomerPrompt(string customerId)
+    {
+        return $@"Return a single JSON object (no surrounding text) that matches the shape of the CustomerInformation model. Find the customer information for the following customer ID: {customerId} and return the customer data as JSON.";
+    }
+
+    [HttpGet("{customerId}/sk")]
+    public async Task<ActionResult<CustomerInformation>> GetCustomerSK(string customerId)
     {
         try
         {
-            _logger.LogInformation("Getting customer information for ID: {CustomerId}", customerId);
+            _logger.LogInformation("[SK] Getting customer information for ID: {CustomerId}", customerId);
 
-            var aiPrompt = $@"Return a single JSON object (no surrounding text) that matches the shape of the CustomerInformation model. Find the customer information for the following customer ID: {customerId} and return the customer data as JSON.";
+            var aiPrompt = BuildCustomerPrompt(customerId);
 
             // Create a Semantic Kernel agent based on the agent definition
             var agentResponse = string.Empty;
@@ -73,7 +82,7 @@ public class CustomerController : ControllerBase
             AzureAIAgentThread agentThread = new(_agent.Client);
             await foreach (ChatMessageContent response in _agent.InvokeAsync(aiPrompt, agentThread))
             {
-                _logger.LogInformation("Received response from agent: {Content}", response.Content);
+                _logger.LogInformation("[SK] Received response from agent: {Content}", response.Content);
                 agentResponse += (response.Content);
             }
 
@@ -89,7 +98,7 @@ public class CustomerController : ControllerBase
                         var customerFromAgent = JsonSerializer.Deserialize<CustomerInformation>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                         if (customerFromAgent != null && !string.IsNullOrWhiteSpace(customerFromAgent.Id))
                         {
-                            _logger.LogInformation("Successfully deserialized customer from agent for ID: {CustomerId}", customerFromAgent.Id);
+                            _logger.LogInformation("[SK] Successfully deserialized customer from agent for ID: {CustomerId}", customerFromAgent.Id);
                             return Ok(customerFromAgent);
                         }
                     }
@@ -97,40 +106,87 @@ public class CustomerController : ControllerBase
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to deserialize agent response into CustomerInformation. Falling back to local data for ID: {CustomerId}", customerId);
+                _logger.LogWarning(ex, "[SK] Failed to deserialize agent response into CustomerInformation. Falling back to local data for ID: {CustomerId}", customerId);
             }
 
-            if (_customers.TryGetValue(customerId, out var customer))
-            {
-                return Ok(customer);
-            }
-
-            // Return a fallback customer if not found
-            var fallbackCustomer = new CustomerInformation
-            {
-                Id = customerId,
-                Name = $"Customer {customerId}",
-                OwnedTools = new[] { "measuring tape", "basic hand tools" },
-                Skills = new[] { "basic DIY" }
-            };
-
-            _logger.LogInformation("Customer not found, returning fallback customer for ID: {CustomerId}", customerId);
-            return Ok(fallbackCustomer);
+            return GetFallbackCustomer(customerId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting customer information for ID: {CustomerId}", customerId);
+            _logger.LogError(ex, "[SK] Error getting customer information for ID: {CustomerId}", customerId);
             return StatusCode(500, "An error occurred while retrieving customer information");
         }
     }
 
-    [HttpPost("match-tools")]
-    public ActionResult<ToolMatchResult> MatchTools([FromBody] ToolMatchRequest request)
+    [HttpGet("{customerId}/agentfx")]
+    public async Task<ActionResult<CustomerInformation>> GetCustomerAgentFx(string customerId)
     {
         try
         {
-            _logger.LogInformation("Matching tools for customer {CustomerId}", request.CustomerId);
+            _logger.LogInformation("[AgentFx] Getting customer information for ID: {CustomerId}", customerId);
 
+            try
+            {
+                // Use Microsoft Agent Framework for customer lookup
+                var agent = await _agentFxAgentProvider.GetAzureAIAgent();
+                
+                // TODO: Implement actual Agent Framework invocation
+                // For now, use fallback response
+                _logger.LogWarning("[AgentFx] Agent Framework integration pending - using fallback");
+                
+                return GetFallbackCustomer(customerId);
+            }
+            catch (Exception aiEx)
+            {
+                _logger.LogWarning(aiEx, "[AgentFx] Agent Framework invocation failed, using fallback");
+                return GetFallbackCustomer(customerId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AgentFx] Error getting customer information for ID: {CustomerId}", customerId);
+            return StatusCode(500, "An error occurred while retrieving customer information");
+        }
+    }
+
+    private ActionResult<CustomerInformation> GetFallbackCustomer(string customerId)
+    {
+        if (_customers.TryGetValue(customerId, out var customer))
+        {
+            return Ok(customer);
+        }
+
+        // Return a fallback customer if not found
+        var fallbackCustomer = new CustomerInformation
+        {
+            Id = customerId,
+            Name = $"Customer {customerId}",
+            OwnedTools = new[] { "measuring tape", "basic hand tools" },
+            Skills = new[] { "basic DIY" }
+        };
+
+        _logger.LogInformation("Customer not found, returning fallback customer for ID: {CustomerId}", customerId);
+        return Ok(fallbackCustomer);
+    }
+
+    [HttpPost("match-tools/sk")]
+    public ActionResult<ToolMatchResult> MatchToolsSK([FromBody] ToolMatchRequest request)
+    {
+        _logger.LogInformation("[SK] Matching tools for customer {CustomerId}", request.CustomerId);
+        return MatchToolsImpl(request);
+    }
+
+    [HttpPost("match-tools/agentfx")]
+    public ActionResult<ToolMatchResult> MatchToolsAgentFx([FromBody] ToolMatchRequest request)
+    {
+        _logger.LogInformation("[AgentFx] Matching tools for customer {CustomerId}", request.CustomerId);
+        return MatchToolsImpl(request);
+    }
+
+    private ActionResult<ToolMatchResult> MatchToolsImpl(ToolMatchRequest request)
+    {
+        try
+        {
             if (!_customers.TryGetValue(request.CustomerId, out var customer))
             {
                 customer = new CustomerInformation

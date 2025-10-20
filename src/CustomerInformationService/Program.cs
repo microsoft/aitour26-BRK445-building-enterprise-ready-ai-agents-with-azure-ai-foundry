@@ -1,4 +1,5 @@
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaAgentFxAgentsProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,12 +10,20 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Register both agent providers for dual framework support
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetService<IConfiguration>();
     var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
     var agentId = config.GetConnectionString("customerinformationagentid");
     return new AIFoundryAgentProvider(aiFoundryProjectConnection, agentId);
+});
+
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetService<IConfiguration>();
+    var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
+    return new AgentFxAgentProvider(aiFoundryProjectConnection!);
 });
 
 var app = builder.Build();
