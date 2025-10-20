@@ -10,41 +10,48 @@ This implementation adds support for Microsoft Agent Framework (AgentFx) alongsi
 #### MultiAgentDemo Project
 - **Renamed**: `MultiAgentController.cs` → `MultiAgentControllerSK.cs`
 - **Created**: `MultiAgentControllerAgentFx.cs`
-- Both controllers implement the same endpoints:
-  - POST `/api/multiagent/assist`
-  - POST `/api/multiagent/assist/sequential`
-  - POST `/api/multiagent/assist/concurrent`
-  - POST `/api/multiagent/assist/handoff`
-  - POST `/api/multiagent/assist/groupchat`
-  - POST `/api/multiagent/assist/magentic`
+- SK controller route: `/api/multiagent/sk/*`
+- AgentFx controller route: `/api/multiagent/agentfx/*`
+- Both controllers implement endpoints:
+  - POST `/assist`
+  - POST `/assist/sequential`
+  - POST `/assist/concurrent`
+  - POST `/assist/handoff`
+  - POST `/assist/groupchat`
+  - POST `/assist/magentic`
 
 #### SingleAgentDemo Project
 - **Renamed**: `SingleAgentController.cs` → `SingleAgentControllerSK.cs`
 - **Created**: `SingleAgentControllerAgentFx.cs`
-- Both controllers implement the same endpoint:
-  - POST `/api/singleagent/analyze`
+- SK controller route: `/api/singleagent/sk/*`
+- AgentFx controller route: `/api/singleagent/agentfx/*`
+- Both controllers implement endpoint:
+  - POST `/analyze`
 
-### 2. Configuration-Based Switching
+### 2. Frontend-Based Switching
 
-Added configuration in `appsettings.json`:
-```json
-{
-  "AgentFramework": {
-    "Type": "SK"
-  }
-}
-```
+**Store Frontend:**
+- Created `Settings.razor` page with framework toggle switch
+- Created `AgentFrameworkService` to manage framework preference
+- Framework selection saved to browser localStorage
+- No server restart required - changes take effect immediately
 
-Supported values:
-- `"SK"` - Semantic Kernel (default)
-- `"AgentFx"` - Microsoft Agent Framework
+**Store Services:**
+- Updated `MultiAgentService` to route based on selected framework
+- Updated `SingleAgentService` to route based on selected framework
+- Services inject `AgentFrameworkService` to read user preference
+- Dynamic endpoint construction: `/api/{service}/{framework}/*`
+
+**Configuration files:**
+- Removed `AgentFramework:Type` from appsettings.json files
+- All framework selection is now UI-based
 
 ### 3. Program.cs Updates
 
 Both `MultiAgentDemo/Program.cs` and `SingleAgentDemo/Program.cs` were updated to:
-- Read the `AgentFramework:Type` configuration
-- Conditionally register the appropriate agent providers
-- Support both Semantic Kernel and AgentFx providers
+- Register **both** agent providers simultaneously
+- Remove conditional registration logic
+- Support both Semantic Kernel and AgentFx at runtime
 
 ### 4. Project References
 
@@ -60,20 +67,30 @@ Updated the following files:
 
 ## How It Works
 
+### Frontend-Based Switching
+- User opens the **Settings page** in the Store frontend
+- Toggle switch allows selection between SK and AgentFx
+- Selection is saved to browser **localStorage**
+- `AgentFrameworkService` reads the preference
+- Services dynamically route to appropriate controller endpoints
+
+### Route Architecture
+- SK controllers use routes: `/api/multiagent/sk/*` and `/api/singleagent/sk/*`
+- AgentFx controllers use routes: `/api/multiagent/agentfx/*` and `/api/singleagent/agentfx/*`
+- Frontend services determine which route to call based on user preference
+- Both controllers are always registered and available
+
 ### Default Behavior
-- By default, the solution uses **Semantic Kernel (SK)**
-- No changes needed for existing deployments
+- **Semantic Kernel (SK)** is the default if no preference is saved
+- No server restart required - changes take effect immediately
+- Preference persists across browser sessions via localStorage
 
-### Switching Frameworks
-1. Edit `appsettings.json` in both demo projects
-2. Change `AgentFramework:Type` to `"AgentFx"`
-3. Restart the application
-4. Both controllers connect to the same Azure AI Foundry agents
-
-### Route Compatibility
-- Both controller implementations use the **same route paths**
-- The Store UI requires **no changes**
-- HttpClient calls in Store services work with both implementations
+### Store Service Integration
+The Store services (`MultiAgentService` and `SingleAgentService`) now:
+1. Inject `AgentFrameworkService`
+2. Read framework preference asynchronously
+3. Construct appropriate endpoint URL
+4. Route request to correct controller
 
 ## Architecture Benefits
 

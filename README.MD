@@ -47,17 +47,13 @@ This solution demonstrates integration with two agent frameworks:
 1. **Semantic Kernel (SK)** - Microsoft.SemanticKernel - Default implementation
 2. **Microsoft Agent Framework (AgentFx)** - Microsoft.Agents.AI - Alternative implementation
 
-Both frameworks can connect to the same Azure AI Foundry agents. You can switch between them via configuration in `appsettings.json`:
+Both frameworks can connect to the same Azure AI Foundry agents. You can switch between them using the **Settings page** in the Store frontend application:
 
-```json
-{
-  "AgentFramework": {
-    "Type": "SK"  // "SK" for Semantic Kernel or "AgentFx" for Microsoft Agent Framework
-  }
-}
-```
+1. Navigate to **Settings** in the Store app
+2. Use the toggle switch to select your preferred framework
+3. Your selection is saved automatically and takes effect immediately
 
-See [`src/readme.md`](./src/readme.md) for more details on switching frameworks.
+See [`src/readme.md`](./src/readme.md) for more details on the framework architecture.
 
 ## 🔗 Session Resources
 

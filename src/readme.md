@@ -11,29 +11,31 @@ This solution supports two agent frameworks:
 
 ### Switching Between Frameworks
 
-To switch between frameworks, update the `appsettings.json` file in both `MultiAgentDemo` and `SingleAgentDemo` projects:
+The framework selection is now managed through the **Settings page** in the Store frontend application. 
 
-```json
-{
-  "AgentFramework": {
-    "Type": "SK"  // Use "SK" for Semantic Kernel or "AgentFx" for Microsoft Agent Framework
-  }
-}
-```
+**To switch frameworks:**
+1. Navigate to the **Settings** page in the Store app (accessible from the navigation menu)
+2. Use the toggle switch to select your preferred framework:
+   - **OFF** = Semantic Kernel (SK) - Default
+   - **ON** = Microsoft Agent Framework (AgentFx)
+3. Your preference is automatically saved in browser localStorage
+4. All agent demos will immediately use the selected framework
+
+**Note:** The framework preference is stored in your browser and persists across sessions. No server restart is required.
 
 ### Controllers
 
-Each demo project now has two controller implementations:
+Each demo project now has two controller implementations with different routes:
 
 **MultiAgentDemo:**
-- `MultiAgentControllerSK.cs` - Uses Semantic Kernel with Azure AI Foundry agents
-- `MultiAgentControllerAgentFx.cs` - Uses Microsoft Agent Framework
+- `MultiAgentControllerSK.cs` - Route: `/api/multiagent/sk/*`
+- `MultiAgentControllerAgentFx.cs` - Route: `/api/multiagent/agentfx/*`
 
 **SingleAgentDemo:**
-- `SingleAgentControllerSK.cs` - Uses Semantic Kernel
-- `SingleAgentControllerAgentFx.cs` - Uses Microsoft Agent Framework
+- `SingleAgentControllerSK.cs` - Route: `/api/singleagent/sk/*`
+- `SingleAgentControllerAgentFx.cs` - Route: `/api/singleagent/agentfx/*`
 
-Both controllers use the same route (`/api/multiagent` and `/api/singleagent`) to maintain compatibility with the Store UI.
+The Store frontend automatically routes requests to the appropriate controller based on your selection in the Settings page.
 
 ## How to use this code for the session
 

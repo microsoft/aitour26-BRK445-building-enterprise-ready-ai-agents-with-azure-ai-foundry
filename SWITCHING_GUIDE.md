@@ -1,130 +1,99 @@
 # Quick Start Guide: Switching Agent Frameworks
 
-This guide shows how to switch between Semantic Kernel and Microsoft Agent Framework.
+This guide shows how to switch between Semantic Kernel and Microsoft Agent Framework using the Store frontend.
 
 ## Prerequisites
-- The solution is already built and configured
+- The solution is already built and running
 - Azure AI Foundry agents are deployed and configured
+- Store application is accessible in your browser
 
 ## Switching Steps
 
-### Option 1: Use Semantic Kernel (Default)
-No changes needed - this is the default configuration.
+### Using the Settings Page (Recommended)
 
-### Option 2: Use Microsoft Agent Framework
+1. **Open the Store application**
+   - Navigate to the Store frontend in your browser
+   - The URL is typically displayed in the .NET Aspire dashboard
 
-1. **Update MultiAgentDemo configuration**
-   
-   Edit `src/MultiAgentDemo/appsettings.json`:
-   ```json
-   {
-     "AgentFramework": {
-       "Type": "AgentFx"
-     }
-   }
-   ```
+2. **Navigate to Settings**
+   - Click on **Settings** in the left navigation menu
+   - Or navigate directly to `/settings`
 
-2. **Update SingleAgentDemo configuration**
-   
-   Edit `src/SingleAgentDemo/appsettings.json`:
-   ```json
-   {
-     "AgentFramework": {
-       "Type": "AgentFx"
-     }
-   }
-   ```
+3. **Select Your Framework**
+   - Use the toggle switch on the Settings page:
+     - **Toggle OFF** (default) = Semantic Kernel (SK)
+     - **Toggle ON** = Microsoft Agent Framework (AgentFx)
+   - Your selection is automatically saved
 
-3. **Restart the application**
-   ```bash
-   # Stop the running application (Ctrl+C)
-   
-   # Rebuild and run
-   cd src
-   dotnet build Zava-Aspire.slnx
-   dotnet run --project ./ZavaAppHost/ZavaAppHost.csproj
-   ```
+4. **Verify the Change**
+   - A success message will appear confirming your selection
+   - The framework indicator shows which framework is currently active
+   - Changes take effect immediately - no restart required
+
+5. **Test the Framework**
+   - Navigate to any agent demo page:
+     - **Single Agent** demo
+     - **Multi-Agent** demo
+   - Submit a request and check the logs to see which framework is being used
 
 ## Verification
 
-Check the application logs to verify which framework is being used:
+The Settings page displays:
+- Current framework selection (SK or AgentFx)
+- Framework comparison table showing active/inactive status
+- Success confirmation when settings are saved
 
-**Semantic Kernel:**
+**Framework logs will show:**
+- Semantic Kernel: `"Calling multi-agent service... using SK framework"`
+- Microsoft Agent Framework: `"Calling multi-agent service... using AgentFx framework"`
+
+## Configuration Persistence
+
+- **Browser localStorage**: Framework preference is stored in browser localStorage
+- **Per-browser**: Each browser has its own setting
+- **Persistent**: Setting survives page refreshes and browser restarts
+- **No server config needed**: No need to edit appsettings.json files
+
+## Advanced: Programmatic Access
+
+If you need to access the framework setting programmatically:
+
+```javascript
+// Get current framework
+localStorage.getItem('agentFramework'); // Returns "SK" or "AgentFx"
+
+// Set framework
+localStorage.setItem('agentFramework', 'AgentFx');
 ```
-Starting sequential orchestration for query: {ProductQuery}
-```
-
-**Microsoft Agent Framework:**
-```
-Starting sequential orchestration for query: {ProductQuery} using Microsoft Agent Framework
-```
-
-## Switching Back to Semantic Kernel
-
-Simply change `"Type": "AgentFx"` back to `"Type": "SK"` in both appsettings.json files and restart.
-
-## Configuration Values
-
-| Value | Framework | Description |
-|-------|-----------|-------------|
-| `"SK"` | Semantic Kernel | Default - uses Microsoft.SemanticKernel |
-| `"AgentFx"` | Microsoft Agent Framework | Uses Microsoft.Agents.AI |
-
-## Important Notes
-
-1. **No Code Changes Required**: Switching is purely configuration-based
-2. **Same Azure Resources**: Both frameworks connect to the same Azure AI Foundry agents
-3. **API Compatibility**: Store UI works with both frameworks (same route paths)
-4. **Environment-Specific**: You can use different frameworks in different environments
 
 ## Troubleshooting
 
-**Issue**: Application doesn't start after changing configuration
-- **Solution**: Check that the value is exactly `"SK"` or `"AgentFx"` (case-sensitive)
+**Issue**: Settings page doesn't save my preference
+- **Solution**: Check browser console for JavaScript errors
+- **Solution**: Ensure localStorage is enabled in your browser
 
-**Issue**: "Agent provider not registered" error
-- **Solution**: Ensure both projects (MultiAgentDemo and SingleAgentDemo) are updated
+**Issue**: Framework doesn't change after toggling
+- **Solution**: Hard refresh the page (Ctrl+F5 or Cmd+Shift+R)
+- **Solution**: Clear browser cache and reload
 
-**Issue**: Controllers not found
-- **Solution**: Rebuild the solution after making changes
+**Issue**: "Framework not available" error
+- **Solution**: Ensure both MultiAgentDemo and SingleAgentDemo services are running
+- **Solution**: Check the .NET Aspire dashboard for service health
 
-## Examples
+## Benefits of Frontend Switching
 
-### Development Environment (Semantic Kernel)
-```json
-{
-  "AgentFramework": {
-    "Type": "SK"
-  }
-}
-```
-
-### Testing Environment (Microsoft Agent Framework)
-```json
-{
-  "AgentFramework": {
-    "Type": "AgentFx"
-  }
-}
-```
-
-### Environment Variables Override
-You can also set via environment variable:
-```bash
-export AgentFramework__Type=AgentFx
-```
-
-Or in Windows:
-```powershell
-$env:AgentFramework__Type = "AgentFx"
-```
+1. **No Server Restart**: Changes take effect immediately
+2. **User-Friendly**: Simple toggle switch interface
+3. **Per-User**: Different users/browsers can use different frameworks
+4. **No Configuration Files**: No need to edit appsettings.json
+5. **Visual Feedback**: Clear indication of active framework
 
 ## Performance Comparison
 
-You can use this switching mechanism to compare:
+You can use the Settings page to quickly switch frameworks and compare:
 - Response times
 - Agent behavior
 - Resource usage
 - Implementation differences
 
-Simply run the same requests with both frameworks and compare results!
+Simply toggle between frameworks and run the same requests to compare results!
