@@ -34,6 +34,12 @@ namespace MultiAgentDemo.Controllers
             _navigationAgentService = navigationAgentService;
             _agentFxAgentProvider = agentFxAgentProvider;
             _configuration = configuration;
+
+            // Set framework to AgentFx for all agent services
+            _inventoryAgentService.SetFramework("agentfx");
+            _matchmakingAgentService.SetFramework("agentfx");
+            _locationAgentService.SetFramework("agentfx");
+            _navigationAgentService.SetFramework("agentfx");
         }
 
         [HttpPost("assist")]

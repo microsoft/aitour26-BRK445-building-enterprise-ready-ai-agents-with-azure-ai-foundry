@@ -31,6 +31,12 @@ public class SingleAgentControllerSK : ControllerBase
         _customerInformationService = customerInformationService;
         _toolReasoningService = toolReasoningService;
         _inventoryService = inventoryService;
+
+        // Set framework to SK for all agent services
+        _analyzePhotoService.SetFramework("sk");
+        _customerInformationService.SetFramework("sk");
+        _toolReasoningService.SetFramework("sk");
+        _inventoryService.SetFramework("sk");
     }
 
     [HttpPost("analyze")]

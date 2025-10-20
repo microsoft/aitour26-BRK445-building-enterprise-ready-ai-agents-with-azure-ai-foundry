@@ -61,6 +61,11 @@ namespace MultiAgentDemo.Controllers
             _aIFoundryAgentProvider = aIFoundryAgentProvider;
             _configuration = configuration;
 
+            // Set framework to SK for all agent services
+            _inventoryAgentService.SetFramework("sk");
+            _matchmakingAgentService.SetFramework("sk");
+            _locationAgentService.SetFramework("sk");
+            _navigationAgentService.SetFramework("sk");
         }
 
         [HttpPost("assist")]

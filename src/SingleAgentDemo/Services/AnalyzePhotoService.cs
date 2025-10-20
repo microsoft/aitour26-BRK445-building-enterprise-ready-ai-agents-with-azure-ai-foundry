@@ -6,11 +6,22 @@ public class AnalyzePhotoService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AnalyzePhotoService> _logger;
+    private string _framework = "sk"; // Default to Semantic Kernel
 
     public AnalyzePhotoService(HttpClient httpClient, ILogger<AnalyzePhotoService> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Sets the agent framework to use for service calls
+    /// </summary>
+    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    public void SetFramework(string framework)
+    {
+        _framework = framework?.ToLowerInvariant() ?? "sk";
+        _logger.LogInformation($"[AnalyzePhotoService] Framework set to: {_framework}");
     }
 
     public async Task<PhotoAnalysisResult> AnalyzePhotoAsync(IFormFile image, string prompt)
@@ -25,7 +36,9 @@ public class AnalyzePhotoService
             content.Add(streamContent, "image", image.FileName);
             content.Add(new StringContent(prompt), "prompt");
 
-            var response = await _httpClient.PostAsync("/api/PhotoAnalysis/analyze", content);
+            var endpoint = $"/api/PhotoAnalysis/analyze{_framework}";
+            _logger.LogInformation($"[AnalyzePhotoService] Calling endpoint: {endpoint}");
+            var response = await _httpClient.PostAsync(endpoint, content);
             
             _logger.LogInformation($"AnalyzePhotoService HTTP status code: {response.StatusCode}");
             

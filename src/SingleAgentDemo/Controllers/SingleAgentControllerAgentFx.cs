@@ -34,6 +34,12 @@ public class SingleAgentControllerAgentFx : ControllerBase
         _inventoryService = inventoryService;
         _agentFxAgentProvider = agentFxAgentProvider;
         _configuration = configuration;
+
+        // Set framework to AgentFx for all agent services
+        _analyzePhotoService.SetFramework("agentfx");
+        _customerInformationService.SetFramework("agentfx");
+        _toolReasoningService.SetFramework("agentfx");
+        _inventoryService.SetFramework("agentfx");
     }
 
     [HttpPost("analyze")]
