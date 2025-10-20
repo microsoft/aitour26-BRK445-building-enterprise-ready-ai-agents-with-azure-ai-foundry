@@ -33,6 +33,30 @@ Developers, architects, and AI engineers who build production-grade agentic appl
 
 - `src/` — Example source code used by the demos (C#, .NET 9).  
 - `session-delivery-resources/` — slides, demos, and presenter notes
+- `deploy.sh` / `deploy.ps1` — Automated deployment scripts for Azure resources
+- [`DEPLOYMENT.md`](./DEPLOYMENT.md) — Complete deployment guide
+
+## 🚀 Quick Deployment
+
+Deploy Azure AI Foundry resources with one command:
+
+**Codespaces/Linux:**
+```bash
+./deploy.sh
+```
+
+**Windows:**
+```powershell
+.\deploy.ps1
+```
+
+The scripts automatically deploy:
+- ✅ Azure AI Foundry (OpenAI) resource
+- ✅ gpt-5-mini model (version: 2025-08-07)
+- ✅ text-embedding-ada-002 model (version: 2)
+- ✅ Application Insights and required infrastructure
+
+See [`DEPLOYMENT.md`](./DEPLOYMENT.md) for detailed deployment instructions and troubleshooting.
 
 ## Technologies used
 
