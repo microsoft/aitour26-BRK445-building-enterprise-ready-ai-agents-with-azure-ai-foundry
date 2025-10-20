@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.Agents.AI;
 using SharedEntities;
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaAgentFxAgentsProvider;
 
 namespace AgentsCatalogService.Controllers;
 
@@ -16,13 +18,16 @@ public class AgentCatalogController : ControllerBase
     private readonly ILogger<AgentCatalogController> _logger;
     private AzureAIAgent? _agent;
     private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
+    private readonly AgentFxAgentProvider _agentFxAgentProvider;
 
     public AgentCatalogController(
         ILogger<AgentCatalogController> logger,
-        AIFoundryAgentProvider aIFoundryAgentProvider)
+        AIFoundryAgentProvider aIFoundryAgentProvider,
+        AgentFxAgentProvider agentFxAgentProvider)
     {
         _logger = logger;
         _aIFoundryAgentProvider = aIFoundryAgentProvider;
+        _agentFxAgentProvider = agentFxAgentProvider;
     }
 
     [HttpGet("agents")]
@@ -46,27 +51,20 @@ public class AgentCatalogController : ControllerBase
         }
     }
 
-    [HttpPost("test")]
-    public async Task<ActionResult<AgentTesterResponse>> TestAgentAsync([FromBody] AgentTesterRequest request)
+    [HttpPost("testsk")]
+    public async Task<ActionResult<AgentTesterResponse>> TestAgentSKAsync([FromBody] AgentTesterRequest request)
     {
         var agentId = "";
         var question = "";
 
         try
         {
-            _logger.LogInformation("Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
+            _logger.LogInformation("Testing agent {AgentId} with Semantic Kernel, question: {Question}", request.AgentId, request.Question);
 
             agentId = request.AgentId;
             question = request.Question;
 
-            var prompt = $@"
-You are a helpful AI assistant specializing in DIY projects and tool recommendations.
-Agent Type: {AgentCatalog.GetAgentName(agentId)}
-User Question: {question}
-
-Please provide a helpful and informative response based on your expertise.
-Keep the response concise but thorough, and be encouraging while maintaining safety awareness.
-";
+            var prompt = BuildTestPrompt(agentId, question);
 
             // Create a Semantic Kernel agent based on the agent definition using the agentId
             var agentResponse = string.Empty;
@@ -100,7 +98,7 @@ Keep the response concise but thorough, and be encouraging while maintaining saf
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error testing agent {AgentId}", agentId);
+            _logger.LogError(ex, "Error testing agent {AgentId} with Semantic Kernel", agentId);
 
             var fallbackResponse = new AgentTesterResponse
             {
@@ -116,6 +114,76 @@ Keep the response concise but thorough, and be encouraging while maintaining saf
             return Ok(fallbackResponse);
         }
     }
+
+    [HttpPost("testagentfx")]
+    public async Task<ActionResult<AgentTesterResponse>> TestAgentFxAsync([FromBody] AgentTesterRequest request)
+    {
+        var agentId = "";
+        var question = "";
+
+        try
+        {
+            _logger.LogInformation("Testing agent {AgentId} with Agent Framework, question: {Question}", request.AgentId, request.Question);
+
+            agentId = request.AgentId;
+            question = request.Question;
+
+            var prompt = BuildTestPrompt(agentId, question);
+
+            // Use Microsoft Agent Framework
+            var agentResponse = string.Empty;
+            var agent = await _agentFxAgentProvider.GetAzureAIAgent(agentId);
+            
+            // TODO: Implement actual Agent Framework invocation
+            // For now, use fallback
+            _logger.LogWarning("Agent Framework integration pending - using fallback");
+            agentResponse = GenerateFallbackResponse(agentId, question);
+
+            var agentTesterResponse = new AgentTesterResponse
+            {
+                AgentId = agentId,
+                AgentName = AgentCatalog.GetAgentName(agentId),
+                Question = question,
+                Response = agentResponse,
+                Timestamp = DateTime.UtcNow,
+                IsSuccessful = true,
+                ErrorMessage = null
+            };
+            _logger.LogInformation("Agent response: {Response}", agentTesterResponse.Response);
+
+            return Ok(agentTesterResponse);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error testing agent {AgentId} with Agent Framework", agentId);
+
+            var fallbackResponse = new AgentTesterResponse
+            {
+                AgentId = agentId,
+                AgentName = AgentCatalog.GetAgentName(agentId),
+                Question = question,
+                Response = $"Error occurred while processing your question: {ex.Message}",
+                Timestamp = DateTime.UtcNow,
+                IsSuccessful = false,
+                ErrorMessage = ex.Message
+            };
+
+            return Ok(fallbackResponse);
+        }
+    }
+
+    private string BuildTestPrompt(string agentId, string question)
+    {
+        return $@"
+You are a helpful AI assistant specializing in DIY projects and tool recommendations.
+Agent Type: {AgentCatalog.GetAgentName(agentId)}
+User Question: {question}
+
+Please provide a helpful and informative response based on your expertise.
+Keep the response concise but thorough, and be encouraging while maintaining safety awareness.
+";
+    }
+
     private string GenerateFallbackResponse(string agentId, string question)
     {
         var agentName = AgentCatalog.GetAgentName(agentId);
