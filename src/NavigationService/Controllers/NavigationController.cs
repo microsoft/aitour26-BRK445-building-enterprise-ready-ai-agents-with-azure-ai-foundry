@@ -14,13 +14,26 @@ public class NavigationController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost("directions")]
-    public async Task<ActionResult<NavigationInstructions>> GenerateDirections([FromBody] DirectionsRequest request)
+    [HttpPost("directions/sk")]
+    public async Task<ActionResult<NavigationInstructions>> GenerateDirectionsSkAsync([FromBody] DirectionsRequest request)
     {
-        _logger.LogInformation("Generating directions from {From} to {To}", request.From, request.To);
+        _logger.LogInformation("[SK] Generating directions from {From} to {To}", request.From, request.To);
+        return await GenerateDirectionsInternalAsync(request);
+    }
 
+    [HttpPost("directions/agentfx")]
+    public async Task<ActionResult<NavigationInstructions>> GenerateDirectionsAgentFxAsync([FromBody] DirectionsRequest request)
+    {
+        _logger.LogInformation("[AgentFx] Generating directions from {From} to {To}", request.From, request.To);
+        return await GenerateDirectionsInternalAsync(request);
+    }
+
+    private async Task<ActionResult<NavigationInstructions>> GenerateDirectionsInternalAsync(DirectionsRequest request)
+    {
         // AI-powered navigation logic would go here
         // For now, return demo navigation steps
+        await Task.Delay(50); // Simulate processing
+        
         var result = new NavigationInstructions
         {
             Steps = GenerateNavigationSteps(request.From, request.To)

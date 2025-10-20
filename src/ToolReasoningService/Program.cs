@@ -1,4 +1,5 @@
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaAgentFxAgentsProvider;
 using ZavaSemanticKernelProvider;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,12 +19,21 @@ builder.Services.AddSingleton(sp =>
         return new SemanticKernelProvider(openAiConnection, chatDeploymentName);
     });
 
+// Register Semantic Kernel agent provider
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetService<IConfiguration>();
     var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
     var agentId = config.GetConnectionString("toolreasoningagentid");
     return new AIFoundryAgentProvider(aiFoundryProjectConnection, agentId);
+});
+
+// Register AgentFx agent provider
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetService<IConfiguration>();
+    var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
+    return new AgentFxAgentProvider(aiFoundryProjectConnection);
 });
 
 var app = builder.Build();
