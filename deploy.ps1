@@ -20,10 +20,10 @@ Write-Host ""
 # Check for Azure CLI
 try {
     $null = az version 2>$null
-    Write-Host "✓ Azure CLI found" -ForegroundColor Green
+    Write-Host "[OK] Azure CLI found" -ForegroundColor Green
 }
 catch {
-    Write-Host "❌ Error: Azure CLI is not installed" -ForegroundColor Red
+    Write-Host "[ERROR] Azure CLI is not installed" -ForegroundColor Red
     Write-Host "Please install Azure CLI: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli" -ForegroundColor Yellow
     exit 1
 }
@@ -31,10 +31,10 @@ catch {
 # Check if logged in to Azure
 try {
     $null = az account show 2>$null
-    Write-Host "✓ Logged in to Azure" -ForegroundColor Green
+    Write-Host "[OK] Logged in to Azure" -ForegroundColor Green
 }
 catch {
-    Write-Host "❌ Error: Not logged in to Azure" -ForegroundColor Red
+    Write-Host "[ERROR] Not logged in to Azure" -ForegroundColor Red
     Write-Host "Please run: az login" -ForegroundColor Yellow
     exit 1
 }
@@ -42,13 +42,13 @@ catch {
 # Get current subscription
 $subscriptionId = az account show --query id -o tsv
 $subscriptionName = az account show --query name -o tsv
-Write-Host "📋 Using subscription: $subscriptionName ($subscriptionId)" -ForegroundColor Cyan
+Write-Host "[INFO] Using subscription: $subscriptionName ($subscriptionId)" -ForegroundColor Cyan
 Write-Host ""
 
 # Prompt for environment name
 $envName = Read-Host "Enter environment name (lowercase, alphanumeric, max 64 chars)"
 if ([string]::IsNullOrWhiteSpace($envName)) {
-    Write-Host "❌ Environment name cannot be empty" -ForegroundColor Red
+    Write-Host "[ERROR] Environment name cannot be empty" -ForegroundColor Red
     exit 1
 }
 
@@ -98,35 +98,39 @@ if ($confirm -ne "y" -and $confirm -ne "Y") {
 }
 
 Write-Host ""
-Write-Host "🚀 Starting deployment..." -ForegroundColor Green
+Write-Host "[ACTION] Starting deployment..." -ForegroundColor Green
 Write-Host ""
 
 # Determine which bicep files to use
 $infraDir = $null
 if (Test-Path "./src/ZavaAppHost/infra") {
     $infraDir = "./src/ZavaAppHost/infra"
-    Write-Host "📁 Using infrastructure from: src/ZavaAppHost/infra" -ForegroundColor Cyan
+    Write-Host "[INFO] Using infrastructure from: src/ZavaAppHost/infra" -ForegroundColor Cyan
 }
 elseif (Test-Path "./infra") {
     $infraDir = "./infra"
-    Write-Host "📁 Using infrastructure from: infra" -ForegroundColor Cyan
+    Write-Host "[INFO] Using infrastructure from: infra" -ForegroundColor Cyan
 }
 else {
-    Write-Host "❌ Error: No infrastructure directory found" -ForegroundColor Red
+    Write-Host "[ERROR] No infrastructure directory found" -ForegroundColor Red
     exit 1
 }
 
 $resourceGroup = "rg-$envName"
 
 # Create resource group
-Write-Host "📦 Creating resource group: $resourceGroup" -ForegroundColor Cyan
+Write-Host "[INFO] Creating resource group: $resourceGroup" -ForegroundColor Cyan
 az group create --name $resourceGroup --location $location --tags "azd-env-name=$envName" | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Failed to create resource group." -ForegroundColor Red
+    exit 1
+}
 
 # Generate SQL password
-$sqlPassword = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 16 | ForEach-Object {[char]$_}) + "A1!"
+$sqlPassword = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 16 | ForEach-Object { [char]$_ }) + "A1!"
 
 # Deploy infrastructure
-Write-Host "🔧 Deploying Azure AI Foundry resources..." -ForegroundColor Cyan
+Write-Host "[INFO] Deploying Azure AI Foundry resources..." -ForegroundColor Cyan
 Write-Host "   This may take 5-10 minutes..." -ForegroundColor Yellow
 
 try {
@@ -146,19 +150,25 @@ try {
         --parameters sql_password=$sqlPassword `
         --parameters toolreasoningagentid="" `
         --query properties.outputs `
-        -o json 2>&1
+        -o json `
+        --only-show-errors
     
     if ($LASTEXITCODE -ne 0) {
         throw "Deployment failed: $deploymentOutput"
     }
     
-    $outputs = $deploymentOutput | ConvertFrom-Json
+    $outputText = ($deploymentOutput | Out-String).Trim()
+    if (-not $outputText) {
+        throw "Deployment command returned no output."
+    }
+
+    $outputs = $outputText | ConvertFrom-Json
     
-    Write-Host "✅ Deployment completed successfully!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Deployment completed successfully!" -ForegroundColor Green
     Write-Host ""
 }
 catch {
-    Write-Host "❌ Deployment failed:" -ForegroundColor Red
+    Write-Host "[ERROR] Deployment failed:" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
     exit 1
 }
@@ -168,11 +178,11 @@ $aifoundryConnection = $outputs.AIFOUNDRY_CONNECTIONSTRING.value
 $appInsightsConnection = $outputs.APPINSIGHTS_APPINSIGHTSCONNECTIONSTRING.value
 
 Write-Host "==================================================" -ForegroundColor Cyan
-Write-Host "🎉 Deployment Complete!" -ForegroundColor Green
+Write-Host "[SUCCESS] Deployment complete!" -ForegroundColor Green
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "📋 Resource Group: $resourceGroup" -ForegroundColor Cyan
-Write-Host "📍 Location: $location" -ForegroundColor Cyan
+Write-Host "[INFO] Resource Group: $resourceGroup" -ForegroundColor Cyan
+Write-Host "[INFO] Location: $location" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host "Connection Strings" -ForegroundColor Cyan
@@ -180,7 +190,7 @@ Write-Host "==================================================" -ForegroundColor
 Write-Host ""
 
 if ($aifoundryConnection) {
-    Write-Host "🔗 Azure AI Foundry (OpenAI):" -ForegroundColor Yellow
+    Write-Host "[INFO] Azure AI Foundry (OpenAI):" -ForegroundColor Yellow
     Write-Host "   $aifoundryConnection" -ForegroundColor White
     Write-Host ""
     
@@ -196,11 +206,11 @@ if ($aifoundryConnection) {
     }
 }
 else {
-    Write-Host "⚠️  AI Foundry connection string not found" -ForegroundColor Yellow
+    Write-Host "[WARNING] AI Foundry connection string not found" -ForegroundColor Yellow
 }
 
 if ($appInsightsConnection) {
-    Write-Host "📊 Application Insights:" -ForegroundColor Yellow
+    Write-Host "[INFO] Application Insights:" -ForegroundColor Yellow
     Write-Host "   $appInsightsConnection" -ForegroundColor White
     Write-Host ""
 }
@@ -209,12 +219,12 @@ Write-Host "==================================================" -ForegroundColor
 Write-Host "Deployed Models" -ForegroundColor Cyan
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "✅ gpt-5-mini (version: 2025-08-07)" -ForegroundColor Green
+Write-Host "[INFO] gpt-5-mini (version: 2025-08-07)" -ForegroundColor Green
 Write-Host "   - Deployment Name: gpt-5-mini"
 Write-Host "   - SKU: GlobalStandard"
 Write-Host "   - Capacity: 8"
 Write-Host ""
-Write-Host "✅ text-embedding-ada-002 (version: 2)" -ForegroundColor Green
+Write-Host "[INFO] text-embedding-ada-002 (version: 2)" -ForegroundColor Green
 Write-Host "   - Deployment Name: text-embedding-ada-002"
 Write-Host "   - SKU: Standard"
 Write-Host "   - Capacity: 8"
@@ -227,18 +237,18 @@ Write-Host ""
 Write-Host "1. Copy the connection strings above to your application configuration"
 Write-Host "2. Use the following in your appsettings.json or user secrets:"
 Write-Host ""
-Write-Host "   {" -ForegroundColor Gray
-Write-Host "     `"ConnectionStrings`": {" -ForegroundColor Gray
+Write-Host '   {' -ForegroundColor Gray
+Write-Host '     "ConnectionStrings": {' -ForegroundColor Gray
 
 if ($aifoundryConnection -and $aifoundryKey) {
-    Write-Host "       `"aifoundry`": `"$aifoundryConnection;ApiKey=$aifoundryKey`"," -ForegroundColor Gray
+    Write-Host ('       "aifoundry": "{0}",' -f "$aifoundryConnection;ApiKey=$aifoundryKey") -ForegroundColor Gray
 }
 if ($appInsightsConnection) {
-    Write-Host "       `"applicationinsights`": `"$appInsightsConnection`"" -ForegroundColor Gray
+    Write-Host ('       "applicationinsights": "{0}"' -f $appInsightsConnection) -ForegroundColor Gray
 }
 
-Write-Host "     }" -ForegroundColor Gray
-Write-Host "   }" -ForegroundColor Gray
+Write-Host '     }' -ForegroundColor Gray
+Write-Host '   }' -ForegroundColor Gray
 Write-Host ""
 Write-Host "3. Deploy AI Foundry agents using Azure AI Foundry portal: https://ai.azure.com"
 Write-Host ""
@@ -265,5 +275,5 @@ if ($appInsightsConnection) {
 
 $outputContent | Out-File -FilePath $outputFile -Encoding UTF8
 
-Write-Host "💾 Connection strings saved to: $outputFile" -ForegroundColor Green
+Write-Host "[INFO] Connection strings saved to: $outputFile" -ForegroundColor Green
 Write-Host ""
