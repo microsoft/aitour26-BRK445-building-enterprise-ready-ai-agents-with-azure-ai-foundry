@@ -7,7 +7,7 @@ using ZavaSemanticKernelProvider;
 namespace SingleAgentDemo.Controllers;
 
 [ApiController]
-[Route("api/singleagent")]
+[Route("api/singleagent/sk")]
 public class SingleAgentControllerSK : ControllerBase
 {
     private readonly ILogger<SingleAgentControllerSK> _logger;

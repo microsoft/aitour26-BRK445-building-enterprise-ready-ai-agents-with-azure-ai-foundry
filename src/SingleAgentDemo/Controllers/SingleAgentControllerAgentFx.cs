@@ -7,7 +7,7 @@ using ZavaAgentFxAgentsProvider;
 namespace SingleAgentDemo.Controllers;
 
 [ApiController]
-[Route("api/singleagent")]
+[Route("api/singleagent/agentfx")]
 public class SingleAgentControllerAgentFx : ControllerBase
 {
     private readonly ILogger<SingleAgentControllerAgentFx> _logger;

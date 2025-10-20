@@ -7,17 +7,21 @@ public class SingleAgentService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<SingleAgentService> _logger;
+    private readonly AgentFrameworkService _frameworkService;
 
-    public SingleAgentService(HttpClient httpClient, ILogger<SingleAgentService> logger)
+    public SingleAgentService(HttpClient httpClient, ILogger<SingleAgentService> logger, AgentFrameworkService frameworkService)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _frameworkService = frameworkService;
     }
 
     public async Task<SingleAgentAnalysisResponse?> AnalyzeAsync(SingleAgentAnalysisRequest request)
     {
         try
         {
+            var framework = await _frameworkService.GetSelectedFrameworkAsync();
+            
             using var content = new MultipartFormDataContent();
             
             // Handle the image data from the shared entity
@@ -34,9 +38,12 @@ public class SingleAgentService
             content.Add(new StringContent(request.Prompt), "prompt");
             content.Add(new StringContent(request.CustomerId), "customerId");
 
-            _logger.LogInformation("Calling single agent service for customer {CustomerId}", request.CustomerId);
+            var frameworkPath = framework == "AgentFx" ? "agentfx" : "sk";
+            var endpoint = $"/api/singleagent/{frameworkPath}/analyze";
+
+            _logger.LogInformation("Calling single agent service for customer {CustomerId} using {Framework} framework", request.CustomerId, framework);
             
-            var response = await _httpClient.PostAsync("/api/singleagent/analyze", content);
+            var response = await _httpClient.PostAsync(endpoint, content);
             var responseText = await response.Content.ReadAsStringAsync();
 
             _logger.LogInformation("Single agent service response - Status: {StatusCode}, Content: {Content}", 

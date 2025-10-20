@@ -7,22 +7,26 @@ public class MultiAgentService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<MultiAgentService> _logger;
+    private readonly AgentFrameworkService _frameworkService;
 
-    public MultiAgentService(HttpClient httpClient, ILogger<MultiAgentService> logger)
+    public MultiAgentService(HttpClient httpClient, ILogger<MultiAgentService> logger, AgentFrameworkService frameworkService)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _frameworkService = frameworkService;
     }
 
     public async Task<MultiAgentResponse?> AssistAsync(MultiAgentRequest request)
     {
         try
         {
-            _logger.LogInformation("Calling multi-agent service for user {UserId} with query {ProductQuery} using {OrchestationType} orchestration",
-                request.UserId, request.ProductQuery, request.OrchestationType);
+            var framework = await _frameworkService.GetSelectedFrameworkAsync();
+            
+            _logger.LogInformation("Calling multi-agent service for user {UserId} with query {ProductQuery} using {OrchestationType} orchestration and {Framework} framework",
+                request.UserId, request.ProductQuery, request.OrchestationType, framework);
 
             // Route to specific orchestration endpoint if specified, otherwise use default
-            var endpoint = GetOrchestrationEndpoint(request.OrchestationType);
+            var endpoint = GetOrchestrationEndpoint(request.OrchestationType, framework);
             var response = await _httpClient.PostAsJsonAsync(endpoint, request);
             var responseText = await response.Content.ReadAsStringAsync();
 
@@ -50,17 +54,20 @@ public class MultiAgentService
         }
     }
 
-    private string GetOrchestrationEndpoint(OrchestationType orchestrationType)
+    private string GetOrchestrationEndpoint(OrchestationType orchestrationType, string framework)
     {
+        var frameworkPath = framework == "AgentFx" ? "agentfx" : "sk";
+        var baseRoute = $"/api/multiagent/{frameworkPath}";
+        
         return orchestrationType switch
         {
-            OrchestationType.Default => "/api/multiagent/assist",
-            OrchestationType.Sequential => "/api/multiagent/assist/sequential",
-            OrchestationType.Concurrent => "/api/multiagent/assist/concurrent",
-            OrchestationType.Handoff => "/api/multiagent/assist/handoff",
-            OrchestationType.GroupChat => "/api/multiagent/assist/groupchat",
-            OrchestationType.Magentic => "/api/multiagent/assist/magentic",
-            _ => "/api/multiagent/assist" // Default endpoint
+            OrchestationType.Default => $"{baseRoute}/assist",
+            OrchestationType.Sequential => $"{baseRoute}/assist/sequential",
+            OrchestationType.Concurrent => $"{baseRoute}/assist/concurrent",
+            OrchestationType.Handoff => $"{baseRoute}/assist/handoff",
+            OrchestationType.GroupChat => $"{baseRoute}/assist/groupchat",
+            OrchestationType.Magentic => $"{baseRoute}/assist/magentic",
+            _ => $"{baseRoute}/assist" // Default endpoint
         };
     }
 

@@ -14,7 +14,7 @@ using ZavaSemanticKernelProvider;
 namespace MultiAgentDemo.Controllers
 {
     [ApiController]
-    [Route("api/multiagent")]
+    [Route("api/multiagent/sk")]
     public class MultiAgentControllerSK : ControllerBase
     {
         private readonly ILogger<MultiAgentControllerSK> _logger;

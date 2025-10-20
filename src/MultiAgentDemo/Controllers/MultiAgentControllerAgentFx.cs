@@ -7,7 +7,7 @@ using ZavaAgentFxAgentsProvider;
 namespace MultiAgentDemo.Controllers
 {
     [ApiController]
-    [Route("api/multiagent")]
+    [Route("api/multiagent/agentfx")]
     public class MultiAgentControllerAgentFx : ControllerBase
     {
         private readonly ILogger<MultiAgentControllerAgentFx> _logger;
