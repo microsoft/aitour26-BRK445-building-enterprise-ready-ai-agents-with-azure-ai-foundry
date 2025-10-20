@@ -2,6 +2,31 @@
 
 This file provides step-by-step instructions to build and run the `aspiredemo` (Zava-Aspire) solution locally. It is a split-off from the original `01.Installation.md` to make the run instructions easier to follow.
 
+## Agent Framework Configuration
+
+This solution supports two agent frameworks that you can switch between:
+
+1. **Semantic Kernel (SK)** - Default framework using Microsoft.SemanticKernel
+2. **Microsoft Agent Framework (AgentFx)** - Uses Microsoft.Agents.AI
+
+### Selecting the Agent Framework
+
+Before running the demo, you can choose which framework to use by editing the `appsettings.json` files:
+
+- `MultiAgentDemo/appsettings.json`
+- `SingleAgentDemo/appsettings.json`
+
+Set the `AgentFramework:Type` value:
+```json
+{
+  "AgentFramework": {
+    "Type": "SK"  // "SK" for Semantic Kernel (default) or "AgentFx" for Microsoft Agent Framework
+  }
+}
+```
+
+**Note:** By default, the solution uses Semantic Kernel (SK). Both frameworks connect to the same Azure AI Foundry agents.
+
 ## Quick start (terminal)
 
 Open PowerShell / Bash in the solution folder and run:

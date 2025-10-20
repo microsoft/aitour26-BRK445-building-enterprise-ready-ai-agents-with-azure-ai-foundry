@@ -40,6 +40,25 @@ Developers, architects, and AI engineers who build production-grade agentic appl
 - Azure AI Foundry / Azure AI Foundry Agents
 - Docker
 
+### Agent Frameworks
+
+This solution demonstrates integration with two agent frameworks:
+
+1. **Semantic Kernel (SK)** - Microsoft.SemanticKernel - Default implementation
+2. **Microsoft Agent Framework (AgentFx)** - Microsoft.Agents.AI - Alternative implementation
+
+Both frameworks can connect to the same Azure AI Foundry agents. You can switch between them via configuration in `appsettings.json`:
+
+```json
+{
+  "AgentFramework": {
+    "Type": "SK"  // "SK" for Semantic Kernel or "AgentFx" for Microsoft Agent Framework
+  }
+}
+```
+
+See [`src/readme.md`](./src/readme.md) for more details on switching frameworks.
+
 ## 🔗 Session Resources
 
 Check the [Session Delivery Resources folder](./session-delivery-resources/) for the whole set of materials.
