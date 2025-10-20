@@ -175,6 +175,7 @@ catch {
 
 # Parse outputs
 $aifoundryConnection = $outputs.AIFOUNDRY_CONNECTIONSTRING.value
+$aifoundryName = $outputs.AIFOUNDRY_NAME.value
 $appInsightsConnection = $outputs.APPINSIGHTS_APPINSIGHTSCONNECTIONSTRING.value
 
 Write-Host "==================================================" -ForegroundColor Cyan
@@ -184,26 +185,32 @@ Write-Host ""
 Write-Host "[INFO] Resource Group: $resourceGroup" -ForegroundColor Cyan
 Write-Host "[INFO] Location: $location" -ForegroundColor Cyan
 Write-Host ""
+
+# Retrieve AI Foundry API Key
+$aifoundryKey = $null
+$aifoundryEndpoint = $null
+$aifoundryConnectionWithKey = $null
+if ($aifoundryName) {
+    Write-Host "[INFO] Retrieving AI Foundry API key..." -ForegroundColor Cyan
+    $aifoundryKey = az cognitiveservices account keys list --resource-group $resourceGroup --name $aifoundryName --query key1 -o tsv
+    if ($aifoundryKey) {
+        # Extract endpoint from connection string
+        if ($aifoundryConnection -match 'Endpoint=([^;]+)') {
+            $aifoundryEndpoint = $matches[1]
+        }
+        $aifoundryConnectionWithKey = "$aifoundryConnection;Key=$aifoundryKey"
+    }
+}
+
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host "Connection Strings" -ForegroundColor Cyan
 Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host ""
 
-if ($aifoundryConnection) {
+if ($aifoundryConnectionWithKey) {
     Write-Host "[INFO] Azure AI Foundry (OpenAI):" -ForegroundColor Yellow
-    Write-Host "   $aifoundryConnection" -ForegroundColor White
+    Write-Host "   $aifoundryConnectionWithKey" -ForegroundColor White
     Write-Host ""
-    
-    # Get the AI Foundry account name and fetch API key
-    $aifoundryName = az cognitiveservices account list --resource-group $resourceGroup --query "[?kind=='OpenAI' && contains(name, 'aifoundry')].name | [0]" -o tsv
-    if ($aifoundryName) {
-        $aifoundryKey = az cognitiveservices account keys list --resource-group $resourceGroup --name $aifoundryName --query key1 -o tsv
-        if ($aifoundryKey) {
-            Write-Host "   With API Key:" -ForegroundColor Yellow
-            Write-Host "   $aifoundryConnection;ApiKey=$aifoundryKey" -ForegroundColor White
-            Write-Host ""
-        }
-    }
 }
 else {
     Write-Host "[WARNING] AI Foundry connection string not found" -ForegroundColor Yellow
@@ -240,11 +247,12 @@ Write-Host ""
 Write-Host '   {' -ForegroundColor Gray
 Write-Host '     "ConnectionStrings": {' -ForegroundColor Gray
 
-if ($aifoundryConnection -and $aifoundryKey) {
-    Write-Host ('       "aifoundry": "{0}",' -f "$aifoundryConnection;ApiKey=$aifoundryKey") -ForegroundColor Gray
+if ($aifoundryConnectionWithKey) {
+    Write-Host ('       "aifoundry": "{0}",' -f $aifoundryConnectionWithKey) -ForegroundColor Gray
+    Write-Host ('       "openai": "{0}",' -f $aifoundryConnectionWithKey) -ForegroundColor Gray
 }
 if ($appInsightsConnection) {
-    Write-Host ('       "applicationinsights": "{0}"' -f $appInsightsConnection) -ForegroundColor Gray
+    Write-Host ('       "appinsights": "{0}"' -f $appInsightsConnection) -ForegroundColor Gray
 }
 
 Write-Host '     }' -ForegroundColor Gray
@@ -263,14 +271,41 @@ Deployment Outputs - $(Get-Date)
 
 Resource Group: $resourceGroup
 Location: $location
+AI Foundry Resource: $aifoundryName
+
+Connection Strings (for appsettings.json or user secrets):
+-----------------------------------------------------------
 
 "@
 
-if ($aifoundryConnection -and $aifoundryKey) {
-    $outputContent += "AI Foundry Connection: $aifoundryConnection;ApiKey=$aifoundryKey`n"
+if ($aifoundryConnectionWithKey) {
+    $outputContent += @"
+ConnectionStrings:aifoundry
+  $aifoundryConnectionWithKey
+
+ConnectionStrings:openai (alias for backward compatibility)
+  $aifoundryConnectionWithKey
+
+"@
 }
+
 if ($appInsightsConnection) {
-    $outputContent += "Application Insights Connection: $appInsightsConnection`n"
+    $outputContent += @"
+ConnectionStrings:appinsights
+  $appInsightsConnection
+
+"@
+}
+
+if ($aifoundryEndpoint) {
+    $outputContent += @"
+
+Additional Information:
+-----------------------
+AI Foundry Endpoint: $aifoundryEndpoint
+AI Foundry API Key: $aifoundryKey
+
+"@
 }
 
 $outputContent | Out-File -FilePath $outputFile -Encoding UTF8
