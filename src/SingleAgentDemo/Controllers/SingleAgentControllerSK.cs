@@ -7,18 +7,18 @@ using ZavaSemanticKernelProvider;
 namespace SingleAgentDemo.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class SingleAgentController : ControllerBase
+[Route("api/singleagent/sk")]
+public class SingleAgentControllerSK : ControllerBase
 {
-    private readonly ILogger<SingleAgentController> _logger;
+    private readonly ILogger<SingleAgentControllerSK> _logger;
     private readonly Kernel _kernel;
     private readonly AnalyzePhotoService _analyzePhotoService;
     private readonly CustomerInformationService _customerInformationService;
     private readonly ToolReasoningService _toolReasoningService;
     private readonly InventoryService _inventoryService;
 
-    public SingleAgentController(
-        ILogger<SingleAgentController> logger,        
+    public SingleAgentControllerSK(
+        ILogger<SingleAgentControllerSK> logger,        
         AnalyzePhotoService analyzePhotoService,
         CustomerInformationService customerInformationService,
         ToolReasoningService toolReasoningService,
@@ -31,6 +31,12 @@ public class SingleAgentController : ControllerBase
         _customerInformationService = customerInformationService;
         _toolReasoningService = toolReasoningService;
         _inventoryService = inventoryService;
+
+        // Set framework to SK for all agent services
+        _analyzePhotoService.SetFramework("sk");
+        _customerInformationService.SetFramework("sk");
+        _toolReasoningService.SetFramework("sk");
+        _inventoryService.SetFramework("sk");
     }
 
     [HttpPost("analyze")]

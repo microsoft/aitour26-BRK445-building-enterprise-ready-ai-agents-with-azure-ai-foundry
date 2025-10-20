@@ -14,14 +14,28 @@ public class MatchmakingController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost("alternatives")]
-    public async Task<ActionResult<MatchmakingResult>> FindAlternatives([FromBody] AlternativesRequest request)
+    [HttpPost("alternatives/sk")]
+    public async Task<ActionResult<MatchmakingResult>> FindAlternativesSkAsync([FromBody] AlternativesRequest request)
     {
-        _logger.LogInformation("Finding alternatives for product: {ProductQuery}, User: {UserId}", 
+        _logger.LogInformation("[SK] Finding alternatives for product: {ProductQuery}, User: {UserId}", 
             request.ProductQuery, request.UserId);
+        return await FindAlternativesInternalAsync(request);
+    }
 
+    [HttpPost("alternatives/agentfx")]
+    public async Task<ActionResult<MatchmakingResult>> FindAlternativesAgentFxAsync([FromBody] AlternativesRequest request)
+    {
+        _logger.LogInformation("[AgentFx] Finding alternatives for product: {ProductQuery}, User: {UserId}", 
+            request.ProductQuery, request.UserId);
+        return await FindAlternativesInternalAsync(request);
+    }
+
+    private async Task<ActionResult<MatchmakingResult>> FindAlternativesInternalAsync(AlternativesRequest request)
+    {
         // AI-powered product matching logic would go here
         // For now, return demo data
+        await Task.Delay(50); // Simulate processing
+        
         var result = new MatchmakingResult
         {
             Alternatives = new[]

@@ -6,6 +6,7 @@ public class ToolReasoningService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<ToolReasoningService> _logger;
+    private string _framework = "sk"; // Default to Semantic Kernel
 
     public ToolReasoningService(HttpClient httpClient, ILogger<ToolReasoningService> logger)
     {
@@ -13,11 +14,23 @@ public class ToolReasoningService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Sets the agent framework to use for service calls
+    /// </summary>
+    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    public void SetFramework(string framework)
+    {
+        _framework = framework?.ToLowerInvariant() ?? "sk";
+        _logger.LogInformation($"[ToolReasoningService] Framework set to: {_framework}");
+    }
+
     public async Task<string> GenerateReasoningAsync(ReasoningRequest request)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("/api/Reasoning/generate", request);
+            var endpoint = $"/api/Reasoning/generate/{_framework}";
+            _logger.LogInformation($"[ToolReasoningService] Calling endpoint: {endpoint}");
+            var response = await _httpClient.PostAsJsonAsync(endpoint, request);
             
             _logger.LogInformation($"ToolReasoningService HTTP status code: {response.StatusCode}");
             

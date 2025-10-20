@@ -33,12 +33,51 @@ Developers, architects, and AI engineers who build production-grade agentic appl
 
 - `src/` — Example source code used by the demos (C#, .NET 9).  
 - `session-delivery-resources/` — slides, demos, and presenter notes
+- `deploy.sh` / `deploy.ps1` — Automated deployment scripts for Azure resources
+- [`DEPLOYMENT.md`](./DEPLOYMENT.md) — Complete deployment guide
+
+## 🚀 Quick Deployment
+
+Deploy Azure AI Foundry resources with one command:
+
+**Codespaces/Linux:**
+```bash
+./deploy.sh
+```
+
+**Windows:**
+```powershell
+.\deploy.ps1
+```
+
+The scripts automatically deploy:
+- ✅ Azure AI Foundry (OpenAI) resource
+- ✅ gpt-5-mini model (version: 2025-08-07)
+- ✅ text-embedding-ada-002 model (version: 2)
+- ✅ Application Insights and required infrastructure
+
+See [`DEPLOYMENT.md`](./DEPLOYMENT.md) for detailed deployment instructions and troubleshooting.
 
 ## Technologies used
 
 - C# / .NET 9 / .NET Aspire for orchestration
 - Azure AI Foundry / Azure AI Foundry Agents
 - Docker
+
+### Agent Frameworks
+
+This solution demonstrates integration with two agent frameworks:
+
+1. **Semantic Kernel (SK)** - Microsoft.SemanticKernel - Default implementation
+2. **Microsoft Agent Framework (AgentFx)** - Microsoft.Agents.AI - Alternative implementation
+
+Both frameworks can connect to the same Azure AI Foundry agents. You can switch between them using the **Settings page** in the Store frontend application:
+
+1. Navigate to **Settings** in the Store app
+2. Use the toggle switch to select your preferred framework
+3. Your selection is saved automatically and takes effect immediately
+
+See [`src/readme.md`](./src/readme.md) for more details on the framework architecture.
 
 ## 🔗 Session Resources
 

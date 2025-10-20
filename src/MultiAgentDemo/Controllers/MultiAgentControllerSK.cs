@@ -14,10 +14,10 @@ using ZavaSemanticKernelProvider;
 namespace MultiAgentDemo.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    public class MultiAgentController : ControllerBase
+    [Route("api/multiagent/sk")]
+    public class MultiAgentControllerSK : ControllerBase
     {
-        private readonly ILogger<MultiAgentController> _logger;
+        private readonly ILogger<MultiAgentControllerSK> _logger;
         private readonly Kernel _kernel;
         private readonly InventoryAgentService _inventoryAgentService;
         private readonly MatchmakingAgentService _matchmakingAgentService;
@@ -32,8 +32,8 @@ namespace MultiAgentDemo.Controllers
         private readonly IConfiguration _configuration;
         private AzureAIAgent _agent;
 
-        public MultiAgentController(
-            ILogger<MultiAgentController> logger,
+        public MultiAgentControllerSK(
+            ILogger<MultiAgentControllerSK> logger,
             InventoryAgentService inventoryAgentService,
             MatchmakingAgentService matchmakingAgentService,
             LocationAgentService locationAgentService,
@@ -61,6 +61,11 @@ namespace MultiAgentDemo.Controllers
             _aIFoundryAgentProvider = aIFoundryAgentProvider;
             _configuration = configuration;
 
+            // Set framework to SK for all agent services
+            _inventoryAgentService.SetFramework("sk");
+            _matchmakingAgentService.SetFramework("sk");
+            _locationAgentService.SetFramework("sk");
+            _navigationAgentService.SetFramework("sk");
         }
 
         [HttpPost("assist")]

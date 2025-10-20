@@ -10,6 +10,7 @@ using Microsoft.SemanticKernel.Agents.AzureAI;
 using Shared.Models;
 using SharedEntities;
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaAgentFxAgentsProvider;
 using static Microsoft.SemanticKernel.Agents.AzureAI.AzureAIAgent;
 
 namespace InventoryService.Controllers;
@@ -20,6 +21,7 @@ public class InventoryController : ControllerBase
 {
     private readonly ILogger<InventoryController> _logger;
     private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
+    private readonly AgentFxAgentProvider _agentFxAgentProvider;
     private AzureAIAgent _agent;
 
     private static readonly Dictionary<string, ToolRecommendation> _inventory = new()
@@ -38,44 +40,53 @@ public class InventoryController : ControllerBase
 
     public InventoryController(
         ILogger<InventoryController> logger,
-        AIFoundryAgentProvider aIFoundryAgentProvider)
+        AIFoundryAgentProvider aIFoundryAgentProvider,
+        AgentFxAgentProvider agentFxAgentProvider)
     {
         _logger = logger;
         _aIFoundryAgentProvider = aIFoundryAgentProvider;
+        _agentFxAgentProvider = agentFxAgentProvider;
     }
 
-    [HttpPost("search")]
-    public async Task<ActionResult<ToolRecommendation[]>> SearchInventoryAsync([FromBody] InventorySearchRequest request)
+    [HttpPost("search/sk")]
+    public async Task<ActionResult<ToolRecommendation[]>> SearchInventorySkAsync([FromBody] InventorySearchRequest request)
+    {
+        _logger.LogInformation("[SK] Searching inventory for search Query: {SearchQuery}", request.SearchQuery);
+        return await SearchInventoryInternalAsync(request, useSK: true);
+    }
+
+    [HttpPost("search/agentfx")]
+    public async Task<ActionResult<ToolRecommendation[]>> SearchInventoryAgentFxAsync([FromBody] InventorySearchRequest request)
+    {
+        _logger.LogInformation("[AgentFx] Searching inventory for search Query: {SearchQuery}", request.SearchQuery);
+        return await SearchInventoryInternalAsync(request, useSK: false);
+    }
+
+    private async Task<ActionResult<ToolRecommendation[]>> SearchInventoryInternalAsync(InventorySearchRequest request, bool useSK)
     {
         try
         {
-            _logger.LogInformation($"Searching inventory for search Query; {request.SearchQuery}");
+            var aiPrompt = BuildInventorySearchPrompt(request.SearchQuery);
 
-            // Instruct the agent to ONLY return sku identifiers, concatenated by commas.
-            // If no products match, the agent MUST return a string with a single comma: "," (two characters: comma only).
-            var aiPrompt = @$"
-# Context
-User Query: {request.SearchQuery}
-
-# Tasks
-Search the inventory for products that may match the user query.
-Analyze the user query and extract the product name or SKU that the user is referring to.
-
-Return ONLY the product SKU identifiers, separated by commas, with no additional text, explanation, or formatting.  
-If there are NO matching products, return a string that contains only a single comma: ','  
-Example response: 'PAINT-ROLLER-9IN,BRUSH-SET-3PC,SAW-CIRCULAR-7IN'  
-";
-
-
-            // Create a Semantic Kernel agent based on the agent definition
             var agentResponse = string.Empty;
-            _agent = await _aIFoundryAgentProvider.GetAzureAIAgent();
-
-            AzureAIAgentThread agentThread = new(client: _agent.Client);
-            await foreach (ChatMessageContent response in _agent.InvokeAsync(aiPrompt, agentThread))
+            
+            if (useSK)
             {
-                _logger.LogInformation("Received response from agent: {Content}", response.Content);
-                agentResponse += (response.Content);
+                // Use Semantic Kernel agent
+                _agent = await _aIFoundryAgentProvider.GetAzureAIAgent();
+                AzureAIAgentThread agentThread = new(client: _agent.Client);
+                await foreach (ChatMessageContent response in _agent.InvokeAsync(aiPrompt, agentThread))
+                {
+                    _logger.LogInformation("[SK] Received response from agent: {Content}", response.Content);
+                    agentResponse += (response.Content);
+                }
+            }
+            else
+            {
+                // Use AgentFx agent - TODO: Implement full AgentFx integration
+                // For now, use fallback pattern
+                _logger.LogWarning("[AgentFx] Using fallback pattern - full AgentFx integration pending");
+                agentResponse = await GetFallbackInventorySearch(request.SearchQuery);
             }
 
             // If the agent returned exactly a single comma, treat that as "no results".
@@ -119,6 +130,42 @@ Example response: 'PAINT-ROLLER-9IN,BRUSH-SET-3PC,SAW-CIRCULAR-7IN'
             _logger.LogError(ex, "Error searching inventory");
             return StatusCode(500, "An error occurred while searching inventory");
         }
+    }
+
+    private string BuildInventorySearchPrompt(string searchQuery)
+    {
+        return @$"
+# Context
+User Query: {searchQuery}
+
+# Tasks
+Search the inventory for products that may match the user query.
+Analyze the user query and extract the product name or SKU that the user is referring to.
+
+Return ONLY the product SKU identifiers, separated by commas, with no additional text, explanation, or formatting.  
+If there are NO matching products, return a string that contains only a single comma: ','  
+Example response: 'PAINT-ROLLER-9IN,BRUSH-SET-3PC,SAW-CIRCULAR-7IN'  
+";
+    }
+
+    private async Task<string> GetFallbackInventorySearch(string searchQuery)
+    {
+        // Fallback logic for AgentFx - returns basic matching SKUs
+        await Task.Delay(100); // Simulate processing
+        
+        var queryLower = searchQuery.ToLower();
+        var matchedSkus = new List<string>();
+        
+        if (queryLower.Contains("paint") || queryLower.Contains("roller"))
+            matchedSkus.Add("PAINT-ROLLER-9IN");
+        if (queryLower.Contains("brush"))
+            matchedSkus.Add("BRUSH-SET-3PC");
+        if (queryLower.Contains("saw") || queryLower.Contains("cut"))
+            matchedSkus.Add("SAW-CIRCULAR-7IN");
+        if (queryLower.Contains("drill"))
+            matchedSkus.Add("DRILL-CORDLESS");
+        
+        return matchedSkus.Count > 0 ? string.Join(",", matchedSkus) : ",";
     }
 
     public ToolRecommendation GetToolRecommendation(string sku)

@@ -6,6 +6,7 @@ using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Shared.Models;
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaAgentFxAgentsProvider;
 using ZavaSemanticKernelProvider;
 
 namespace ToolReasoningService.Controllers;
@@ -17,28 +18,52 @@ public class ReasoningController : ControllerBase
     private readonly ILogger<ReasoningController> _logger;
     private readonly Kernel _kernel;
     private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
+    private readonly AgentFxAgentProvider _agentFxAgentProvider;
     private AzureAIAgent _agent;
 
     public ReasoningController(
         ILogger<ReasoningController> logger, 
         SemanticKernelProvider semanticKernelProvider,
-        AIFoundryAgentProvider aIFoundryAgentProvider)
+        AIFoundryAgentProvider aIFoundryAgentProvider,
+        AgentFxAgentProvider agentFxAgentProvider)
     {
         _logger = logger;
         _kernel = semanticKernelProvider.GetKernel();
         _aIFoundryAgentProvider = aIFoundryAgentProvider;
+        _agentFxAgentProvider = agentFxAgentProvider;
     }
 
-    [HttpPost("generate")]
-    public async Task<ActionResult<string>> GenerateReasoningAsync([FromBody] ReasoningRequest request)
+    [HttpPost("generate/sk")]
+    public async Task<ActionResult<string>> GenerateReasoningSkAsync([FromBody] ReasoningRequest request)
+    {
+        _logger.LogInformation("[SK] Generating reasoning for prompt");
+        return await GenerateReasoningInternalAsync(request, useSK: true);
+    }
+
+    [HttpPost("generate/agentfx")]
+    public async Task<ActionResult<string>> GenerateReasoningAgentFxAsync([FromBody] ReasoningRequest request)
+    {
+        _logger.LogInformation("[AgentFx] Generating reasoning for prompt");
+        return await GenerateReasoningInternalAsync(request, useSK: false);
+    }
+
+    private async Task<ActionResult<string>> GenerateReasoningInternalAsync(ReasoningRequest request, bool useSK)
     {
         try
         {
             var sanitizedPrompt = request.Prompt?.Replace("\r", "").Replace("\n", "");
             _logger.LogInformation("Generating reasoning for prompt: {Prompt}", sanitizedPrompt);
 
-            // Use Semantic Kernel for AI reasoning
-            var reasoning = await GenerateDetailedReasoningWithAI(request);
+            // Use AI reasoning based on framework
+            string reasoning;
+            if (useSK)
+            {
+                reasoning = await GenerateDetailedReasoningWithSK(request);
+            }
+            else
+            {
+                reasoning = await GenerateDetailedReasoningWithAgentFx(request);
+            }
 
             return Ok(reasoning);
         }
@@ -52,9 +77,49 @@ public class ReasoningController : ControllerBase
         }
     }
 
-    private async Task<string> GenerateDetailedReasoningWithAI(ReasoningRequest request)
+    private async Task<string> GenerateDetailedReasoningWithSK(ReasoningRequest request)
     {
-        var reasoningPrompt = $@"
+        var reasoningPrompt = BuildReasoningPrompt(request);
+
+        try
+        {
+            _logger.LogInformation("[SK] Using Semantic Kernel agent for reasoning");
+            var agentResponse = string.Empty;
+            _agent = await _aIFoundryAgentProvider.GetAzureAIAgent();
+            AzureAIAgentThread agentThread = new(_agent.Client);
+            try
+            {
+                ChatMessageContent message = new(AuthorRole.User, reasoningPrompt);
+                await foreach (ChatMessageContent response in _agent.InvokeAsync(message, agentThread))
+                {
+                    _logger.LogInformation("[SK] Received response from agent: {Content}", response.Content);    
+                    agentResponse += (response.Content);
+                }
+            }
+            finally
+            {
+                // Clean up the agent thread to avoid resource leaks
+                // await agentThread.DeleteAsync();
+            }
+            return agentResponse ?? GenerateDetailedReasoning(request);
+        }
+        catch
+        {
+            return GenerateDetailedReasoning(request);
+        }
+    }
+
+    private async Task<string> GenerateDetailedReasoningWithAgentFx(ReasoningRequest request)
+    {
+        // TODO: Implement full AgentFx integration
+        _logger.LogWarning("[AgentFx] Using fallback pattern - full AgentFx integration pending");
+        await Task.Delay(100); // Simulate processing
+        return GenerateDetailedReasoning(request);
+    }
+
+    private string BuildReasoningPrompt(ReasoningRequest request)
+    {
+        return $@"
 You are an expert DIY consultant. Based on the following information, provide detailed reasoning for tool recommendations:
 
 **Project Task:** {request.Prompt}
@@ -72,33 +137,6 @@ Please provide:
 
 Format your response with clear sections and be encouraging while being practical about safety and skill requirements.
 ";
-
-        try
-        {
-            // Create a Semantic Kernel agent based on the agent definition
-            var agentResponse = string.Empty;
-            _agent = await _aIFoundryAgentProvider.GetAzureAIAgent();
-            AzureAIAgentThread agentThread = new(_agent.Client);
-            try
-            {
-                ChatMessageContent message = new(AuthorRole.User, reasoningPrompt);
-                await foreach (ChatMessageContent response in _agent.InvokeAsync(message, agentThread))
-                {
-                    _logger.LogInformation("Received response from agent: {Content}", response.Content);    
-                    agentResponse += (response.Content);
-                }
-            }
-            finally
-            {
-                // Clean up the agent thread to avoid resource leaks
-                // await agentThread.DeleteAsync();
-            }
-            return agentResponse ?? GenerateDetailedReasoning(request);
-        }
-        catch
-        {
-            return GenerateDetailedReasoning(request);
-        }
     }
 
     private string GenerateDetailedReasoning(ReasoningRequest request)

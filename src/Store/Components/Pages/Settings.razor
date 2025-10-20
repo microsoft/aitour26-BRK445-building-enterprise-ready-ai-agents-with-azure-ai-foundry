@@ -1,0 +1,160 @@
+@page "/settings"
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Settings - Zava Store</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <span class="bi bi-gear me-2"></span>
+                Settings
+            </h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <span class="bi bi-robot me-2"></span>
+                        Agent Framework Selection
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        Choose which agent framework to use for the demos. Both frameworks connect to the same Azure AI Foundry agents.
+                    </p>
+
+                    <div class="mb-4">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="frameworkSwitch" 
+                                   checked="@isAgentFx" @onchange="OnFrameworkChanged">
+                            <label class="form-check-label" for="frameworkSwitch">
+                                <strong>@GetFrameworkDisplayName()</strong>
+                            </label>
+                        </div>
+                        <small class="text-muted">
+                            @GetFrameworkDescription()
+                        </small>
+                    </div>
+
+                    <div class="alert alert-info" role="alert">
+                        <span class="bi bi-info-circle me-2"></span>
+                        <strong>Current Selection:</strong> @(isAgentFx ? "Microsoft Agent Framework (AgentFx)" : "Semantic Kernel (SK)")
+                    </div>
+
+                    @if (showSavedMessage)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            <span class="bi bi-check-circle me-2"></span>
+                            Settings saved! The new framework will be used for all agent demos.
+                        </div>
+                    }
+
+                    <hr />
+
+                    <h6 class="mb-3">Framework Comparison</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Framework</th>
+                                    <th>Status</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="@(isAgentFx ? "" : "table-primary")">
+                                    <td><strong>Semantic Kernel</strong></td>
+                                    <td>
+                                        @if (!isAgentFx)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </td>
+                                    <td>Default framework using Microsoft.SemanticKernel</td>
+                                </tr>
+                                <tr class="@(isAgentFx ? "table-primary" : "")">
+                                    <td><strong>Microsoft Agent Framework</strong></td>
+                                    <td>
+                                        @if (isAgentFx)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </td>
+                                    <td>Alternative framework using Microsoft.Agents.AI</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isAgentFx = false;
+    private bool showSavedMessage = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load saved preference from localStorage
+        try
+        {
+            var savedFramework = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "agentFramework");
+            isAgentFx = savedFramework == "AgentFx";
+        }
+        catch
+        {
+            // Default to Semantic Kernel if localStorage is not available
+            isAgentFx = false;
+        }
+    }
+
+    private async Task OnFrameworkChanged(ChangeEventArgs e)
+    {
+        isAgentFx = (bool)(e.Value ?? false);
+        
+        // Save to localStorage
+        var frameworkValue = isAgentFx ? "AgentFx" : "SK";
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "agentFramework", frameworkValue);
+        
+        // Show saved message
+        showSavedMessage = true;
+        StateHasChanged();
+        
+        // Hide message after 3 seconds
+        await Task.Delay(3000);
+        showSavedMessage = false;
+        StateHasChanged();
+    }
+
+    private string GetFrameworkDisplayName()
+    {
+        return isAgentFx ? "Microsoft Agent Framework (AgentFx)" : "Semantic Kernel (SK)";
+    }
+
+    private string GetFrameworkDescription()
+    {
+        if (isAgentFx)
+        {
+            return "Using Microsoft Agent Framework - A new framework for building AI agents with Microsoft.Agents.AI";
+        }
+        else
+        {
+            return "Using Semantic Kernel - The default framework for AI orchestration with Microsoft.SemanticKernel";
+        }
+    }
+}

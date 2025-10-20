@@ -14,13 +14,26 @@ public class LocationController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet("find")]
-    public async Task<ActionResult<LocationResult>> FindProductLocation([FromQuery] string product)
+    [HttpGet("find/sk")]
+    public async Task<ActionResult<LocationResult>> FindProductLocationSkAsync([FromQuery] string product)
     {
-        _logger.LogInformation("Finding location for product: {Product}", product);
+        _logger.LogInformation("[SK] Finding location for product: {Product}", product);
+        return await FindProductLocationInternalAsync(product);
+    }
 
+    [HttpGet("find/agentfx")]
+    public async Task<ActionResult<LocationResult>> FindProductLocationAgentFxAsync([FromQuery] string product)
+    {
+        _logger.LogInformation("[AgentFx] Finding location for product: {Product}", product);
+        return await FindProductLocationInternalAsync(product);
+    }
+
+    private async Task<ActionResult<LocationResult>> FindProductLocationInternalAsync(string product)
+    {
         // AI-powered location finding logic would go here
         // For now, return demo data based on product type
+        await Task.Delay(50); // Simulate processing
+        
         var result = new LocationResult
         {
             StoreLocations = GenerateLocationsByProduct(product)

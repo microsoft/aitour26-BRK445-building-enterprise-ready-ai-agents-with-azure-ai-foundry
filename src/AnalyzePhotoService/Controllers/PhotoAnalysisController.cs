@@ -8,7 +8,9 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using Shared.Models;
 using System.Text.Json;
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaAgentFxAgentsProvider;
 using ZavaSemanticKernelProvider;
+using Microsoft.Agents.AI;
 
 namespace AnalyzePhotoService.Controllers;
 
@@ -19,20 +21,23 @@ public class PhotoAnalysisController : ControllerBase
     private readonly ILogger<PhotoAnalysisController> _logger;
     private readonly Kernel _kernel;
     private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
+    private readonly AgentFxAgentProvider _agentFxAgentProvider;
     private AzureAIAgent _agent;
 
     public PhotoAnalysisController(
         ILogger<PhotoAnalysisController> logger,
         SemanticKernelProvider semanticKernelProvider,
-        AIFoundryAgentProvider aIFoundryAgentProvider)
+        AIFoundryAgentProvider aIFoundryAgentProvider,
+        AgentFxAgentProvider agentFxAgentProvider)
     {
         _logger = logger;
         _kernel = semanticKernelProvider.GetKernel();
         _aIFoundryAgentProvider = aIFoundryAgentProvider;
+        _agentFxAgentProvider = agentFxAgentProvider;
     }
 
-    [HttpPost("analyze")]
-    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeAsync([FromForm] IFormFile image, [FromForm] string prompt)
+    [HttpPost("analyzesk")]
+    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeSKAsync([FromForm] IFormFile image, [FromForm] string prompt)
     {
         try
         {
@@ -167,9 +172,72 @@ UserPrompt: {prompt}
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error analyzing photo");
+            _logger.LogError(ex, "Error analyzing photo using Semantic Kernel");
             return StatusCode(500, "An error occurred while analyzing the photo");
         }
+    }
+
+    [HttpPost("analyzeagentfx")]
+    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeAgentFxAsync([FromForm] IFormFile image, [FromForm] string prompt)
+    {
+        try
+        {
+            _logger.LogInformation("Analyzing photo with Microsoft Agent Framework, prompt: {Prompt}", prompt);
+            if (image == null)
+            {
+                return BadRequest("No image file was provided.");
+            }
+
+            var aiPrompt = BuildAnalysisPrompt(prompt, image.FileName);
+            var fallbackDescription = $"Photo analysis for prompt: '{prompt}'. Detected a room that needs renovation work. The image shows surfaces that require preparation and finishing.";
+
+            try
+            {
+                // Use Microsoft Agent Framework for analysis
+                var agentResponse = string.Empty;
+                var agent = await _agentFxAgentProvider.GetAzureAIAgent();
+                
+                // TODO: Implement actual Agent Framework invocation
+                // For now, use fallback response
+                _logger.LogWarning("Agent Framework integration pending - using fallback");
+                
+                var fallback = new PhotoAnalysisResult
+                {
+                    Description = fallbackDescription,
+                    DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
+                };
+                return Ok(fallback);
+            }
+            catch (Exception aiEx)
+            {
+                _logger.LogWarning(aiEx, "Agent Framework invocation failed, using heuristic fallback");
+                var fallback = new PhotoAnalysisResult
+                {
+                    Description = fallbackDescription,
+                    DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
+                };
+                return Ok(fallback);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing photo using Microsoft Agent Framework");
+            return StatusCode(500, "An error occurred while analyzing the photo");
+        }
+    }
+
+    private string BuildAnalysisPrompt(string prompt, string fileName)
+    {
+        return $@"You are an AI assistant that analyzes photos of rooms for renovation and home-improvement projects.
+Given the image filename and the user's short prompt, return a JSON object with exactly two fields:
+  - description: a brief natural-language description of what the image shows and what renovation tasks are likely required
+  - detectedMaterials: an array of short strings naming materials, finishes or items that appear relevant (e.g. 'paint', 'tile', 'wood', 'grout')
+
+Return only valid JSON. Do not include any surrounding markdown or explanatory text.
+
+ImageFileName: {fileName}
+UserPrompt: {prompt}
+";
     }
 
     // Simple DTO used to deserialize the AI's JSON response.

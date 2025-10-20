@@ -1,4 +1,5 @@
 using SingleAgentDemo.Services;
+using ZavaAgentFxAgentsProvider;
 using ZavaSemanticKernelProvider;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,10 +13,20 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Register both agent providers - they will be available for their respective controllers
 var openAiConnection = builder.Configuration.GetValue<string>("ConnectionStrings:aifoundry");
 var chatDeploymentName = builder.Configuration["AI_ChatDeploymentName"] ?? "gpt-5-mini";
 builder.Services.AddSingleton(sp =>
     new SemanticKernelProvider(openAiConnection, chatDeploymentName));
+
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetService<IConfiguration>();
+    var aiFoundryProjectConnection = config!.GetConnectionString("aifoundryproject");
+    return new AgentFxAgentProvider(aiFoundryProjectConnection!);
+});
+
+builder.Services.AddSingleton(sp => builder.Configuration);
 
 // Register service layer implementations for external services
 builder.Services.AddHttpClient<AnalyzePhotoService>(

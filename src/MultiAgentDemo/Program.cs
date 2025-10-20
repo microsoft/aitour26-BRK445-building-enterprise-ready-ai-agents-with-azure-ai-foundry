@@ -1,6 +1,7 @@
 using Microsoft.SemanticKernel;
 using MultiAgentDemo.Services;
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaAgentFxAgentsProvider;
 using ZavaSemanticKernelProvider;
 
 // KernelAzureOpenAIConfigurator moved to its own file under Services to avoid mixing
@@ -17,12 +18,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Register both agent providers - they will be available for their respective controllers
 var openAiConnection = builder.Configuration.GetValue<string>("ConnectionStrings:aifoundry");
 var chatDeploymentName = builder.Configuration["AI_ChatDeploymentName"] ?? "gpt-5-mini";
 builder.Services.AddSingleton(sp =>
     new SemanticKernelProvider(openAiConnection, chatDeploymentName));
-
-builder.Services.AddSingleton(sp => builder.Configuration);
 
 builder.Services.AddSingleton(sp =>
 {
@@ -30,6 +30,15 @@ builder.Services.AddSingleton(sp =>
     var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
     return new AIFoundryAgentProvider(aiFoundryProjectConnection, "");
 });
+
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetService<IConfiguration>();
+    var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
+    return new AgentFxAgentProvider(aiFoundryProjectConnection!);
+});
+
+builder.Services.AddSingleton(sp => builder.Configuration);
 
 // Register service layer implementations for multi-agent external services
 builder.Services.AddHttpClient<InventoryAgentService>(
