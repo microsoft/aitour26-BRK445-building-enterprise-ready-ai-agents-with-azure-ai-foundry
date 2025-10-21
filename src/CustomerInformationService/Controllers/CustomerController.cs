@@ -125,14 +125,49 @@ public class CustomerController : ControllerBase
         {
             _logger.LogInformation("[AgentFx] Getting customer information for ID: {CustomerId}", customerId);
 
+            var aiPrompt = BuildCustomerPrompt(customerId);
+
             try
             {
                 // Use Microsoft Agent Framework for customer lookup
+                _logger.LogInformation("[AgentFx] Using Microsoft Agent Framework for customer lookup");
                 var agent = await _agentFxAgentProvider.GetAzureAIAgent();
+                var thread = agent.GetNewThread();
                 
-                // TODO: Implement actual Agent Framework invocation
-                // For now, use fallback response
-                _logger.LogWarning("[AgentFx] Agent Framework integration pending - using fallback");
+                try
+                {
+                    var response = await agent.RunAsync(aiPrompt, thread);
+                    var agentResponse = response?.Text ?? string.Empty;
+                    _logger.LogInformation("[AgentFx] Received response from agent");
+
+                    // Try to deserialize the agent response into a CustomerInformation object.
+                    try
+                    {
+                        if (!string.IsNullOrWhiteSpace(agentResponse))
+                        {
+                            // Attempt to extract a JSON object from the agent response in case the agent added surrounding text
+                            string json = ExtractFirstJsonObject(agentResponse);
+                            if (!string.IsNullOrWhiteSpace(json))
+                            {
+                                var customerFromAgent = JsonSerializer.Deserialize<CustomerInformation>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                                if (customerFromAgent != null && !string.IsNullOrWhiteSpace(customerFromAgent.Id))
+                                {
+                                    _logger.LogInformation("[AgentFx] Successfully parsed customer information from agent response");
+                                    return Ok(customerFromAgent);
+                                }
+                            }
+                        }
+                        _logger.LogWarning("[AgentFx] Could not parse customer JSON from agent, using fallback");
+                    }
+                    catch (JsonException jex)
+                    {
+                        _logger.LogWarning(jex, "[AgentFx] JSON parsing error, using fallback. Raw output: {Output}", agentResponse);
+                    }
+                }
+                finally
+                {
+                    // Clean up the agent thread to avoid resource leaks if needed
+                }
                 
                 return GetFallbackCustomer(customerId);
             }

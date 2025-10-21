@@ -194,23 +194,89 @@ UserPrompt: {prompt}
             try
             {
                 // Use Microsoft Agent Framework for analysis
-                var agentResponse = string.Empty;
+                _logger.LogInformation("[AgentFx] Using Microsoft Agent Framework for photo analysis");
                 var agent = await _agentFxAgentProvider.GetAzureAIAgent();
+                var thread = agent.GetNewThread();
                 
-                // TODO: Implement actual Agent Framework invocation
-                // For now, use fallback response
-                _logger.LogWarning("Agent Framework integration pending - using fallback");
-                
-                var fallback = new PhotoAnalysisResult
+                try
                 {
-                    Description = fallbackDescription,
-                    DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
-                };
-                return Ok(fallback);
+                    var response = await agent.RunAsync(aiPrompt, thread);
+                    var agentResponse = response?.Text ?? string.Empty;
+                    _logger.LogInformation("[AgentFx] Received response from agent");
+
+                    // Try to extract a JSON object from the response in case the model returned extra text.
+                    var firstBrace = agentResponse.IndexOf('{');
+                    var lastBrace = agentResponse.LastIndexOf('}');
+                    string json = agentResponse;
+                    if (firstBrace >= 0 && lastBrace > firstBrace)
+                    {
+                        json = agentResponse.Substring(firstBrace, lastBrace - firstBrace + 1);
+                    }
+
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(json);
+                        var root = doc.RootElement;
+
+                        string description = string.Empty;
+                        var materialsList = new List<string>();
+
+                        if (root.TryGetProperty("description", out var descProp) && descProp.ValueKind == JsonValueKind.String)
+                        {
+                            description = descProp.GetString() ?? string.Empty;
+                        }
+
+                        if (root.TryGetProperty("detectedMaterials", out var matProp) && matProp.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var item in matProp.EnumerateArray())
+                            {
+                                if (item.ValueKind == JsonValueKind.String)
+                                {
+                                    var s = item.GetString();
+                                    if (!string.IsNullOrWhiteSpace(s)) materialsList.Add(s!);
+                                }
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(description) && materialsList.Count > 0)
+                        {
+                            var result = new PhotoAnalysisResult
+                            {
+                                Description = description,
+                                DetectedMaterials = materialsList.ToArray()
+                            };
+                            return Ok(result);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("[AgentFx] AI returned invalid or incomplete analysis, using heuristic fallback. Raw AI output: {Output}", agentResponse);
+                            var fallback = new PhotoAnalysisResult
+                            {
+                                Description = fallbackDescription,
+                                DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
+                            };
+                            return Ok(fallback);
+                        }
+                    }
+                    catch (JsonException jex)
+                    {
+                        _logger.LogWarning(jex, "[AgentFx] Failed to parse AI JSON output, using heuristic fallback. Raw AI output: {Output}", agentResponse);
+                        var fallback = new PhotoAnalysisResult
+                        {
+                            Description = fallbackDescription,
+                            DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
+                        };
+                        return Ok(fallback);
+                    }
+                }
+                finally
+                {
+                    // Clean up the agent thread to avoid resource leaks if needed
+                }
             }
             catch (Exception aiEx)
             {
-                _logger.LogWarning(aiEx, "Agent Framework invocation failed, using heuristic fallback");
+                _logger.LogWarning(aiEx, "[AgentFx] Agent Framework invocation failed, using heuristic fallback");
                 var fallback = new PhotoAnalysisResult
                 {
                     Description = fallbackDescription,

@@ -83,10 +83,29 @@ public class InventoryController : ControllerBase
             }
             else
             {
-                // Use AgentFx agent - TODO: Implement full AgentFx integration
-                // For now, use fallback pattern
-                _logger.LogWarning("[AgentFx] Using fallback pattern - full AgentFx integration pending");
-                agentResponse = await GetFallbackInventorySearch(request.SearchQuery);
+                // Use AgentFx agent
+                try
+                {
+                    _logger.LogInformation("[AgentFx] Using Microsoft Agent Framework for inventory search");
+                    var agent = await _agentFxAgentProvider.GetAzureAIAgent();
+                    var thread = agent.GetNewThread();
+                    
+                    try
+                    {
+                        var response = await agent.RunAsync(aiPrompt, thread);
+                        agentResponse = response?.Text ?? string.Empty;
+                        _logger.LogInformation("[AgentFx] Received response from agent: {Content}", agentResponse);
+                    }
+                    finally
+                    {
+                        // Clean up the agent thread to avoid resource leaks if needed
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[AgentFx] Agent Framework invocation failed, using fallback");
+                    agentResponse = await GetFallbackInventorySearch(request.SearchQuery);
+                }
             }
 
             // If the agent returned exactly a single comma, treat that as "no results".

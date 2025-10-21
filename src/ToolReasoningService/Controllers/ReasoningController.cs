@@ -111,10 +111,32 @@ public class ReasoningController : ControllerBase
 
     private async Task<string> GenerateDetailedReasoningWithAgentFx(ReasoningRequest request)
     {
-        // TODO: Implement full AgentFx integration
-        _logger.LogWarning("[AgentFx] Using fallback pattern - full AgentFx integration pending");
-        await Task.Delay(100); // Simulate processing
-        return GenerateDetailedReasoning(request);
+        var reasoningPrompt = BuildReasoningPrompt(request);
+
+        try
+        {
+            _logger.LogInformation("[AgentFx] Using Microsoft Agent Framework for reasoning");
+            var agent = await _agentFxAgentProvider.GetAzureAIAgent();
+            var thread = agent.GetNewThread();
+            
+            try
+            {
+                var response = await agent.RunAsync(reasoningPrompt, thread);
+                var agentResponse = response?.Text ?? string.Empty;
+                
+                _logger.LogInformation("[AgentFx] Received response from agent");
+                return !string.IsNullOrEmpty(agentResponse) ? agentResponse : GenerateDetailedReasoning(request);
+            }
+            finally
+            {
+                // Clean up the agent thread to avoid resource leaks if needed
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[AgentFx] Agent Framework invocation failed, using fallback");
+            return GenerateDetailedReasoning(request);
+        }
     }
 
     private string BuildReasoningPrompt(ReasoningRequest request)
