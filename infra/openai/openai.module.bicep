@@ -1,12 +1,12 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
-  name: take('openai-${uniqueString(resourceGroup().id)}', 64)
+resource aifoundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
+  name: take('aifoundry-${uniqueString(resourceGroup().id)}', 64)
   location: location
   kind: 'OpenAI'
   properties: {
-    customSubDomainName: toLower(take('openai${uniqueString(resourceGroup().id)}', 24))
+    customSubDomainName: toLower(take('aifoundry${uniqueString(resourceGroup().id)}', 24))
     publicNetworkAccess: 'Enabled'
     disableLocalAuth: true
   }
@@ -14,16 +14,16 @@ resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
     name: 'S0'
   }
   tags: {
-    'aspire-resource-name': 'openai'
+    'aspire-resource-name': 'aifoundry'
   }
 }
 
 resource gpt_5_mini 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  name: 'gpt-4.1-mini'
+  name: 'gpt-5-mini'
   properties: {
     model: {
       format: 'OpenAI'
-      name: 'gpt-4.1-mini'
+      name: 'gpt-5-mini'
       version: '2025-08-07'
     }
   }
@@ -31,7 +31,7 @@ resource gpt_5_mini 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01
     name: 'GlobalStandard'
     capacity: 8
   }
-  parent: openai
+  parent: aifoundry
 }
 
 resource text_embedding_ada_002 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
@@ -40,19 +40,19 @@ resource text_embedding_ada_002 'Microsoft.CognitiveServices/accounts/deployment
     model: {
       format: 'OpenAI'
       name: 'text-embedding-ada-002'
-      version: '1'
+      version: '2'
     }
   }
   sku: {
     name: 'Standard'
     capacity: 8
   }
-  parent: openai
+  parent: aifoundry
   dependsOn: [
     gpt_5_mini
   ]
 }
 
-output connectionString string = 'Endpoint=${openai.properties.endpoint}'
+output connectionString string = 'Endpoint=${aifoundry.properties.endpoint}'
 
-output name string = openai.name
+output name string = aifoundry.name

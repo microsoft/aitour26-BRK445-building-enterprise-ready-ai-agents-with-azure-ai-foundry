@@ -6,7 +6,7 @@ resource aifoundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   location: location
   kind: 'OpenAI'
   properties: {
-    customSubDomainName: toLower(take(concat('aifoundry', uniqueString(resourceGroup().id)), 24))
+    customSubDomainName: toLower(take('aifoundry${uniqueString(resourceGroup().id)}', 24))
     publicNetworkAccess: 'Enabled'
     disableLocalAuth: true
   }

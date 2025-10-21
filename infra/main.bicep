@@ -63,4 +63,5 @@ output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = resources.output
 output SERVICE_SQL_VOLUME_ZAVAAPPHOSTC8479139E4SQLDATA_NAME string = resources.outputs.SERVICE_SQL_VOLUME_ZAVAAPPHOSTC8479139E4SQLDATA_NAME
 output AZURE_VOLUMES_STORAGE_ACCOUNT string = resources.outputs.AZURE_VOLUMES_STORAGE_ACCOUNT
 output APPINSIGHTS_APPINSIGHTSCONNECTIONSTRING string = appInsights.outputs.appInsightsConnectionString
-output OPENAI_CONNECTIONSTRING string = openai.outputs.connectionString
+output AIFOUNDRY_CONNECTIONSTRING string = openai.outputs.connectionString
+output AIFOUNDRY_NAME string = openai.outputs.name
