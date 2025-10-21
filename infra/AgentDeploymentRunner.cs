@@ -155,10 +155,6 @@ public class AgentDeploymentRunner
                             data: stream, 
                             purpose: PersistentAgentFilePurpose.Agents, 
                             filename: Path.GetFileName(filePath));
-
-                        //PersistentAgentFileInfo uploadedAgentFile = await _client.Files.UploadFileAsync(
-                        //    filePath: filePath,
-                        //    purpose: PersistentAgentFilePurpose.Agents);
                         uploadedFileIds.Add(uploadedAgentFile.Id, uploadedAgentFile.Filename);
                     }
 
@@ -183,11 +179,13 @@ public class AgentDeploymentRunner
 
                 // if no files (or none successfully uploaded), just create the agent with the provided instructions
                 if (agent == null)
+                {
                     agent = _client.Administration.CreateAgent(
                         model: _modelDeploymentName,
                         name: def.Name,
                         instructions: def.Instructions,
                         tools: new List<ToolDefinition> { new CodeInterpreterToolDefinition() });
+                }
 
                 created.Add((def.Name, agent.Id));
                 Console.WriteLine($"Created agent: {def.Name} => {agent.Id}");
