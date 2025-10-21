@@ -7,14 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.61.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.61.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
+    <!--<PackageReference Include="Microsoft.SemanticKernel" Version="1.61.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.61.0" />-->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ZavaAgentFxAgentsProvider\ZavaAgentFxAgentsProvider.csproj" />
+    <ProjectReference Include="..\ZavaAIFoundrySKAgentsProvider\ZavaAIFoundrySKAgentsProvider.csproj" />
     <ProjectReference Include="..\ZavaSemanticKernelProvider\ZavaSemanticKernelProvider.csproj" />
     <ProjectReference Include="..\ZavaServiceDefaults\ZavaServiceDefaults.csproj" />
     <ProjectReference Include="..\SharedEntities\SharedEntities.csproj" />

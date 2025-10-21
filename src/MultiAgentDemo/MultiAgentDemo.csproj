@@ -7,10 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Abstractions" Version="1.63.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.63.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
+    <!--<PackageReference Include="Microsoft.SemanticKernel.Agents.Abstractions" Version="1.63.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.63.0" />-->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
   </ItemGroup>
 
   <ItemGroup>

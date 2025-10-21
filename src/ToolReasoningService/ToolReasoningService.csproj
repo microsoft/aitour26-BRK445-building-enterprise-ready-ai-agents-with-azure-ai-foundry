@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Abstractions" Version="1.63.0" />
+    <!--<PackageReference Include="Microsoft.SemanticKernel.Agents.Abstractions" Version="1.63.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Agents.AzureAI" Version="1.63.0-preview" />
     <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.63.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Runtime.Core" Version="1.63.0-preview" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Microsoft.SemanticKernel.Agents.Runtime.Core" Version="1.63.0-preview" />-->
+	  <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
   </ItemGroup>
 
   <ItemGroup>
