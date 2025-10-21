@@ -132,6 +132,10 @@ public class AgentDeploymentRunner
         {
             try
             {
+                Console.WriteLine($"--- Starting creation of agent: {def.Name}");
+                Console.WriteLine($" Instructions length: {def.Instructions?.Length ?? 0} chars");
+                Console.WriteLine($" Files referenced: {(def.Files?.Count ?? 0)}");
+
                 PersistentAgent agent = null;
 
                 // first create the vector store if there are files to be added to the agent
@@ -142,30 +146,43 @@ public class AgentDeploymentRunner
 
                     foreach (var file in def.Files)
                     {
-                        // Normalize and resolve relative path (handles mixed separators & repo-relative prefixes like "infra/...")
                         var filePath = ResolveSourceFilePath(file);
+                        Console.WriteLine($" -> Resolving file: {file} => {filePath}");
                         if (!File.Exists(filePath))
                         {
-                            Console.WriteLine($"  - Skipping missing file: {file} (resolved: {filePath})");
+                            Console.WriteLine($" [WARN] Missing file skipped");
                             continue;
                         }
 
-                        using var stream = File.OpenRead(filePath);                        
-                        PersistentAgentFileInfo uploadedAgentFile = _client.Files.UploadFile(
-                            data: stream, 
-                            purpose: PersistentAgentFilePurpose.Agents, 
-                            filename: Path.GetFileName(filePath));
-                        uploadedFileIds.Add(uploadedAgentFile.Id, uploadedAgentFile.Filename);
+                        try
+                        {
+                            var fileInfo = new FileInfo(filePath);
+                            using var stream = File.OpenRead(filePath);
+                            Console.WriteLine($" Uploading file: {fileInfo.Name} (Size: {fileInfo.Length} bytes)");
+                            PersistentAgentFileInfo uploadedAgentFile = _client.Files.UploadFile(
+                                data: stream,
+                                purpose: PersistentAgentFilePurpose.Agents,
+                                filename: fileInfo.Name);
+                            uploadedFileIds.Add(uploadedAgentFile.Id, uploadedAgentFile.Filename);
+                            Console.WriteLine($" Uploaded: {uploadedAgentFile.Filename} (Id: {uploadedAgentFile.Id})");
+                        }
+                        catch (Exception exUp)
+                        {
+                            Console.WriteLine($" [ERROR] Upload failed for {file}: {exUp.Message}");
+                        }
                     }
 
                     if (uploadedFileIds.Count > 0)
                     {
                         var vectorStoreName = $"{def.Name}_vs";
+                        Console.WriteLine($" Creating vector store: {vectorStoreName} with {uploadedFileIds.Count} file(s)");
                         PersistentAgentsVectorStore vectorStore = _client.VectorStores.CreateVectorStore(
                             fileIds: uploadedFileIds.Keys.ToList(),
                             name: vectorStoreName);
+                        Console.WriteLine($" Vector store created: {vectorStore.Id}");
                         fileSearchToolResource.VectorStoreIds.Add(vectorStore.Id);
 
+                        Console.WriteLine(" Creating agent with FileSearch + CodeInterpreter tools...");
                         agent = _client.Administration.CreateAgent(
                             model: _modelDeploymentName,
                             name: def.Name,
@@ -180,6 +197,7 @@ public class AgentDeploymentRunner
                 // if no files (or none successfully uploaded), just create the agent with the provided instructions
                 if (agent == null)
                 {
+                    Console.WriteLine(" Creating agent with CodeInterpreter tool only...");
                     agent = _client.Administration.CreateAgent(
                         model: _modelDeploymentName,
                         name: def.Name,
@@ -188,11 +206,11 @@ public class AgentDeploymentRunner
                 }
 
                 created.Add((def.Name, agent.Id));
-                Console.WriteLine($"Created agent: {def.Name} => {agent.Id}");
+                Console.WriteLine($" [SUCCESS] Agent created: {def.Name} => {agent.Id}\n");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to create agent '{def.Name}': {ex.Message}");
+                Console.WriteLine($"[ERROR] Failed to create agent '{def.Name}': {ex.Message}\n");
             }
         }
 
@@ -207,18 +225,7 @@ public class AgentDeploymentRunner
             return;
         }
 
-        string outputPath = Path.Combine(AppContext.BaseDirectory, "CreatedAgents.md");
-        using var sw = new StreamWriter(outputPath, false, Encoding.UTF8);
-        sw.WriteLine("# Created Agents\n");
-        sw.WriteLine("| Name | AgentId |");
-        sw.WriteLine("| ---- | ------- |");
-        foreach (var a in created)
-        {
-            sw.WriteLine($"| {a.Name} | {a.Id} |");
-        }
-        Console.WriteLine($"\nAgent table written to: {outputPath}");
-
-        // NEW: Plain text log with timestamp
+        // Plain text log with timestamp
         string logPath = Path.Combine(AppContext.BaseDirectory, "CreatedAgents.txt");
         using var txt = new StreamWriter(logPath, false, Encoding.UTF8);
         txt.WriteLine($"Creation Timestamp (UTC): {DateTime.UtcNow:O}");
@@ -229,6 +236,25 @@ public class AgentDeploymentRunner
             txt.WriteLine($"- Name: {a.Name} | Id: {a.Id}");
         }
         Console.WriteLine($"Plain text log written to: {logPath}");
+
+        // JSON mapping file (ConnectionStrings style)
+        var jsonPath = Path.Combine(AppContext.BaseDirectory, "CreatedAgents.json");
+        var map = new Dictionary<string, string>();
+        foreach (var a in created)
+        {
+            map[BuildConnectionStringKey(a.Name)] = a.Id;
+        }
+        var json = JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(jsonPath, json, Encoding.UTF8);
+        Console.WriteLine($"JSON connection string map written to: {jsonPath}");
+    }
+
+    private static string BuildConnectionStringKey(string name)
+    {
+        // Normalize: lowercase, remove non-alphanumerics, replace 'analysis' with 'analyzer', append 'id'
+        var cleaned = new string(name.ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
+        cleaned = cleaned.Replace("analysis", "analyzer");
+        return $"ConnectionStrings:{cleaned}id";
     }
 
     // Resolves a source file path provided in agents.json (may contain forward slashes and repo-relative prefixes)

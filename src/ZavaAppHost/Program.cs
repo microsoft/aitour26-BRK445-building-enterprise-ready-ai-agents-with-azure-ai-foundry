@@ -24,6 +24,7 @@ IResourceBuilder<IResourceWithConnectionString>? locationServiceAgentId;
 IResourceBuilder<IResourceWithConnectionString>? navigationAgentId;
 IResourceBuilder<IResourceWithConnectionString>? photoAnalyzerAgentId;
 IResourceBuilder<IResourceWithConnectionString>? productMatchMakingAgentId;
+IResourceBuilder<IResourceWithConnectionString>? productSearchAgentId;
 IResourceBuilder<IResourceWithConnectionString>? toolReasoningAgentId;
 
 // application insights connection string
@@ -237,6 +238,7 @@ locationServiceAgentId = builder.AddConnectionString("locationserviceagentid");
 navigationAgentId = builder.AddConnectionString("navigationagentid");
 photoAnalyzerAgentId = builder.AddConnectionString("photoanalyzeragentid");
 productMatchMakingAgentId = builder.AddConnectionString("productmatchmakingagentid");
+productSearchAgentId = builder.AddConnectionString("productsearchagentid");
 toolReasoningAgentId = builder.AddConnectionString("toolreasoningagentid");
 
 products.WithReference(openai)
@@ -288,6 +290,7 @@ multiAgentDemo
     .WithReference(locationServiceAgentId)
     .WithReference(photoAnalyzerAgentId)
     .WithReference(productMatchMakingAgentId)
+    .WithReference(productSearchAgentId)
     .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 
@@ -299,6 +302,7 @@ agentscatalogservice
     .WithReference(navigationAgentId)
     .WithReference(photoAnalyzerAgentId)
     .WithReference(productMatchMakingAgentId)
+    .WithReference(productSearchAgentId)
     .WithReference(toolReasoningAgentId)
     .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
