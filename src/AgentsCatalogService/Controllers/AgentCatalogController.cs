@@ -132,12 +132,35 @@ public class AgentCatalogController : ControllerBase
 
             // Use Microsoft Agent Framework
             var agentResponse = string.Empty;
-            var agent = await _agentFxAgentProvider.GetAzureAIAgent(agentId);
             
-            // TODO: Implement actual Agent Framework invocation
-            // For now, use fallback
-            _logger.LogWarning("Agent Framework integration pending - using fallback");
-            agentResponse = GenerateFallbackResponse(agentId, question);
+            try
+            {
+                _logger.LogInformation("[AgentFx] Using Microsoft Agent Framework for agent testing");
+                var agent = await _agentFxAgentProvider.GetAzureAIAgent(agentId);
+                var thread = agent.GetNewThread();
+                
+                try
+                {
+                    var response = await agent.RunAsync(prompt, thread);
+                    agentResponse = response?.Text ?? string.Empty;
+                    _logger.LogInformation("[AgentFx] Received response from agent");
+                    
+                    if (string.IsNullOrEmpty(agentResponse))
+                    {
+                        _logger.LogWarning("[AgentFx] Empty response from agent, using fallback");
+                        agentResponse = GenerateFallbackResponse(agentId, question);
+                    }
+                }
+                finally
+                {
+                    // Clean up the agent thread to avoid resource leaks if needed
+                }
+            }
+            catch (Exception agentEx)
+            {
+                _logger.LogWarning(agentEx, "[AgentFx] Agent Framework invocation failed, using fallback");
+                agentResponse = GenerateFallbackResponse(agentId, question);
+            }
 
             var agentTesterResponse = new AgentTesterResponse
             {
