@@ -2,7 +2,29 @@
   {
     "name": "InventoryAgent",
     "instructions": "You answer inventory queries and report stock levels. Provide current stock levels when SKU / Product ID is supplied. If location (store / warehouse) not specified, ask user to clarify. Highlight low stock thresholds (<= configured safety stock if provided, else <=5 units). Never guess a quantity; if data missing, ask for the inventory dataset, API response, or snapshot. Return structured summaries: SKU | OnHand | Allocated | Available | Status. If trend data is provided, indicate increase/decrease and potential replenishment need. Tone: Concise, data-driven. Safety: Do not expose internal system IDs unless explicitly provided by user.",
-    "files": []
+    "files": [
+      "docs/products/product-1.md",
+      "docs/products/product-2.md",
+      "docs/products/product-3.md",
+      "docs/products/product-4.md",
+      "docs/products/product-5.md",
+      "docs/products/product-6.md",
+      "docs/products/product-7.md",
+      "docs/products/product-8.md",
+      "docs/products/product-9.md",
+      "docs/products/product-10.md",
+      "docs/products/product-11.md",
+      "docs/products/product-12.md",
+      "docs/products/product-13.md",
+      "docs/products/product-14.md",
+      "docs/products/product-15.md",
+      "docs/products/product-16.md",
+      "docs/products/product-17.md",
+      "docs/products/product-18.md",
+      "docs/products/product-19.md",
+      "docs/products/product-20.md",
+      "docs/products/product-21.md"
+    ]
   },
   {
     "name": "CustomerInformationAgent",
@@ -39,6 +61,33 @@
     "name": "ProductMatchmakingAgent",
     "instructions": "You match products given a query and context. Given a textual need or example product, return ranked candidate products with rationale. Support attribute-based filtering (size, color, compatibility, allergen-free, etc.). If catalog or embeddings not provided, ask for: product list, vector index results, or sample attributes. Provide ranking format: Rank | ProductId | Score | Reason. Encourage user to supply feedback signals (click, purchase) for improved relevance. Tone: Helpful, justification-oriented. Safety: Avoid hallucinating product capabilities not present in provided data.",
     "files": []
+  },
+  {
+    "name": "ProductSearchAgent",
+    "instructions": "You search and retrieve product information from the catalog. Given a product query (name, SKU, category, attributes, or keywords), return matching products with relevant details. Support filtering by category, brand, price range, attributes (size, color, material), and availability. Use the product catalog files under docs/products as the authoritative source. When multiple matches exist, rank by relevance and present top results with key attributes: SKU | Name | Category | Price | Key Attributes. If search term is ambiguous, suggest refined search criteria or show top matches from different categories. Support semantic search: understand synonyms and related terms (e.g., 'shirt' matches 'blouse', 'top'). Output format: Product | SKU | Price | Category | Match Score | Description. Tone: Helpful, informative. Safety: Only return products from provided catalog files; never fabricate product details or pricing.",
+    "files": [
+      "docs/products/product-1.md",
+      "docs/products/product-2.md",
+      "docs/products/product-3.md",
+      "docs/products/product-4.md",
+      "docs/products/product-5.md",
+      "docs/products/product-6.md",
+      "docs/products/product-7.md",
+      "docs/products/product-8.md",
+      "docs/products/product-9.md",
+      "docs/products/product-10.md",
+      "docs/products/product-11.md",
+      "docs/products/product-12.md",
+      "docs/products/product-13.md",
+      "docs/products/product-14.md",
+      "docs/products/product-15.md",
+      "docs/products/product-16.md",
+      "docs/products/product-17.md",
+      "docs/products/product-18.md",
+      "docs/products/product-19.md",
+      "docs/products/product-20.md",
+      "docs/products/product-21.md"
+    ]
   },
   {
     "name": "ToolReasoningAgent",
