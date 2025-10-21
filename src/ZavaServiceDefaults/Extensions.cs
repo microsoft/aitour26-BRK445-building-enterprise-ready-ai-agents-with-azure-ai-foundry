@@ -31,7 +31,7 @@ namespace Microsoft.Extensions.Hosting
 
                 http.AddStandardResilienceHandler(config =>
                 {
-                    TimeSpan timeSpan = TimeSpan.FromMinutes(2);
+                    TimeSpan timeSpan = TimeSpan.FromMinutes(5);
                     config.AttemptTimeout.Timeout = timeSpan;
                     config.CircuitBreaker.SamplingDuration = timeSpan * 2;
                     config.TotalRequestTimeout.Timeout = timeSpan * 3;

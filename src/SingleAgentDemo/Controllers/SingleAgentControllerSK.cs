@@ -15,14 +15,14 @@ public class SingleAgentControllerSK : ControllerBase
     private readonly AnalyzePhotoService _analyzePhotoService;
     private readonly CustomerInformationService _customerInformationService;
     private readonly ToolReasoningService _toolReasoningService;
-    private readonly InventoryService _inventoryService;
+    private readonly ProductSearchService _productSearchService;
 
     public SingleAgentControllerSK(
         ILogger<SingleAgentControllerSK> logger,        
         AnalyzePhotoService analyzePhotoService,
         CustomerInformationService customerInformationService,
         ToolReasoningService toolReasoningService,
-        InventoryService inventoryService,
+        ProductSearchService productSearchService,
         SemanticKernelProvider semanticKernelProvider)
     {
         _logger = logger;
@@ -30,13 +30,13 @@ public class SingleAgentControllerSK : ControllerBase
         _analyzePhotoService = analyzePhotoService;
         _customerInformationService = customerInformationService;
         _toolReasoningService = toolReasoningService;
-        _inventoryService = inventoryService;
+        _productSearchService = productSearchService;
 
         // Set framework to SK for all agent services
         _analyzePhotoService.SetFramework("sk");
         _customerInformationService.SetFramework("sk");
         _toolReasoningService.SetFramework("sk");
-        _inventoryService.SetFramework("sk");
+        _productSearchService.SetFramework("sk");
     }
 
     [HttpPost("analyze")]
@@ -65,7 +65,7 @@ public class SingleAgentControllerSK : ControllerBase
             var toolMatch = await _customerInformationService.MatchToolsAsync(customerId, photoAnalysis.DetectedMaterials, prompt);
             
             // Step 5: Enrich with inventory information
-            var enrichedTools = await _inventoryService.EnrichWithInventoryAsync(toolMatch.MissingTools);
+            var enrichedTools = await _productSearchService.EnrichWithInventoryAsync(toolMatch.MissingTools);
 
             var response = new SharedEntities.SingleAgentAnalysisResponse
             {

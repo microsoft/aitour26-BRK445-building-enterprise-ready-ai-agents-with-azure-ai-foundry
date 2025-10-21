@@ -26,6 +26,7 @@
     <Project Path="MatchmakingService/MatchmakingService.csproj" />
     <Project Path="NavigationService/NavigationService.csproj" />
     <Project Path="Products/Products.csproj" />
+    <Project Path="ProductSearchService/ProductSearchService.csproj" Id="ddec019a-fde1-4ac3-862b-dffa4d38efbe" />
     <Project Path="ToolReasoningService/ToolReasoningService.csproj" />
   </Folder>
   <Folder Name="/6 Support/">

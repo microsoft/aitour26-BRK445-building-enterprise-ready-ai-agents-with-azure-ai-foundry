@@ -23,17 +23,20 @@ public class PhotoAnalysisController : ControllerBase
     private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
     private readonly AgentFxAgentProvider _agentFxAgentProvider;
     private AzureAIAgent _agent;
+    private readonly IConfiguration _configuration;
 
     public PhotoAnalysisController(
         ILogger<PhotoAnalysisController> logger,
         SemanticKernelProvider semanticKernelProvider,
         AIFoundryAgentProvider aIFoundryAgentProvider,
-        AgentFxAgentProvider agentFxAgentProvider)
+        AgentFxAgentProvider agentFxAgentProvider,
+        IConfiguration configuration)
     {
         _logger = logger;
         _kernel = semanticKernelProvider.GetKernel();
         _aIFoundryAgentProvider = aIFoundryAgentProvider;
         _agentFxAgentProvider = agentFxAgentProvider;
+        _configuration = configuration;
     }
 
     [HttpPost("analyzesk")]
@@ -83,7 +86,8 @@ UserPrompt: {prompt}
 
                 // Create a Semantic Kernel agent based on the agent definition
                 var agentResponse = string.Empty;
-                _agent = await _aIFoundryAgentProvider.GetAzureAIAgent();
+                var agentId = _configuration.GetConnectionString("photoanalyzeragentid");
+                _agent = await _aIFoundryAgentProvider.GetAzureAIAgent(agentId);
                 AzureAIAgentThread agentThread = new(_agent.Client);
                 await foreach (ChatMessageContent response in _agent.InvokeAsync(aiPrompt, agentThread))
                 {

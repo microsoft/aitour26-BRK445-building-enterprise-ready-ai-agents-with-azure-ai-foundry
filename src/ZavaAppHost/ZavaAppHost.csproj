@@ -19,6 +19,7 @@
     <ProjectReference Include="..\LocationService\LocationService.csproj" />
     <ProjectReference Include="..\MatchmakingService\MatchmakingService.csproj" />
     <ProjectReference Include="..\NavigationService\NavigationService.csproj" />
+    <ProjectReference Include="..\ProductSearchService\ProductSearchService.csproj" />
     <ProjectReference Include="..\Products\Products.csproj" />
     <ProjectReference Include="..\Store\Store.csproj" />
     <ProjectReference Include="..\SingleAgentDemo\SingleAgentDemo.csproj" />

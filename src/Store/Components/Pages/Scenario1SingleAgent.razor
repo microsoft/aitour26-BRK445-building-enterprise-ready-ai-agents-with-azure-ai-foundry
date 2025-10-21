@@ -68,7 +68,7 @@
                         <div class="mb-3">
                             <label for="customerId" class="form-label">Customer ID</label>
                             <InputText @bind-Value="analysisRequest.CustomerId" class="form-control" id="customerId"
-                                       placeholder="e.g., CUST-001" />
+                                       placeholder="e.g., 1" />
                         </div>
 
                         <button id="btnAnalyze" class="btn btn-primary" @onclick="SubmitAnalysis"
@@ -181,7 +181,7 @@
 </div>
 
 @code {
-    private SingleAgentAnalysisRequestModel analysisRequest = new() { CustomerId = "CUST-001", Prompt = string.Empty };
+    private SingleAgentAnalysisRequestModel analysisRequest = new() { CustomerId = "1", Prompt = string.Empty };
     private const string DefaultPrompt = "I want to paint this room blue. What tools do I need?";
     private void SetDefaultPrompt()
     {

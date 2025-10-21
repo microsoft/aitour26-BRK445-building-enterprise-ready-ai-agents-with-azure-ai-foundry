@@ -41,6 +41,9 @@ builder.Services.AddHttpClient<ToolReasoningService>(
 builder.Services.AddHttpClient<InventoryService>(
     client => client.BaseAddress = new Uri("https+http://inventoryservice"));
 
+builder.Services.AddHttpClient<ProductSearchService>(
+    client => client.BaseAddress = new Uri("https+http://productsearchservice"));
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
