@@ -40,6 +40,12 @@ public class AgentDeploymentRunner
             Console.WriteLine("Skipping deletion of existing agents.\n");
         }
 
+        if (!ConfirmCreation())
+        {
+            Console.WriteLine("Agent creation canceled by user.");
+            return;
+        }
+
         CreateAgents(definitions);
     }
 
@@ -70,6 +76,13 @@ public class AgentDeploymentRunner
         if (flag.HasValue) return flag.Value; // command line override
 
         Console.Write("Delete existing agents matching definitions? (y/N): ");
+        var input = Console.ReadLine();
+        return !string.IsNullOrWhiteSpace(input) && input.Trim().Equals("y", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool ConfirmCreation()
+    {
+        Console.Write("Proceed to create agents now? (y/N): ");
         var input = Console.ReadLine();
         return !string.IsNullOrWhiteSpace(input) && input.Trim().Equals("y", StringComparison.OrdinalIgnoreCase);
     }
@@ -161,5 +174,17 @@ public class AgentDeploymentRunner
             sw.WriteLine($"| {a.Name} | {a.Id} |");
         }
         Console.WriteLine($"\nAgent table written to: {outputPath}");
+
+        // NEW: Plain text log with timestamp
+        string logPath = Path.Combine(AppContext.BaseDirectory, "CreatedAgents.txt");
+        using var txt = new StreamWriter(logPath, false, Encoding.UTF8);
+        txt.WriteLine($"Creation Timestamp (UTC): {DateTime.UtcNow:O}");
+        txt.WriteLine($"Agent Count: {created.Count}");
+        txt.WriteLine("Agents:");
+        foreach (var a in created)
+        {
+            txt.WriteLine($"- Name: {a.Name} | Id: {a.Id}");
+        }
+        Console.WriteLine($"Plain text log written to: {logPath}");
     }
 }

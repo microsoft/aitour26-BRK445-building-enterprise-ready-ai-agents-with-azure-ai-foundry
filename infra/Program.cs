@@ -22,7 +22,7 @@ var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions { 
 var client = new PersistentAgentsClient(projectEndpoint, credential);
 
 // Path to JSON configuration file containing agent metadata and optional knowledge files
-string agentConfigPath = Path.Combine(AppContext.BaseDirectory, "agents.json");
+string agentConfigPath = Path.Combine(AppContext.BaseDirectory, "agents-test.json");
 
 var runner = new AgentDeploymentRunner(client, modelDeploymentName, agentConfigPath);
 
