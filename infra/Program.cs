@@ -3,6 +3,8 @@ using Azure.AI.Agents.Persistent;
 using Azure.Identity;
 using Microsoft.Extensions.Configuration;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 // Load configuration (expects user-secrets or other providers to supply these keys)
 var config = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
@@ -21,18 +23,29 @@ var options = new DefaultAzureCredentialOptions { TenantId = tenantId };
 var defaultAzureCredential = new DefaultAzureCredential(options: options);
 PersistentAgentsClient client = new(projectEndpoint, defaultAzureCredential);
 
-// Path to markdown instructions file (each agent starts with a line: ### Agent Name)
-string instructionsFile = Path.Combine(AppContext.BaseDirectory, "AgentInstructions.md");
-if (!File.Exists(instructionsFile))
+// Path to JSON configuration file containing agent metadata and optional knowledge files
+string agentConfigPath = Path.Combine(AppContext.BaseDirectory, "agents.json");
+if (!File.Exists(agentConfigPath))
 {
-    Console.WriteLine($"Instructions file not found at {instructionsFile}. Ensure 'AgentInstructions.md' exists.");
+    Console.WriteLine($"Agent configuration file not found at {agentConfigPath}. Ensure 'agents.json' exists.");
     return;
 }
 
-var agentDefinitions = ParseAgentInstructions(instructionsFile);
-if (agentDefinitions.Count == 0)
+List<AgentDefinition>? agentDefinitions;
+try
 {
-    Console.WriteLine("No agent definitions found in instructions file.");
+    var json = File.ReadAllText(agentConfigPath);
+    agentDefinitions = JsonSerializer.Deserialize(json, AgentDefinitionJsonContext.Default.ListAgentDefinition);
+}
+catch (JsonException jex)
+{
+    Console.WriteLine($"Failed to parse agent configuration: {jex.Message}");
+    return;
+}
+
+if (agentDefinitions is null || agentDefinitions.Count == 0)
+{
+    Console.WriteLine("No agent definitions found in agents.json.");
     return;
 }
 
@@ -51,6 +64,11 @@ foreach (var def in agentDefinitions)
         );
         createdAgents.Add((def.Name, agent.Id));
         Console.WriteLine($"Created agent: {def.Name} => {agent.Id}");
+
+        if (def.Files is { Count: > 0 })
+        {
+            Console.WriteLine($"  - {def.Files.Count} knowledge file(s) referenced (attach via vector store as needed).");
+        }
     }
     catch (Exception ex)
     {
@@ -77,35 +95,8 @@ else
     Console.WriteLine("No agents were created.");
 }
 
-static List<(string Name, string Instructions)> ParseAgentInstructions(string filePath)
-{
-    var lines = File.ReadAllLines(filePath);
-    List<(string Name, string Instructions)> list = new();
-    string? currentName = null;
-    var sb = new StringBuilder();
+internal sealed record AgentDefinition(string Name, string Instructions, List<string>? Files);
 
-    foreach (var raw in lines)
-    {
-        var line = raw.TrimEnd();
-        if (line.StartsWith("### "))
-        {
-            if (currentName != null)
-            {
-                list.Add((currentName, sb.ToString().Trim()));
-                sb.Clear();
-            }
-            currentName = line.Substring(4).Trim();
-        }
-        else if (currentName != null)
-        {
-            sb.AppendLine(line);
-        }
-    }
-
-    if (currentName != null)
-    {
-        list.Add((currentName, sb.ToString().Trim()));
-    }
-
-    return list;
-}
+[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true)]
+[JsonSerializable(typeof(List<AgentDefinition>))]
+internal partial class AgentDefinitionJsonContext : JsonSerializerContext;
