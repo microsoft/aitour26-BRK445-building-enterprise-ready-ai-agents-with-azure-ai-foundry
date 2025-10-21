@@ -17,7 +17,7 @@ public class AgentFxAgentProvider
             new AzureCliCredential());
     }
 
-    public async Task<AIAgent> GetAzureAIAgent(string agentId = "")
+    public async Task<AIAgent> GetAIAgentAsync(string agentId = "")
     {
         // validate if agentId  is null use _agentId
         if (string.IsNullOrWhiteSpace(agentId))
@@ -27,6 +27,17 @@ public class AgentFxAgentProvider
 
         var agent = await _agentsClient.GetAIAgentAsync(agentId);
         return agent;
+    }
+
+    public AIAgent GetAIAgent(string agentId = "")
+    {
+        // validate if agentId  is null use _agentId
+        if (string.IsNullOrWhiteSpace(agentId))
+        {
+            agentId = _agentId;
+        }
+
+        return _agentsClient.GetAIAgent(agentId);
     }
 }
 

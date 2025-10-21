@@ -21,7 +21,7 @@ public class AIFoundryAgentProvider
             new AzureCliCredential());
     }
 
-    public async Task<AzureAIAgent> GetAzureAIAgent(string agentId = "") 
+    public async Task<AzureAIAgent> CreateAzureAIAgentAsync(string agentId = "") 
     {
         // validate if agentId  is null use _agentId
         if (string.IsNullOrWhiteSpace(agentId))
@@ -30,6 +30,20 @@ public class AIFoundryAgentProvider
         }
 
         PersistentAgent definition = await _agentsClient.Administration.GetAgentAsync(
+    agentId);
+        AzureAIAgent agent = new(definition, _agentsClient);
+        return agent;
+    }
+
+    public AzureAIAgent CreateAzureAIAgent(string agentId = "")
+    {
+        // validate if agentId  is null use _agentId
+        if (string.IsNullOrWhiteSpace(agentId))
+        {
+            agentId = _agentId;
+        }
+
+        PersistentAgent definition = _agentsClient.Administration.GetAgent(
     agentId);
         AzureAIAgent agent = new(definition, _agentsClient);
         return agent;

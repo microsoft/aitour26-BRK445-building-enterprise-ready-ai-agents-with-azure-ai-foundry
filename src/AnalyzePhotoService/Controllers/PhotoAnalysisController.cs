@@ -1,16 +1,11 @@
 #pragma warning disable SKEXP0110
-using Azure.Core;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 using Shared.Models;
 using System.Text.Json;
-using ZavaAIFoundrySKAgentsProvider;
-using ZavaAgentFxAgentsProvider;
-using ZavaSemanticKernelProvider;
 using Microsoft.Agents.AI;
+using System.Text;
 
 namespace AnalyzePhotoService.Controllers;
 
@@ -19,281 +14,109 @@ namespace AnalyzePhotoService.Controllers;
 public class PhotoAnalysisController : ControllerBase
 {
     private readonly ILogger<PhotoAnalysisController> _logger;
-    private readonly Kernel _kernel;
-    private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
-    private readonly AgentFxAgentProvider _agentFxAgentProvider;
-    private AzureAIAgent _agent;
-    private readonly IConfiguration _configuration;
+    private readonly AzureAIAgent _skAgent;
+    private readonly AIAgent _agentFxAgent;
 
     public PhotoAnalysisController(
         ILogger<PhotoAnalysisController> logger,
-        SemanticKernelProvider semanticKernelProvider,
-        AIFoundryAgentProvider aIFoundryAgentProvider,
-        AgentFxAgentProvider agentFxAgentProvider,
-        IConfiguration configuration)
+        AzureAIAgent skAzureAIAgent,
+        AIAgent agentFxAgent)
     {
         _logger = logger;
-        _kernel = semanticKernelProvider.GetKernel();
-        _aIFoundryAgentProvider = aIFoundryAgentProvider;
-        _agentFxAgentProvider = agentFxAgentProvider;
-        _configuration = configuration;
+        _skAgent = skAzureAIAgent;
+        _agentFxAgent = agentFxAgent;
     }
 
     [HttpPost("analyzesk")]
-    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeSKAsync([FromForm] IFormFile image, [FromForm] string prompt)
+    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeSKAsync([FromForm] IFormFile image, [FromForm] string prompt, CancellationToken cancellationToken = default)
     {
-        try
+        if (image is null)
         {
-            _logger.LogInformation("Analyzing photo with prompt: {Prompt}", prompt);
-            if (image == null)
-            {
-                return BadRequest("No image file was provided.");
-            }
-
-            // Build a prompt for the semantic kernel. Ask for a strict JSON object so we can parse it.
-            var aiPrompt = $@"You are an AI assistant that analyzes photos of rooms for renovation and home-improvement projects.
-Given the image filename and the user's short prompt, return a JSON object with exactly two fields:
-  - description: a brief natural-language description of what the image shows and what renovation tasks are likely required
-  - detectedMaterials: an array of short strings naming materials, finishes or items that appear relevant (e.g. 'paint', 'tile', 'wood', 'grout')
-
-Return only valid JSON. Do not include any surrounding markdown or explanatory text.
-
-ImageFileName: {image.FileName}
-UserPrompt: {prompt}
-";
-
-
-            // Prepare a stable fallback result (same message used previously)
-            var fallbackDescription = $"Photo analysis for prompt: '{prompt}'. Detected a room that needs renovation work. The image shows surfaces that require preparation and finishing.";
-
-            //// If kernel isn't configured for some reason, use the fallback heuristic immediately
-            //if (_kernel == null)
-            //{
-            //    _logger.LogWarning("Semantic Kernel is not available, using heuristic fallback");
-            //    var fallback = new PhotoAnalysisResult
-            //    {
-            //        Description = fallbackDescription,
-            //        DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
-            //    };
-            //    return Ok(fallback);
-            //}
-
-
-            try
-            {
-                //var aiResponse = await _kernel.InvokePromptAsync(aiPrompt);
-                //var agentResponse = aiResponse.GetValue<string>() ?? string.Empty;
-
-                // Create a Semantic Kernel agent based on the agent definition
-                var agentResponse = string.Empty;
-                var agentId = _configuration.GetConnectionString("photoanalyzeragentid");
-                _agent = await _aIFoundryAgentProvider.GetAzureAIAgent(agentId);
-                AzureAIAgentThread agentThread = new(_agent.Client);
-                await foreach (ChatMessageContent response in _agent.InvokeAsync(aiPrompt, agentThread))
-                {
-                    _logger.LogInformation("Received response from agent: {Content}", response.Content);
-                    agentResponse += (response.Content);
-                }
-
-                // Try to extract a JSON object from the response in case the model returned extra text.
-                var firstBrace = agentResponse.IndexOf('{');
-                var lastBrace = agentResponse.LastIndexOf('}');
-                string json = agentResponse;
-                if (firstBrace >= 0 && lastBrace > firstBrace)
-                {
-                    json = agentResponse.Substring(firstBrace, lastBrace - firstBrace + 1);
-                }
-
-                try
-                {
-                    using var doc = JsonDocument.Parse(json);
-                    var root = doc.RootElement;
-
-                    string description = string.Empty;
-                    var materialsList = new List<string>();
-
-                    if (root.TryGetProperty("description", out var descProp) && descProp.ValueKind == JsonValueKind.String)
-                    {
-                        description = descProp.GetString() ?? string.Empty;
-                    }
-
-                    if (root.TryGetProperty("detectedMaterials", out var materialsProp) && materialsProp.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var item in materialsProp.EnumerateArray())
-                        {
-                            if (item.ValueKind == JsonValueKind.String)
-                            {
-                                var s = item.GetString();
-                                if (!string.IsNullOrWhiteSpace(s)) materialsList.Add(s!);
-                            }
-                        }
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(description) && materialsList.Count > 0)
-                    {
-                        var result = new PhotoAnalysisResult
-                        {
-                            Description = description,
-                            DetectedMaterials = materialsList.ToArray()
-                        };
-
-                        return Ok(result);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("AI returned invalid or incomplete analysis, using heuristic fallback. Raw AI output: {Output}", agentResponse);
-                        var fallback = new PhotoAnalysisResult
-                        {
-                            Description = fallbackDescription,
-                            DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
-                        };
-                        return Ok(fallback);
-                    }
-                }
-                catch (JsonException jex)
-                {
-                    _logger.LogWarning(jex, "Failed to parse AI JSON output, using heuristic fallback. Raw AI output: {Output}", agentResponse);
-                    var fallback = new PhotoAnalysisResult
-                    {
-                        Description = fallbackDescription,
-                        DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
-                    };
-                    return Ok(fallback);
-                }
-            }
-            catch (Exception aiEx)
-            {
-                // If AI service fails for any reason, fall back to the simple rule-based detector and return success with that message
-                _logger.LogWarning(aiEx, "Semantic Kernel invocation failed, using heuristic fallback");
-                var fallback = new PhotoAnalysisResult
-                {
-                    Description = fallbackDescription,
-                    DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
-                };
-                return Ok(fallback);
-            }
-
+            return BadRequest("No image file was provided.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error analyzing photo using Semantic Kernel");
-            return StatusCode(500, "An error occurred while analyzing the photo");
-        }
+
+        _logger.LogInformation("[SK] Analyzing photo. Prompt: {Prompt}", prompt);
+
+        return await AnalyzeWithAgentAsync(
+            prompt,
+            image.FileName,
+            async (analysisPrompt) => await GetSemanticKernelResponseAsync(analysisPrompt),
+            "[SK]",
+            cancellationToken);
     }
 
     [HttpPost("analyzeagentfx")]
-    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeAgentFxAsync([FromForm] IFormFile image, [FromForm] string prompt)
+    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeAgentFxAsync([FromForm] IFormFile image, [FromForm] string prompt, CancellationToken cancellationToken = default)
     {
+        if (image is null)
+        {
+            return BadRequest("No image file was provided.");
+        }
+
+        _logger.LogInformation("[AgentFx] Analyzing photo. Prompt: {Prompt}", prompt);
+
+        return await AnalyzeWithAgentAsync(
+            prompt,
+            image.FileName,
+            async (analysisPrompt) => await GetAgentFxResponseAsync(analysisPrompt),
+            "[AgentFx]",
+            cancellationToken);
+    }
+
+    // Shared high-level analysis routine for both endpoints.
+    private async Task<ActionResult<PhotoAnalysisResult>> AnalyzeWithAgentAsync(
+        string userPrompt,
+        string fileName,
+        Func<string, Task<string>> invokeAgent,
+        string logPrefix,
+        CancellationToken cancellationToken)
+    {
+        var analysisPrompt = BuildAnalysisPrompt(userPrompt, fileName);
+        var fallbackDescription = BuildFallbackDescription(userPrompt);
+
         try
         {
-            _logger.LogInformation("Analyzing photo with Microsoft Agent Framework, prompt: {Prompt}", prompt);
-            if (image == null)
+            var agentRawResponse = await invokeAgent(analysisPrompt);
+            _logger.LogInformation("{Prefix} Raw agent response length: {Length}", logPrefix, agentRawResponse.Length);
+
+            if (TryParsePhotoAnalysis(agentRawResponse, out var parsed))
             {
-                return BadRequest("No image file was provided.");
+                return Ok(parsed);
             }
 
-            var aiPrompt = BuildAnalysisPrompt(prompt, image.FileName);
-            var fallbackDescription = $"Photo analysis for prompt: '{prompt}'. Detected a room that needs renovation work. The image shows surfaces that require preparation and finishing.";
-
-            try
-            {
-                // Use Microsoft Agent Framework for analysis
-                _logger.LogInformation("[AgentFx] Using Microsoft Agent Framework for photo analysis");
-                var agent = await _agentFxAgentProvider.GetAzureAIAgent();
-                var thread = agent.GetNewThread();
-                
-                try
-                {
-                    var response = await agent.RunAsync(aiPrompt, thread);
-                    var agentResponse = response?.Text ?? string.Empty;
-                    _logger.LogInformation("[AgentFx] Received response from agent");
-
-                    // Try to extract a JSON object from the response in case the model returned extra text.
-                    var firstBrace = agentResponse.IndexOf('{');
-                    var lastBrace = agentResponse.LastIndexOf('}');
-                    string json = agentResponse;
-                    if (firstBrace >= 0 && lastBrace > firstBrace)
-                    {
-                        json = agentResponse.Substring(firstBrace, lastBrace - firstBrace + 1);
-                    }
-
-                    try
-                    {
-                        using var doc = JsonDocument.Parse(json);
-                        var root = doc.RootElement;
-
-                        string description = string.Empty;
-                        var materialsList = new List<string>();
-
-                        if (root.TryGetProperty("description", out var descProp) && descProp.ValueKind == JsonValueKind.String)
-                        {
-                            description = descProp.GetString() ?? string.Empty;
-                        }
-
-                        if (root.TryGetProperty("detectedMaterials", out var matProp) && matProp.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var item in matProp.EnumerateArray())
-                            {
-                                if (item.ValueKind == JsonValueKind.String)
-                                {
-                                    var s = item.GetString();
-                                    if (!string.IsNullOrWhiteSpace(s)) materialsList.Add(s!);
-                                }
-                            }
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(description) && materialsList.Count > 0)
-                        {
-                            var result = new PhotoAnalysisResult
-                            {
-                                Description = description,
-                                DetectedMaterials = materialsList.ToArray()
-                            };
-                            return Ok(result);
-                        }
-                        else
-                        {
-                            _logger.LogWarning("[AgentFx] AI returned invalid or incomplete analysis, using heuristic fallback. Raw AI output: {Output}", agentResponse);
-                            var fallback = new PhotoAnalysisResult
-                            {
-                                Description = fallbackDescription,
-                                DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
-                            };
-                            return Ok(fallback);
-                        }
-                    }
-                    catch (JsonException jex)
-                    {
-                        _logger.LogWarning(jex, "[AgentFx] Failed to parse AI JSON output, using heuristic fallback. Raw AI output: {Output}", agentResponse);
-                        var fallback = new PhotoAnalysisResult
-                        {
-                            Description = fallbackDescription,
-                            DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
-                        };
-                        return Ok(fallback);
-                    }
-                }
-                finally
-                {
-                    // Clean up the agent thread to avoid resource leaks if needed
-                }
-            }
-            catch (Exception aiEx)
-            {
-                _logger.LogWarning(aiEx, "[AgentFx] Agent Framework invocation failed, using heuristic fallback");
-                var fallback = new PhotoAnalysisResult
-                {
-                    Description = fallbackDescription,
-                    DetectedMaterials = DetermineDetectedMaterials(prompt, image.FileName)
-                };
-                return Ok(fallback);
-            }
+            _logger.LogWarning("{Prefix} Parsed result invalid or incomplete. Using heuristic fallback. Raw: {Raw}", logPrefix, TrimForLog(agentRawResponse));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error analyzing photo using Microsoft Agent Framework");
-            return StatusCode(500, "An error occurred while analyzing the photo");
+            _logger.LogWarning(ex, "{Prefix} Invocation failed. Using heuristic fallback.", logPrefix);
         }
+
+        // Fallback path.
+        var fallback = new PhotoAnalysisResult
+        {
+            Description = fallbackDescription,
+            DetectedMaterials = DetermineDetectedMaterials(userPrompt, fileName)
+        };
+        return Ok(fallback);
+    }
+
+    // Agent invocation helpers
+    private async Task<string> GetSemanticKernelResponseAsync(string prompt)
+    {
+        var sb = new StringBuilder();
+        AzureAIAgentThread agentThread = new(_skAgent.Client);
+        await foreach (ChatMessageContent response in _skAgent.InvokeAsync(prompt, agentThread))
+        {
+            sb.Append(response.Content);
+        }
+        return sb.ToString();
+    }
+
+    private async Task<string> GetAgentFxResponseAsync(string prompt)
+    {
+        var thread = _agentFxAgent.GetNewThread();
+        var response = await _agentFxAgent.RunAsync(prompt, thread);
+        return response?.Text ?? string.Empty;
     }
 
     private string BuildAnalysisPrompt(string prompt, string fileName)
@@ -310,33 +133,105 @@ UserPrompt: {prompt}
 ";
     }
 
-    // Simple DTO used to deserialize the AI's JSON response.
-    private record AiPhotoAnalysisResult(string Description, string[] DetectedMaterials);
+    #region JSON parsing logic centralized.
+    private bool TryParsePhotoAnalysis(string agentResponse, out PhotoAnalysisResult result)
+    {
+        result = default!;
+        if (string.IsNullOrWhiteSpace(agentResponse)) return false;
 
+        var json = ExtractJson(agentResponse);
+        if (json is null) return false;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("description", out var descProp) || descProp.ValueKind != JsonValueKind.String)
+                return false;
+
+            if (!root.TryGetProperty("detectedMaterials", out var materialsProp) || materialsProp.ValueKind != JsonValueKind.Array)
+                return false;
+
+            var description = descProp.GetString() ?? string.Empty;
+            var materials = new List<string>();
+            foreach (var item in materialsProp.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(item.GetString()))
+                {
+                    materials.Add(item.GetString()!);
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(description) || materials.Count == 0)
+                return false;
+
+            result = new PhotoAnalysisResult
+            {
+                Description = description,
+                DetectedMaterials = materials.ToArray()
+            };
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    // Extracts first valid JSON object substring from a response.
+    private static string? ExtractJson(string raw)
+    {
+        var first = raw.IndexOf('{');
+        var last = raw.LastIndexOf('}');
+        if (first < 0 || last <= first) return null;
+        return raw.Substring(first, last - first + 1);
+    }
+    #endregion
+
+    #region Fallback description and logging
+    private static string BuildFallbackDescription(string prompt) =>
+        $"Photo analysis for prompt: '{prompt}'. Detected a room that needs renovation work. The image shows surfaces that require preparation and finishing.";
+
+    private static string TrimForLog(string value, int max = 500)
+        => value.Length <= max ? value : value.Substring(0, max) + "...";
+
+    // Simple heuristic detector.
     private string[] DetermineDetectedMaterials(string prompt, string? fileName)
     {
-        var materials = new List<string>();
+        var materials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var promptLower = prompt.ToLowerInvariant();
+        var fileNameLower = fileName?.ToLowerInvariant() ?? string.Empty;
 
-        // Simple keyword-based material detection
-        var promptLower = prompt.ToLower();
-        var fileNameLower = fileName?.ToLower() ?? "";
+        bool Contains(params string[] keys) => keys.Any(k => promptLower.Contains(k) || fileNameLower.Contains(k));
 
-        if (promptLower.Contains("paint") || promptLower.Contains("wall"))
-            materials.AddRange(new[] { "paint", "wall", "surface preparation" });
+        if (Contains("paint", "wall"))
+            AddRange(materials, "paint", "wall", "surface preparation");
 
-        if (promptLower.Contains("wood") || promptLower.Contains("deck"))
-            materials.AddRange(new[] { "wood", "stain", "sanding" });
+        if (Contains("wood", "deck"))
+            AddRange(materials, "wood", "stain", "sanding");
 
-        if (promptLower.Contains("tile") || promptLower.Contains("bathroom"))
-            materials.AddRange(new[] { "tile", "grout", "adhesive" });
+        if (Contains("tile", "bathroom"))
+            AddRange(materials, "tile", "grout", "adhesive");
 
-        if (promptLower.Contains("garden") || promptLower.Contains("landscape"))
-            materials.AddRange(new[] { "soil", "plants", "tools" });
+        if (Contains("garden", "landscape"))
+            AddRange(materials, "soil", "plants", "tools");
 
-        // Default materials if none detected
         if (materials.Count == 0)
-            materials.AddRange(new[] { "general tools", "measuring", "safety equipment" });
+            AddRange(materials, "general tools", "measuring", "safety equipment");
 
         return materials.ToArray();
     }
+
+    private static void AddRange(HashSet<string> set, params string[] values)
+    {
+        foreach (var v in values)
+        {
+            if (!string.IsNullOrWhiteSpace(v)) set.Add(v);
+        }
+    }
+
+    // Simple DTO used to deserialize the AI's JSON response (kept for potential future direct deserialization).
+    private record AiPhotoAnalysisResult(string Description, string[] DetectedMaterials);
+    #endregion
 }

@@ -763,28 +763,28 @@ namespace MultiAgentDemo.Controllers
         private async Task<AzureAIAgent> GetInventoryAgentAsync()
         {
             var inventoryAgentId = _configuration.GetConnectionString("inventoryagentid");
-            var inventoryAgent = await _aIFoundryAgentProvider.GetAzureAIAgent(inventoryAgentId);
+            var inventoryAgent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync(inventoryAgentId);
             return inventoryAgent;
         }
 
         private async Task<AzureAIAgent> GetNavigationAgentAsync()
         {
             var inventoryAgentId = _configuration.GetConnectionString("navigationagentid");
-            var inventoryAgent = await _aIFoundryAgentProvider.GetAzureAIAgent(inventoryAgentId);
+            var inventoryAgent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync(inventoryAgentId);
             return inventoryAgent;
         }
 
         private async Task<AzureAIAgent> GetMatchMakingAgentAsync()
         {
             var inventoryAgentId = _configuration.GetConnectionString("productmatchmakingagentid");
-            var inventoryAgent = await _aIFoundryAgentProvider.GetAzureAIAgent(inventoryAgentId);
+            var inventoryAgent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync(inventoryAgentId);
             return inventoryAgent;
         }
 
         private async Task<AzureAIAgent> GetLocationAgentAsync()
         {
             var inventoryAgentId = _configuration.GetConnectionString("locationserviceagentid");
-            var inventoryAgent = await _aIFoundryAgentProvider.GetAzureAIAgent(inventoryAgentId);
+            var inventoryAgent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync(inventoryAgentId);
             return inventoryAgent;
         }
 

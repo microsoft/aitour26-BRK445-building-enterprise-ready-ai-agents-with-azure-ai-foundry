@@ -1,5 +1,8 @@
-using ZavaAIFoundrySKAgentsProvider;
+#pragma warning disable SKEXP0110
+using Microsoft.Agents.AI;
+using Microsoft.SemanticKernel.Agents.AzureAI;
 using ZavaAgentFxAgentsProvider;
+using ZavaAIFoundrySKAgentsProvider;
 using ZavaSemanticKernelProvider;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,9 +17,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetService<IConfiguration>();
-    var openAiConnection = config.GetConnectionString("aifoundry");
+    var aiFoundryConnection = config.GetConnectionString("aifoundry");
     var chatDeploymentName = config["AI_ChatDeploymentName"] ?? "gpt-5-mini";
-    return new SemanticKernelProvider(openAiConnection, chatDeploymentName);
+    return new SemanticKernelProvider(aiFoundryConnection, chatDeploymentName);
 });
 
 builder.Services.AddSingleton(sp =>
@@ -33,6 +36,26 @@ builder.Services.AddSingleton(sp =>
     var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
     return new AgentFxAgentProvider(aiFoundryProjectConnection);
 });
+
+
+builder.Services.AddSingleton<AzureAIAgent>(sp =>
+{
+    // return the photo analyzer agent using Semantic Kernel
+    var config = sp.GetService<IConfiguration>();
+    var agentId = config.GetConnectionString("photoanalyzeragentid");
+    var _aIFoundryAgentProvider = sp.GetService<AIFoundryAgentProvider>();
+    return _aIFoundryAgentProvider.CreateAzureAIAgent(agentId);
+});
+
+builder.Services.AddSingleton<AIAgent>(sp =>
+{
+    // return the photo analyzer agent using Microsoft Agent Framework
+    var config = sp.GetService<IConfiguration>();
+    var agentId = config.GetConnectionString("photoanalyzeragentid");
+    var agentFxProvider = sp.GetService<AgentFxAgentProvider>();
+    return agentFxProvider.GetAIAgent(agentId);
+});
+
 
 var app = builder.Build();
 

@@ -85,7 +85,7 @@ public class ReasoningController : ControllerBase
         {
             _logger.LogInformation("[SK] Using Semantic Kernel agent for reasoning");
             var agentResponse = string.Empty;
-            _agent = await _aIFoundryAgentProvider.GetAzureAIAgent();
+            _agent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync();
             AzureAIAgentThread agentThread = new(_agent.Client);
             try
             {
@@ -116,7 +116,7 @@ public class ReasoningController : ControllerBase
         try
         {
             _logger.LogInformation("[AgentFx] Using Microsoft Agent Framework for reasoning");
-            var agent = await _agentFxAgentProvider.GetAzureAIAgent();
+            var agent = await _agentFxAgentProvider.GetAIAgentAsync();
             var thread = agent.GetNewThread();
             
             try

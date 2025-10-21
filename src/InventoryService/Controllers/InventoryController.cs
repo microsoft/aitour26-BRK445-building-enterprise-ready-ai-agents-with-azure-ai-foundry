@@ -73,7 +73,7 @@ public class InventoryController : ControllerBase
             if (useSK)
             {
                 // Use Semantic Kernel agent
-                _agent = await _aIFoundryAgentProvider.GetAzureAIAgent();
+                _agent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync();
                 AzureAIAgentThread agentThread = new(client: _agent.Client);
                 await foreach (ChatMessageContent response in _agent.InvokeAsync(aiPrompt, agentThread))
                 {
@@ -87,7 +87,7 @@ public class InventoryController : ControllerBase
                 try
                 {
                     _logger.LogInformation("[AgentFx] Using Microsoft Agent Framework for inventory search");
-                    var agent = await _agentFxAgentProvider.GetAzureAIAgent();
+                    var agent = await _agentFxAgentProvider.GetAIAgentAsync();
                     var thread = agent.GetNewThread();
                     
                     try

@@ -78,7 +78,7 @@ public class CustomerController : ControllerBase
 
             // Create a Semantic Kernel agent based on the agent definition
             var agentResponse = string.Empty;
-            _agent = await _aIFoundryAgentProvider.GetAzureAIAgent();
+            _agent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync();
             AzureAIAgentThread agentThread = new(_agent.Client);
             await foreach (ChatMessageContent response in _agent.InvokeAsync(aiPrompt, agentThread))
             {
@@ -131,7 +131,7 @@ public class CustomerController : ControllerBase
             {
                 // Use Microsoft Agent Framework for customer lookup
                 _logger.LogInformation("[AgentFx] Using Microsoft Agent Framework for customer lookup");
-                var agent = await _agentFxAgentProvider.GetAzureAIAgent();
+                var agent = await _agentFxAgentProvider.GetAIAgentAsync();
                 var thread = agent.GetNewThread();
                 
                 try

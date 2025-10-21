@@ -68,7 +68,7 @@ public class AgentCatalogController : ControllerBase
 
             // Create a Semantic Kernel agent based on the agent definition using the agentId
             var agentResponse = string.Empty;
-            _agent = await _aIFoundryAgentProvider.GetAzureAIAgent(agentId);
+            _agent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync(agentId);
             AzureAIAgentThread agentThread = new(_agent.Client);
 
             ChatMessageContent message = new(AuthorRole.User, prompt);
@@ -136,7 +136,7 @@ public class AgentCatalogController : ControllerBase
             try
             {
                 _logger.LogInformation("[AgentFx] Using Microsoft Agent Framework for agent testing");
-                var agent = await _agentFxAgentProvider.GetAzureAIAgent(agentId);
+                var agent = await _agentFxAgentProvider.GetAIAgentAsync(agentId);
                 var thread = agent.GetNewThread();
                 
                 try
