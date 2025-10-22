@@ -3,6 +3,7 @@ using Microsoft.Agents.AI.Workflows;
 using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
+using Microsoft.Identity.Client;
 using MultiAgentDemo.Services;
 using SharedEntities;
 using System.Text;
@@ -320,7 +321,7 @@ namespace MultiAgentDemo.Controllers
             // get the mermaid representation
             var mermaidWorkflowChart = workflow.ToMermaidString();
 
-            var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+            var alternatives = await GenerateProductAlternativesAsync(steps);
             var navigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null;
 
             return new MultiAgentResponse
@@ -337,6 +338,9 @@ namespace MultiAgentDemo.Controllers
 
         private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location? location, string productQuery)
         {
+            // TODO: implement the logic to generate navigation instructions using the _locationServiceAgent
+
+
             if (location == null) return new NavigationInstructions { Steps = Array.Empty<NavigationStep>(), StartLocation = string.Empty, EstimatedTime = string.Empty };
             var dest = new Location { Lat = 0, Lon = 0 };
             try
@@ -350,12 +354,25 @@ namespace MultiAgentDemo.Controllers
             }
         }
 
-        private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(string productQuery)
+        //private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(string productQuery)
+        private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(List<AgentStep> steps)
         {
+            // TODO: analyze the steps and choose the specific products for the alternatives
+            // perform the analysis using the _productMatchmakingAgent
+            // TODO: complete the prompt
+            var prompt = "";
+            var analyzeAlternatives = await _productMatchmakingAgent.RunAsync(prompt);
+
+            // TODO : parse the response to get the alternatives
+            var alternativeProduct1Name = "";
+            var alternativeProduct1SKU = "";
+            var alternativeProduct2Name = "";
+            var alternativeProduct2SKU = "";
+
             return new[]
             {
-                new ProductAlternative { Name = $"Standard {productQuery}", Sku = "STD-" + productQuery.Replace(" ", "").ToUpper(), Price = 49.99m, InStock = true, Location = "Aisle 5", Aisle = 5, Section = "B" },
-                new ProductAlternative { Name = $"Budget {productQuery}", Sku = "BDG-" + productQuery.Replace(" ", "").ToUpper(), Price = 24.99m, InStock = false, Location = "Aisle 12", Aisle = 12, Section = "C" }
+                new ProductAlternative { Name = $"Standard {alternativeProduct1Name}", Sku = "STD-" + alternativeProduct1SKU, Price = 49.99m, InStock = true, Location = "Aisle 5", Aisle = 5, Section = "B" },
+                new ProductAlternative { Name = $"Budget {alternativeProduct2Name}", Sku = "BDG-" + alternativeProduct2SKU, Price = 24.99m, InStock = false, Location = "Aisle 12", Aisle = 12, Section = "C" }
             };
         }
     }
