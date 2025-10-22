@@ -1,13 +1,8 @@
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
-using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
-using Microsoft.Identity.Client;
-using MultiAgentDemo.Services;
 using SharedEntities;
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text;
 
 namespace MultiAgentDemo.Controllers
@@ -245,8 +240,9 @@ namespace MultiAgentDemo.Controllers
             // get the mermaid representation
             var mermaidWorkflowChart = workflow.ToMermaidString();
 
-            var alternatives = await GenerateProductAlternativesAsync(steps, request.ProductQuery);
-            var navigationInstructions = await GenerateNavigationInstructionsAsync(steps, request.Location, request.ProductQuery);
+            // get typed responses from steps
+            var alternatives = await StepsProcessor.GetProductAlternativesFromStepsAsync(steps, _productMatchmakingAgent, _logger);
+            var navigationInstructions = await StepsProcessor.GenerateNavigationInstructionsAsync(steps, _navigationAgent, request.Location, request.ProductQuery, _logger);
 
             return new MultiAgentResponse
             {
@@ -283,202 +279,5 @@ namespace MultiAgentDemo.Controllers
 
             return agentName;
         }
-
-        #region Location Members
-        private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(List<AgentStep> steps, Location? location, string productQuery)
-        {
-            NavigationInstructions navigationInstructions = null;
-
-            if (location == null)
-            {
-                location = new Location { Lat = 0, Lon = 0 };
-            }
-
-            try
-            {
-                // find the step where step.AgentId matches the _navigationAgent.Id
-                var navigationStep = steps.FirstOrDefault(step => step.AgentId == _navigationAgent.Id);
-                var stepContent = navigationStep.Result;
-                try
-                {
-                    navigationInstructions = System.Text.Json.JsonSerializer.Deserialize<NavigationInstructions>(stepContent);
-                    if (navigationInstructions != null)
-                    {
-                        _logger.LogInformation("Navigation instructions found in step: {StepContent}", stepContent);
-                        return navigationInstructions;
-                    }
-                }
-                catch
-                {
-                    _logger.LogWarning("Failed to deserialize navigation instructions from step: {StepContent}", stepContent);
-                }
-
-                // return default nav instructions
-                return CreateDefaultNavigationInstructions(location, productQuery);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "GenerateNavigationInstructions failed, returning fallback");
-                return CreateDefaultNavigationInstructions(location, productQuery);
-            }
-        }
-
-        private static NavigationInstructions CreateDefaultNavigationInstructions(Location location, string productQuery)
-        {
-            return new NavigationInstructions
-            {
-                Steps = new[]
-                                {
-                        new NavigationStep
-                        {
-                            Direction = "Head straight",
-                            Description = $"Walk towards the main area where {productQuery} is located",
-                            Landmark = new NavigationLandmark { Description = "Main entrance area" }
-                        },
-                        new NavigationStep
-                        {
-                            Direction = "Turn left",
-                            Description = "Continue to the product section",
-                            Landmark = new NavigationLandmark { Description = "Product display section" }
-                        }
-                    },
-                StartLocation = $"Current Location ({location.Lat:F4}, {location.Lon:F4})",
-                EstimatedTime = "3-5 minutes"
-            };
-        }
-
-        #endregion
-
-        #region Product Alternative Members
-        private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(List<AgentStep> steps, string productQuery)
-        {
-            try
-            {
-                // Analyze the steps and choose the specific products for the alternatives
-                // Extract product information from the workflow steps
-                string stepsSummary = SummarizeStepsForMatchmaking(steps);
-
-                // Build a comprehensive prompt for the product matchmaking agent
-                var prompt = $@"Based on the workflow analysis:
-{stepsSummary}
-
-For the product query: '{productQuery}'
-
-Please provide product alternatives with the following information:
-1. Product name
-2. SKU
-3. Price estimate
-4. Stock availability
-5. Store location (aisle and section)
-
-Focus on providing practical alternatives that match the customer's needs.";
-
-                var analyzeAlternatives = await _productMatchmakingAgent.RunAsync(prompt);
-
-                // Parse the response to get the alternatives
-                // For now, return structured alternatives based on the product query
-                var baseProductName = ExtractProductNameFromQuery(productQuery);
-                var baseSku = GenerateSkuFromProductName(baseProductName);
-
-                return new[]
-                {
-                    new ProductAlternative
-                    {
-                        Name = $"Premium {baseProductName}",
-                        Sku = $"PREM-{baseSku}",
-                        Price = 129.99m,
-                        InStock = true,
-                        Location = "Aisle 5",
-                        Aisle = 5,
-                        Section = "A"
-                    },
-                    new ProductAlternative
-                    {
-                        Name = $"Standard {baseProductName}",
-                        Sku = $"STD-{baseSku}",
-                        Price = 79.99m,
-                        InStock = true,
-                        Location = "Aisle 7",
-                        Aisle = 7,
-                        Section = "B"
-                    },
-                    new ProductAlternative
-                    {
-                        Name = $"Budget {baseProductName}",
-                        Sku = $"BDG-{baseSku}",
-                        Price = 39.99m,
-                        InStock = false,
-                        Location = "Aisle 12",
-                        Aisle = 12,
-                        Section = "C"
-                    }
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "GenerateProductAlternatives failed, returning fallback alternatives");
-                // Return fake valid information if there is a problem during execution
-                return new[]
-                {
-                    new ProductAlternative
-                    {
-                        Name = "Alternative Product A",
-                        Sku = "ALT-001",
-                        Price = 89.99m,
-                        InStock = true,
-                        Location = "Aisle 5",
-                        Aisle = 5,
-                        Section = "B"
-                    },
-                    new ProductAlternative
-                    {
-                        Name = "Alternative Product B",
-                        Sku = "ALT-002",
-                        Price = 49.99m,
-                        InStock = true,
-                        Location = "Aisle 8",
-                        Aisle = 8,
-                        Section = "C"
-                    }
-                };
-            }
-        }
-
-        private string SummarizeStepsForMatchmaking(List<AgentStep> steps)
-        {
-            // Summarize relevant steps for product matchmaking
-            if (steps == null || !steps.Any())
-            {
-                return "No workflow steps available";
-            }
-
-            var summary = new StringBuilder();
-            foreach (var step in steps)
-            {
-                summary.AppendLine($"- {step.Agent}: {step.Result}");
-            }
-
-            return summary.ToString();
-        }
-
-        private string ExtractProductNameFromQuery(string productQuery)
-        {
-            // Simple extraction - in production, this would be more sophisticated
-            // Remove common words and clean up the query
-            var words = productQuery.Split(new[] { ' ', ',', '.', '?', '!' }, StringSplitOptions.RemoveEmptyEntries);
-            var stopWords = new[] { "I", "can't", "find", "the", "a", "an", "in", "this", "store", "help", "product", "can", "you" };
-
-            var productWords = words.Where(w => !stopWords.Contains(w, StringComparer.OrdinalIgnoreCase))
-                                   .Take(3);
-
-            return string.Join(" ", productWords);
-        }
-
-        private string GenerateSkuFromProductName(string productName)
-        {
-            // Generate a simple SKU from product name
-            return productName.Replace(" ", "").ToUpper().Substring(0, Math.Min(8, productName.Replace(" ", "").Length));
-        } 
-        #endregion
-    }
+   }
 }

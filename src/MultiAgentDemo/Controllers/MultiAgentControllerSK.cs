@@ -189,7 +189,8 @@ namespace MultiAgentDemo.Controllers
                 }
 
                 // Generate mock alternatives for UI compatibility
-                var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+                var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
+                NavigationInstructions navigationInstructions = StepsProcessor.CreateDefaultNavigationInstructions(request.Location, request.ProductQuery);
 
                 return Ok(new MultiAgentResponse
                 {
@@ -198,7 +199,7 @@ namespace MultiAgentDemo.Controllers
                     OrchestrationDescription = "Agents executed sequentially using Semantic Kernel ChatCompletionAgent, with each agent building upon the results of the previous agent's work.",
                     Steps = steps.ToArray(),
                     Alternatives = alternatives,
-                    NavigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null
+                    NavigationInstructions = navigationInstructions
                 });
             }
             catch (Exception ex)
@@ -315,7 +316,10 @@ namespace MultiAgentDemo.Controllers
                 var steps = await Task.WhenAll(concurrentTasks);
 
                 // Generate mock alternatives for UI compatibility
-                var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+                // Generate mock alternatives for UI compatibility
+                var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
+                NavigationInstructions navigationInstructions = StepsProcessor.CreateDefaultNavigationInstructions(request.Location, request.ProductQuery);
+
 
                 return Ok(new MultiAgentResponse
                 {
@@ -324,7 +328,7 @@ namespace MultiAgentDemo.Controllers
                     OrchestrationDescription = "All agents executed concurrently using Semantic Kernel ChatCompletionAgent, working independently in parallel without dependencies on each other's results.",
                     Steps = steps.ToArray(),
                     Alternatives = alternatives,
-                    NavigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null
+                    NavigationInstructions = navigationInstructions
                 });
             }
             catch (Exception ex)
@@ -465,7 +469,10 @@ namespace MultiAgentDemo.Controllers
                 }
 
                 // Generate mock alternatives for UI compatibility
-                var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+                // Generate mock alternatives for UI compatibility
+                var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
+                NavigationInstructions navigationInstructions = StepsProcessor.CreateDefaultNavigationInstructions(request.Location, request.ProductQuery);
+
 
                 return Ok(new MultiAgentResponse
                 {
@@ -474,7 +481,7 @@ namespace MultiAgentDemo.Controllers
                     OrchestrationDescription = "Dynamic handoff orchestration using Semantic Kernel ChatCompletionAgent, where agents pass control based on context and business logic rules.",
                     Steps = steps.ToArray(),
                     Alternatives = alternatives,
-                    NavigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null
+                    NavigationInstructions = navigationInstructions
                 });
             }
             catch (Exception ex)
@@ -551,7 +558,10 @@ namespace MultiAgentDemo.Controllers
                 });
 
                 // Generate mock alternatives for UI compatibility
-                var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+                // Generate mock alternatives for UI compatibility
+                var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
+                NavigationInstructions navigationInstructions = StepsProcessor.CreateDefaultNavigationInstructions(request.Location, request.ProductQuery);
+
 
                 return Ok(new MultiAgentResponse
                 {
@@ -560,7 +570,7 @@ namespace MultiAgentDemo.Controllers
                     OrchestrationDescription = "Collaborative group chat orchestration using Semantic Kernel AgentGroupChat, where agents discuss and build consensus through multi-turn conversations.",
                     Steps = steps.ToArray(),
                     Alternatives = alternatives,
-                    NavigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null
+                    NavigationInstructions = navigationInstructions
                 });
             }
             catch (Exception ex)
@@ -730,7 +740,9 @@ namespace MultiAgentDemo.Controllers
                 });
 
                 // Generate mock alternatives for UI compatibility
-                var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+                var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
+                NavigationInstructions navigationInstructions = StepsProcessor.CreateDefaultNavigationInstructions(request.Location, request.ProductQuery);
+
 
                 return Ok(new MultiAgentResponse
                 {
@@ -739,7 +751,7 @@ namespace MultiAgentDemo.Controllers
                     OrchestrationDescription = "Magentic orchestration using Semantic Kernel ChatCompletionAgent, featuring coordinator-directed multi-agent collaboration with planning, execution, and synthesis phases.",
                     Steps = steps.ToArray(),
                     Alternatives = alternatives,
-                    NavigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null
+                    NavigationInstructions = navigationInstructions
                 });
             }
             catch (Exception ex)
@@ -870,15 +882,6 @@ namespace MultiAgentDemo.Controllers
             }
         }
 
-        private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(string productQuery)
-        {
-            await Task.Delay(10);
-            return new[]
-            {
-                new ProductAlternative { Name = $"Standard {productQuery}", Sku = "STD-" + productQuery.Replace(" ", "").ToUpper(), Price = 49.99m, InStock = true, Location = "Aisle 5", Aisle = 5, Section = "B" },
-                new ProductAlternative { Name = $"Budget {productQuery}", Sku = "BDG-" + productQuery.Replace(" ", "").ToUpper(), Price = 24.99m, InStock = false, Location = "Aisle 12", Aisle = 12, Section = "C" }
-            };
-        }
         #endregion
     }
 }
