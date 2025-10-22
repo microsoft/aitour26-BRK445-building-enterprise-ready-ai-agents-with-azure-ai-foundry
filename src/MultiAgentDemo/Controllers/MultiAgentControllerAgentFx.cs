@@ -3,13 +3,9 @@ using Microsoft.Agents.AI.Workflows;
 using Microsoft.Agents.AI.Workflows.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.TextToImage;
 using MultiAgentDemo.Services;
 using SharedEntities;
-using System;
-using ZavaAgentFxAgentsProvider;
+using System.Text;
 
 namespace MultiAgentDemo.Controllers
 {
@@ -119,35 +115,31 @@ namespace MultiAgentDemo.Controllers
                 var orchestrationId = Guid.NewGuid().ToString();
                 var steps = new List<AgentStep>();
 
-                ZavaAgentExecutor zavaProductSearch = new(_productSearchAgent, _logger);
-                ZavaAgentExecutor zavaInventory = new(_inventoryAgent, _logger);
-                ZavaAgentExecutor zavaProductMatchmaking = new(_productMatchmakingAgent, _logger);
-                ZavaAgentExecutor zavaLocation = new(_locationServiceAgent, _logger);
-                ZavaAgentExecutor zavaNavigation = new(_navigationAgent, _logger);
-
+                // build the sequential workflow
                 var agents = new List<AIAgent>
                 {
                     _productSearchAgent,
+                    _inventoryAgent,
                     _productMatchmakingAgent,
                     _locationServiceAgent,
                     _navigationAgent
                 };
-
                 var workflow = AgentWorkflowBuilder.BuildSequential(agents);
 
                 // Run the workflow
-
                 string? lastExecutorId = null;
+                List<ChatMessage> result = [];
+
+                // sync run
+                // Run run = await InProcessExecution.RunAsync(workflow, request.ProductQuery);
+                // foreach (WorkflowEvent evt in run.NewEvents)
+
+                // async run
                 StreamingRun run = await InProcessExecution.StreamAsync(workflow, request.ProductQuery);
                 await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
-
-                List<ChatMessage> result = [];
                 await foreach (WorkflowEvent evt in run.WatchStreamAsync().ConfigureAwait(false))
-                {
-                    // only log information if the type of update is not Microsoft.Agents.AI.Workflows.AgentRunUpdateEvent
-                    if (evt.GetType() != typeof(AgentRunUpdateEvent))
-                        _logger.LogInformation($"typeofupdate: {evt.GetType().FullName}");
 
+                {
                     switch (evt)
                     {
                         case AgentRunUpdateEvent e:
@@ -156,14 +148,6 @@ namespace MultiAgentDemo.Controllers
                                 lastExecutorId = e.ExecutorId;
                                 _logger.LogInformation($"ExecutorId >> {e.ExecutorId}");
                             }
-                            break;
-
-                        case AgentRunResponseEvent agentRunResponseEvent:
-                            _logger.LogInformation($"AgentRunResponseEvent >> AgentRunResponse: {agentRunResponseEvent.Response} - Data: {agentRunResponseEvent.Data}");
-                            break;
-
-                        case ExecutorCompletedEvent completed:
-                            _logger.LogInformation($"ExecutorCompletedEvent >> ExecutorId: {completed.ExecutorId} - Data: {completed.Data}");
                             break;
 
                         case WorkflowOutputEvent outputEvent:
@@ -182,21 +166,12 @@ namespace MultiAgentDemo.Controllers
                             }
                             break;
 
-                        case SuperStepCompletedEvent superStepCompletedEvent:
-                            _logger.LogInformation($"SuperStepCompletedEvent >> Step Number : {superStepCompletedEvent.StepNumber} - CompletionInfo: {superStepCompletedEvent.CompletionInfo.ToString()} - Data: {superStepCompletedEvent.Data}");
-                            break;
-
                         default:
                             _logger.LogInformation($"Unhandled workflow event type: {evt.GetType().Name}");
                             break;
                     }
                 }
-
-                // Display final result
-                foreach (var message in result)
-                {
-                    _logger.LogInformation($"{message.Role}: {message.Text}");
-                }
+                
 
                 var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
 
@@ -287,21 +262,6 @@ namespace MultiAgentDemo.Controllers
                 _logger.LogError(ex, "Error in handoff workflow using Microsoft Agent Framework");
                 return StatusCode(500, "An error occurred during handoff workflow processing.");
             }
-        }
-
-        private string AnalyzeQueryForRouting(string query)
-        {
-            var keywords = new[] { "find", "search", "inventory", "stock", "available" };
-            if (keywords.Any(k => query.Contains(k, StringComparison.OrdinalIgnoreCase)))
-            {
-                return "Route to inventory search path";
-            }
-            return "Route to location search path";
-        }
-
-        private bool ShouldInvokeMatchmaking(string inventoryResult)
-        {
-            return inventoryResult.Contains("completed", StringComparison.OrdinalIgnoreCase);
         }
 
         [HttpPost("assist/groupchat")]
@@ -404,35 +364,11 @@ namespace MultiAgentDemo.Controllers
 
         private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(string productQuery)
         {
-            await Task.Delay(10);
             return new[]
             {
                 new ProductAlternative { Name = $"Standard {productQuery}", Sku = "STD-" + productQuery.Replace(" ", "").ToUpper(), Price = 49.99m, InStock = true, Location = "Aisle 5", Aisle = 5, Section = "B" },
                 new ProductAlternative { Name = $"Budget {productQuery}", Sku = "BDG-" + productQuery.Replace(" ", "").ToUpper(), Price = 24.99m, InStock = false, Location = "Aisle 12", Aisle = 12, Section = "C" }
             };
         }
-    }
-}
-
-internal sealed class ZavaAgentExecutor :
-    ReflectingExecutor<ZavaAgentExecutor>,
-    IMessageHandler<string, string>
-{
-    private readonly AIAgent _workingAgent;
-    private readonly ILogger _logger;
-
-    public ZavaAgentExecutor(AIAgent workingAgent, ILogger logger)
-        : base(workingAgent.Id)
-    {
-        _workingAgent = workingAgent;
-        _logger = logger;
-    }
-
-    public async ValueTask<string> HandleAsync(string message, IWorkflowContext context, CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation($"Zava Workflow Executor - Agent {_workingAgent.Name} - Handling message: {message}");
-
-        var result = await _workingAgent.RunAsync(message);
-        return result.Text;
     }
 }
