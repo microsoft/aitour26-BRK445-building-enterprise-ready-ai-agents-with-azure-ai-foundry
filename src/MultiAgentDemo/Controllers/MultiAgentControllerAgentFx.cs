@@ -6,6 +6,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Identity.Client;
 using MultiAgentDemo.Services;
 using SharedEntities;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
 
@@ -223,10 +224,13 @@ namespace MultiAgentDemo.Controllers
                         var messages = outputEvent.As<List<ChatMessage>>() ?? new List<ChatMessage>();
                         foreach (var message in messages)
                         {
+                            var agentName = GetAgentName(message.AuthorName);
+
                             steps.Add(new AgentStep
                             {
-                                Agent = message.AuthorName ?? outputEvent.SourceId,
-                                Action = $"Search for {request.ProductQuery}",
+                                Agent = agentName,
+                                AgentId = message.AuthorName,
+                                Action = $"Processing - {request.ProductQuery}",
                                 Result = message.Text,
                                 Timestamp = message.CreatedAt.HasValue ? message.CreatedAt.Value.UtcDateTime : DateTime.UtcNow
                             });
@@ -256,6 +260,30 @@ namespace MultiAgentDemo.Controllers
             };
         }
 
+        private string GetAgentName(string agentId)
+        {
+            var agentName = agentId;
+
+            if (_locationServiceAgent.Id == agentId)
+            {
+                agentName = "Location Service Agent";
+            }
+            else if (_navigationAgent.Id == agentId)
+            {
+                agentName = "Navigation Agent";
+            }
+            else if (_productMatchmakingAgent.Id == agentId)
+            {
+                agentName = "Product Matchmaking Agent";
+            }
+            else if (_productSearchAgent.Id == agentId)
+            {
+                agentName = "Product Search Agent";
+            }
+
+            return agentName;
+        }
+
         #region Location Members
         private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(List<AgentStep> steps, Location? location, string productQuery)
         {
@@ -272,14 +300,21 @@ namespace MultiAgentDemo.Controllers
                 foreach (var step in steps)
                 {
                     var stepContent = step.Result;
-                    // try to deserialize the step content from JSON into NavigationInstructions
-                    navigationInstructions = System.Text.Json.JsonSerializer.Deserialize<NavigationInstructions>(stepContent);
-                    if (navigationInstructions != null)
+                    try
                     {
-                        _logger.LogInformation("Navigation instructions found in step: {StepContent}", stepContent);
-                        return navigationInstructions;
+                        navigationInstructions = System.Text.Json.JsonSerializer.Deserialize<NavigationInstructions>(stepContent);
+                        if (navigationInstructions != null)
+                        {
+                            _logger.LogInformation("Navigation instructions found in step: {StepContent}", stepContent);
+                            return navigationInstructions;
+                        }
                     }
+                    catch
+                    {
+                        _logger.LogWarning("Failed to deserialize navigation instructions from step: {StepContent}", stepContent);
+                    }                    
                 }
+
 
                 // return default nav instructions
                 return CreateDefaultNavigationInstructions(location, productQuery);
@@ -316,16 +351,6 @@ namespace MultiAgentDemo.Controllers
             };
         }
 
-        private string ExtractLocationInfoFromSteps(List<AgentStep> steps)
-        {
-            // Extract relevant location information from the agent steps
-            var locationSteps = steps.Where(s => s.Agent.Contains("Location", StringComparison.OrdinalIgnoreCase)
-                                              || s.Agent.Contains("Navigation", StringComparison.OrdinalIgnoreCase))
-                                     .Select(s => s.Result)
-                                     .ToList();
-
-            return locationSteps.Any() ? string.Join("; ", locationSteps) : "No specific location information available";
-        }
         #endregion
 
         #region Product Alternative Members
