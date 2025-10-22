@@ -296,25 +296,22 @@ namespace MultiAgentDemo.Controllers
 
             try
             {
-                // Analyze the steps to extract location information
-                foreach (var step in steps)
+                // find the step where step.AgentId matches the _navigationAgent.Id
+                var navigationStep = steps.FirstOrDefault(step => step.AgentId == _navigationAgent.Id);
+                var stepContent = navigationStep.Result;
+                try
                 {
-                    var stepContent = step.Result;
-                    try
+                    navigationInstructions = System.Text.Json.JsonSerializer.Deserialize<NavigationInstructions>(stepContent);
+                    if (navigationInstructions != null)
                     {
-                        navigationInstructions = System.Text.Json.JsonSerializer.Deserialize<NavigationInstructions>(stepContent);
-                        if (navigationInstructions != null)
-                        {
-                            _logger.LogInformation("Navigation instructions found in step: {StepContent}", stepContent);
-                            return navigationInstructions;
-                        }
+                        _logger.LogInformation("Navigation instructions found in step: {StepContent}", stepContent);
+                        return navigationInstructions;
                     }
-                    catch
-                    {
-                        _logger.LogWarning("Failed to deserialize navigation instructions from step: {StepContent}", stepContent);
-                    }                    
                 }
-
+                catch
+                {
+                    _logger.LogWarning("Failed to deserialize navigation instructions from step: {StepContent}", stepContent);
+                }
 
                 // return default nav instructions
                 return CreateDefaultNavigationInstructions(location, productQuery);
@@ -322,7 +319,6 @@ namespace MultiAgentDemo.Controllers
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "GenerateNavigationInstructions failed, returning fallback");
-                // Return fake valid information if there is a problem during execution
                 return CreateDefaultNavigationInstructions(location, productQuery);
             }
         }
