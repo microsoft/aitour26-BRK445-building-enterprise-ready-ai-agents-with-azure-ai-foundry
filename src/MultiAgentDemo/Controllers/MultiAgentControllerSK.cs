@@ -66,6 +66,8 @@ namespace MultiAgentDemo.Controllers
             _matchmakingAgentService.SetFramework("sk");
             _locationAgentService.SetFramework("sk");
             _navigationAgentService.SetFramework("sk");
+
+
         }
 
         [HttpPost("assist")]

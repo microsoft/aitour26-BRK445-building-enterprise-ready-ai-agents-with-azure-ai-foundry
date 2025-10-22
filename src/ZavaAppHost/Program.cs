@@ -295,13 +295,14 @@ singleAgentDemo
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 multiAgentDemo
     .WithReference(aifoundryproject)
+    .WithReference(customerInformationAgentId)
     .WithReference(inventoryAgentId)
-    .WithReference(toolReasoningAgentId)
-    .WithReference(navigationAgentId)
     .WithReference(locationServiceAgentId)
+    .WithReference(navigationAgentId)
     .WithReference(photoAnalyzerAgentId)
     .WithReference(productMatchMakingAgentId)
     .WithReference(productSearchAgentId)
+    .WithReference(toolReasoningAgentId)
     .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 

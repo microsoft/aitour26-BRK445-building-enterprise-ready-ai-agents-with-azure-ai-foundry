@@ -80,7 +80,7 @@
 
                     <div class="mb-3">
                         <label for="userId" class="form-label">User ID <small class="text-muted">(optional)</small></label>
-                        <InputText @bind-Value="multiAgentRequest.UserId" class="form-control" id="userId" placeholder="e.g., USER-001" />
+                        <InputText @bind-Value="multiAgentRequest.UserId" class="form-control" id="userId" placeholder="e.g., 1" />
                     </div>
 
                     <div class="mb-3">
@@ -314,7 +314,7 @@
 </style>
 
 @code {
-    private MultiAgentRequestModel multiAgentRequest = new() { UserId = "USER-001" };
+    private MultiAgentRequestModel multiAgentRequest = new() { UserId = "1" };
     private MultiAgentResponse? orchestrationResult;
     private IBrowserFile? selectedFile;
     private bool isSubmitting = false;
