@@ -239,7 +239,8 @@
                                 {
                                     <div class="card-body">
                                         <div class="mermaid-container">
-                                            <pre class="mermaid">@orchestrationResult.MermaidWorkflowRepresentation</pre>
+                                            @* <pre class="mermaid">@orchestrationResult.MermaidWorkflowRepresentation</pre> *@
+                                            <MermaidDiagram Definition="@orchestrationResult.MermaidWorkflowRepresentation" />
                                         </div>
                                     </div>
                                 }
