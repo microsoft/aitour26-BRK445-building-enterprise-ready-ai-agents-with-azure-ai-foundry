@@ -6,6 +6,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Identity.Client;
 using MultiAgentDemo.Services;
 using SharedEntities;
+using System.Net.Http.Json;
 using System.Text;
 
 namespace MultiAgentDemo.Controllers
@@ -258,6 +259,8 @@ namespace MultiAgentDemo.Controllers
         #region Location Members
         private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(List<AgentStep> steps, Location? location, string productQuery)
         {
+            NavigationInstructions navigationInstructions = null;
+
             if (location == null)
             {
                 location = new Location { Lat = 0, Lon = 0 };
@@ -266,13 +269,17 @@ namespace MultiAgentDemo.Controllers
             try
             {
                 // Analyze the steps to extract location information
-                string locationInfo = ExtractLocationInfoFromSteps(steps);
-
-                // Build a prompt for the location service agent
-                var prompt = $"Based on the workflow analysis: {locationInfo}, generate navigation instructions for {productQuery} from location ({location.Lat}, {location.Lon})";
-
-                // Use the location service agent to generate navigation
-                // var response = await _locationServiceAgent.RunAsync(prompt);
+                foreach (var step in steps)
+                {
+                    var stepContent = step.Result;
+                    // try to deserialize the step content from JSON into NavigationInstructions
+                    navigationInstructions = System.Text.Json.JsonSerializer.Deserialize<NavigationInstructions>(stepContent);
+                    if (navigationInstructions != null)
+                    {
+                        _logger.LogInformation("Navigation instructions found in step: {StepContent}", stepContent);
+                        return navigationInstructions;
+                    }
+                }
 
                 // return default nav instructions
                 return CreateDefaultNavigationInstructions(location, productQuery);
