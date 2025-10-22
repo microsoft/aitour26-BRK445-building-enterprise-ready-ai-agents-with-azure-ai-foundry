@@ -1,3 +1,4 @@
+using MultiAgentDemo.Controllers;
 using SharedEntities;
 
 namespace MultiAgentDemo.Services;
@@ -89,7 +90,8 @@ public class GroupChatOrchestrationService : IAgentOrchestrationService
             navigation = await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery);
         }
 
-        var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+        // Generate mock alternatives for UI compatibility
+        var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
 
         return new MultiAgentResponse
         {

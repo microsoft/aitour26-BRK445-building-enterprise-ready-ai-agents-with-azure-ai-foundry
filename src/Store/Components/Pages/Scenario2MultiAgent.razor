@@ -9,9 +9,24 @@
 @rendermode InteractiveServer
 
 
+@inject AgentFrameworkService AgentFrameworkService
+
 <PageTitle>Zava Store - Multi-Agent Orchestration</PageTitle>
 
 <div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info d-flex align-items-center" role="alert">
+                <span class="bi bi-info-circle me-2"></span>
+                <div>
+                    <strong>Current Working Mode:</strong> @currentFramework
+                    <small class="ms-2 text-muted">
+                        @(currentFramework == "SK" ? "(Semantic Kernel)" : "(Microsoft Agent Framework)")
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col-md-4">
             <div class="card">
@@ -126,6 +141,33 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Mermaid Workflow Viewer -->
+                    @if (!string.IsNullOrEmpty(orchestrationResult.MermaidWorkflowRepresentation))
+                    {
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header" @onclick="ToggleMermaidViewer" style="cursor: pointer;">
+                                    <h5 class="card-title mb-0">
+                                        <span class="bi @(showMermaidViewer ? "bi-chevron-down" : "bi-chevron-right") me-2"></span>
+                                        <span class="bi bi-diagram-3 me-2"></span>
+                                        Workflow Diagram
+                                        <small class="text-muted">(Click to @(showMermaidViewer ? "collapse" : "expand"))</small>
+                                    </h5>
+                                </div>
+                                @if (showMermaidViewer)
+                                {
+                                    <div class="card-body">
+                                        <div class="mermaid-container">
+                                            @* <pre class="mermaid">@orchestrationResult.MermaidWorkflowRepresentation</pre> *@
+                                            <MermaidDiagram Definition="@orchestrationResult.MermaidWorkflowRepresentation" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+
                     <!-- Agent Steps -->
                     <div class="col-12">
                         <div class="card">
@@ -311,7 +353,19 @@
     .result-image {
         border-radius: 8px;
     }
+
+    .mermaid-container {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        overflow-x: auto;
+    }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+</script>
 
 @code {
     private MultiAgentRequestModel multiAgentRequest = new() { UserId = "1" };
@@ -323,6 +377,18 @@
     private double latitude = 47.6062;
     private double longitude = -122.3321;
     private const string DefaultProductQuery = "I can't find the product 'Paint Sprayer - TurboSpray 750', I'm in this store, can you help?";
+    private bool showMermaidViewer = false;
+    private string currentFramework = "SK";
+    
+    protected override async Task OnInitializedAsync()
+    {
+        currentFramework = await AgentFrameworkService.GetSelectedFrameworkAsync();
+    }
+    
+    private void ToggleMermaidViewer()
+    {
+        showMermaidViewer = !showMermaidViewer;
+    }
 
     private void OnImageSelected(InputFileChangeEventArgs e)
     {

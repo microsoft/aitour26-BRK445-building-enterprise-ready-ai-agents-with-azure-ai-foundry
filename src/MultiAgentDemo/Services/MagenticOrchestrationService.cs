@@ -1,3 +1,4 @@
+using MultiAgentDemo.Controllers;
 using SharedEntities;
 
 namespace MultiAgentDemo.Services;
@@ -94,7 +95,8 @@ public class MagenticOrchestrationService : IAgentOrchestrationService
             navigation = await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery);
         }
 
-        var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+        // Generate mock alternatives for UI compatibility
+        var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
 
         return new MultiAgentResponse
         {
@@ -220,18 +222,6 @@ public class MagenticOrchestrationService : IAgentOrchestrationService
             _logger.LogWarning(ex, "GenerateNavigationInstructions failed");
             return new NavigationInstructions { Steps = new[] { new NavigationStep { Direction = "General", Description = $"Head to the area where {productQuery} is typically located", Landmark = new NavigationLandmark { Description = "General area" } } }, StartLocation = string.Empty, EstimatedTime = string.Empty };
         }
-    }
-
-    private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(string productQuery)
-    {
-        await Task.Delay(10);
-        return new[]
-        {
-            new ProductAlternative { Name = $"MagenticOne-optimized {productQuery}", Sku = "MAG-" + productQuery.Replace(" ", "").ToUpper(), Price = 199.99m, InStock = true, Location = "Aisle 1", Aisle = 1, Section = "A" },
-            new ProductAlternative { Name = $"AI-curated {productQuery}", Sku = "AI-" + productQuery.Replace(" ", "").ToUpper(), Price = 129.99m, InStock = true, Location = "Aisle 3", Aisle = 3, Section = "B" },
-            new ProductAlternative { Name = $"Collaborative-selected {productQuery}", Sku = "COLL-" + productQuery.Replace(" ", "").ToUpper(), Price = 89.99m, InStock = true, Location = "Aisle 7", Aisle = 7, Section = "C" },
-            new ProductAlternative { Name = $"Adaptive {productQuery}", Sku = "ADAPT-" + productQuery.Replace(" ", "").ToUpper(), Price = 59.99m, InStock = false, Location = "Aisle 15", Aisle = 15, Section = "D" }
-        };
     }
 
     private class MagenticContext

@@ -75,7 +75,7 @@ public class MultiAgentService
     {
         var orchestrationId = Guid.NewGuid().ToString("N")[..8];
         var baseTime = DateTime.UtcNow;
-
+                
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
@@ -269,10 +269,10 @@ public class MultiAgentService
         };
     }
 
-    private ProductAlternative[] GetFallbackAlternatives(string productQuery)
+    private List<ProductAlternative> GetFallbackAlternatives(string productQuery)
     {
-        return new[]
-        {
+        return
+        [
             new ProductAlternative
             {
                 Name = $"Premium {productQuery}",
@@ -303,7 +303,7 @@ public class MultiAgentService
                 Aisle = 12,
                 Section = "C"
             }
-        };
+        ];
     }
 
     private NavigationInstructions CreateFallbackNavigation(MultiAgentRequest request)
