@@ -15,66 +15,28 @@ namespace MultiAgentDemo.Controllers
     public class MultiAgentControllerAgentFx : ControllerBase
     {
         private readonly ILogger<MultiAgentControllerAgentFx> _logger;
-        private readonly InventoryAgentService _inventoryAgentService;
-        private readonly MatchmakingAgentService _matchmakingAgentService;
-        private readonly LocationAgentService _locationAgentService;
-        private readonly NavigationAgentService _navigationAgentService;
-        private readonly IConfiguration _configuration;
-        private readonly AIAgent _customerInformationAgent; // Added field for keyed AIAgent
-        private readonly AIAgent _inventoryAgent;
         private readonly AIAgent _locationServiceAgent;
         private readonly AIAgent _navigationAgent;
-        private readonly AIAgent _photoAnalyzerAgent;
         private readonly AIAgent _productMatchmakingAgent;
         private readonly AIAgent _productSearchAgent;
-        private readonly AIAgent _toolReasoningAgent;
 
         public MultiAgentControllerAgentFx(
             ILogger<MultiAgentControllerAgentFx> logger,
-            InventoryAgentService inventoryAgentService,
-            MatchmakingAgentService matchmakingAgentService,
-            LocationAgentService locationAgentService,
-            NavigationAgentService navigationAgentService,
-            IConfiguration configuration,
-            [FromKeyedServices("customerinformationagentid")] AIAgent customerInformationAgent,
-            [FromKeyedServices("inventoryagentid")] AIAgent inventoryAgent,
             [FromKeyedServices("locationserviceagentid")] AIAgent locationServiceAgent,
             [FromKeyedServices("navigationagentid")] AIAgent navigationAgent,
-            [FromKeyedServices("photoanalyzeragentid")] AIAgent photoAnalyzerAgent,
             [FromKeyedServices("productmatchmakingagentid")] AIAgent productMatchmakingAgent,
-            [FromKeyedServices("productsearchagentid")] AIAgent productSearchAgent,
-            [FromKeyedServices("toolreasoningagentid")] AIAgent toolReasoningAgent)
+            [FromKeyedServices("productsearchagentid")] AIAgent productSearchAgent)
         {
             _logger = logger;
-            _inventoryAgentService = inventoryAgentService;
-            _matchmakingAgentService = matchmakingAgentService;
-            _locationAgentService = locationAgentService;
-            _navigationAgentService = navigationAgentService;
-            _configuration = configuration;
-            _customerInformationAgent = customerInformationAgent; // assign
-            _inventoryAgent = inventoryAgent;
             _locationServiceAgent = locationServiceAgent;
             _navigationAgent = navigationAgent;
-            _photoAnalyzerAgent = photoAnalyzerAgent;
             _productMatchmakingAgent = productMatchmakingAgent;
             _productSearchAgent = productSearchAgent;
-            _toolReasoningAgent = toolReasoningAgent;
-
-            // Set framework to AgentFx for all agent services
-            _inventoryAgentService.SetFramework("agentfx");
-            _matchmakingAgentService.SetFramework("agentfx");
-            _locationAgentService.SetFramework("agentfx");
-            _navigationAgentService.SetFramework("agentfx");
         }
 
         [HttpPost("assist")]
         public async Task<ActionResult<MultiAgentResponse>> AssistAsync([FromBody] MultiAgentRequest? request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.ProductQuery))
-            {
-                return BadRequest("Request body is required and must include a ProductQuery.");
-            }
-
             _logger.LogInformation("Starting {OrchestrationTypeName} orchestration for query: {ProductQuery} using Microsoft Agent Framework",
                 request.OrchestationType, request.ProductQuery);
 
@@ -101,11 +63,6 @@ namespace MultiAgentDemo.Controllers
         [HttpPost("assist/sequential")]
         public async Task<ActionResult<MultiAgentResponse>> AssistSequentialAsync([FromBody] MultiAgentRequest? request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.ProductQuery))
-            {
-                return BadRequest("Request body is required and must include a ProductQuery.");
-            }
-
             _logger.LogInformation("Starting sequential workflow for query: {ProductQuery} using Microsoft Agent Framework", request.ProductQuery);
 
             try
@@ -119,8 +76,8 @@ namespace MultiAgentDemo.Controllers
                     _navigationAgent
                 };
                 var workflow = AgentWorkflowBuilder.BuildSequential(agents);
-                               
 
+                // run the workflow
                 var workflowResponse = await RunWorkFlow(request, workflow);
                 return Ok(workflowResponse);
             }
@@ -134,11 +91,6 @@ namespace MultiAgentDemo.Controllers
         [HttpPost("assist/concurrent")]
         public async Task<ActionResult<MultiAgentResponse>> AssistConcurrentAsync([FromBody] MultiAgentRequest? request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.ProductQuery))
-            {
-                return BadRequest("Request body is required and must include a ProductQuery.");
-            }
-
             _logger.LogInformation("Starting concurrent workflow for query: {ProductQuery} using Microsoft Agent Framework", request.ProductQuery);
 
             try
@@ -152,6 +104,8 @@ namespace MultiAgentDemo.Controllers
                     _navigationAgent
                 };
                 var workflow = AgentWorkflowBuilder.BuildConcurrent(agents);
+                
+                // run the workflow
                 var workflowResponse = await RunWorkFlow(request, workflow);
                 return Ok(workflowResponse);
 
@@ -166,28 +120,18 @@ namespace MultiAgentDemo.Controllers
         [HttpPost("assist/handoff")]
         public async Task<ActionResult<MultiAgentResponse>> AssistHandoffAsync([FromBody] MultiAgentRequest? request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.ProductQuery))
-            {
-                return BadRequest("Request body is required and must include a ProductQuery.");
-            }
-
             _logger.LogInformation("Starting handoff workflow with branching logic for query: {ProductQuery} using Microsoft Agent Framework", request.ProductQuery);
 
             try
             {
-                // build the product handoff workflow
-                var agents = new List<AIAgent>
-                {
-                    _productSearchAgent,
-                    _productMatchmakingAgent,
-                    _locationServiceAgent,
-                    _navigationAgent
-                };
+                // build the product handoff workflow                
                 var workflow = AgentWorkflowBuilder.CreateHandoffBuilderWith(_productSearchAgent)
                     .WithHandoff(_productSearchAgent, _productMatchmakingAgent)
                     .WithHandoff(_productMatchmakingAgent, _locationServiceAgent)
                     .WithHandoff(_locationServiceAgent, _navigationAgent)
                     .Build();
+
+                // run the workflow
                 var workflowResponse = await RunWorkFlow(request, workflow);
                 return Ok(workflowResponse);
             }
@@ -223,6 +167,8 @@ namespace MultiAgentDemo.Controllers
                     { MaximumIterationCount = 5 })
                     .AddParticipants(agents)
                     .Build();
+
+                // run the workflow
                 var workflowResponse = await RunWorkFlow(request, workflow);
                 return Ok(workflowResponse);
             }
@@ -236,28 +182,11 @@ namespace MultiAgentDemo.Controllers
         [HttpPost("assist/magentic")]
         public async Task<ActionResult<MultiAgentResponse>> AssistMagenticAsync([FromBody] MultiAgentRequest? request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.ProductQuery))
-            {
-                return BadRequest("Request body is required and must include a ProductQuery.");
-            }
-
             _logger.LogInformation("Starting Magentic workflow for query: {ProductQuery} using Microsoft Agent Framework", request.ProductQuery);
 
             try
             {
-                var orchestrationId = Guid.NewGuid().ToString();
-                var steps = new List<AgentStep>();
-                var alternatives = await GenerateProductAlternativesAsync(steps, request.ProductQuery);
-
-                return Ok(new MultiAgentResponse
-                {
-                    OrchestrationId = orchestrationId,
-                    OrchestationType = OrchestationType.Magentic,
-                    OrchestrationDescription = "Magentic-style workflow using Microsoft Agent Framework. Features coordinator-directed multi-agent collaboration with distinct planning, execution, and synthesis phases. Demonstrates state management and checkpointing patterns.",
-                    Steps = steps.ToArray(),
-                    Alternatives = alternatives,
-                    NavigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(steps, request.Location, request.ProductQuery) : null
-                });
+                throw new NotImplementedException("The Magentic workflow is not implemented yet.");
             }
             catch (Exception ex)
             {
@@ -266,26 +195,17 @@ namespace MultiAgentDemo.Controllers
             }
         }
 
-        private async Task<MultiAgentResponse> RunWorkFlow(
-    MultiAgentRequest request,
-    Workflow workflow)
+        private async Task<MultiAgentResponse> RunWorkFlow(MultiAgentRequest request, Workflow workflow)
         {
             var orchestrationId = Guid.NewGuid().ToString();
             var steps = new List<AgentStep>();
-
-            // Run the workflow
             string? lastExecutorId = null;
             List<ChatMessage> result = [];
-
-            // sync run
-            // Run run = await InProcessExecution.RunAsync(workflow, request.ProductQuery);
-            // foreach (WorkflowEvent evt in run.NewEvents)
 
             // async run
             StreamingRun run = await InProcessExecution.StreamAsync(workflow, request.ProductQuery);
             await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
             await foreach (WorkflowEvent evt in run.WatchStreamAsync().ConfigureAwait(false))
-
             {
                 switch (evt)
                 {
@@ -302,7 +222,6 @@ namespace MultiAgentDemo.Controllers
                         var messages = outputEvent.As<List<ChatMessage>>() ?? new List<ChatMessage>();
                         foreach (var message in messages)
                         {
-                            _logger.LogInformation($"Message from {message.Role}: {message.Text}");
                             steps.Add(new AgentStep
                             {
                                 Agent = message.AuthorName ?? outputEvent.SourceId,
@@ -322,7 +241,7 @@ namespace MultiAgentDemo.Controllers
             var mermaidWorkflowChart = workflow.ToMermaidString();
 
             var alternatives = await GenerateProductAlternativesAsync(steps, request.ProductQuery);
-            var navigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(steps, request.Location, request.ProductQuery) : null;
+            var navigationInstructions = await GenerateNavigationInstructionsAsync(steps, request.Location, request.ProductQuery);
 
             return new MultiAgentResponse
             {
@@ -336,74 +255,73 @@ namespace MultiAgentDemo.Controllers
             };
         }
 
+        #region Location Members
         private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(List<AgentStep> steps, Location? location, string productQuery)
         {
-            // Implement the logic to generate navigation instructions using the _locationServiceAgent
-            // The steps parameter contains the workflow steps from agent execution
-            
-            if (location == null) 
+            if (location == null)
             {
-                return new NavigationInstructions 
-                { 
-                    Steps = Array.Empty<NavigationStep>(), 
-                    StartLocation = string.Empty, 
-                    EstimatedTime = string.Empty 
-                };
+                location = new Location { Lat = 0, Lon = 0 };
             }
 
             try
             {
                 // Analyze the steps to extract location information
                 string locationInfo = ExtractLocationInfoFromSteps(steps);
-                
+
                 // Build a prompt for the location service agent
                 var prompt = $"Based on the workflow analysis: {locationInfo}, generate navigation instructions for {productQuery} from location ({location.Lat}, {location.Lon})";
-                
+
                 // Use the location service agent to generate navigation
-                var response = await _locationServiceAgent.RunAsync(prompt);
-                
-                // Parse the response - for now, use fallback if parsing fails
-                var dest = new Location { Lat = 0, Lon = 0 };
-                return await _navigationAgentService.GenerateDirectionsAsync(location, dest);
+                // var response = await _locationServiceAgent.RunAsync(prompt);
+
+                // return default nav instructions
+                return CreateDefaultNavigationInstructions(location, productQuery);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "GenerateNavigationInstructions failed, returning fallback");
                 // Return fake valid information if there is a problem during execution
-                return new NavigationInstructions 
-                { 
-                    Steps = new[] 
-                    { 
-                        new NavigationStep 
-                        { 
-                            Direction = "Head straight", 
-                            Description = $"Walk towards the main area where {productQuery} is located", 
-                            Landmark = new NavigationLandmark { Description = "Main entrance area" } 
-                        },
-                        new NavigationStep 
-                        { 
-                            Direction = "Turn left", 
-                            Description = "Continue to the product section", 
-                            Landmark = new NavigationLandmark { Description = "Product display section" } 
-                        }
-                    }, 
-                    StartLocation = $"Current Location ({location.Lat:F4}, {location.Lon:F4})", 
-                    EstimatedTime = "3-5 minutes" 
-                };
+                return CreateDefaultNavigationInstructions(location, productQuery);
             }
         }
-        
+
+        private static NavigationInstructions CreateDefaultNavigationInstructions(Location location, string productQuery)
+        {
+            return new NavigationInstructions
+            {
+                Steps = new[]
+                                {
+                        new NavigationStep
+                        {
+                            Direction = "Head straight",
+                            Description = $"Walk towards the main area where {productQuery} is located",
+                            Landmark = new NavigationLandmark { Description = "Main entrance area" }
+                        },
+                        new NavigationStep
+                        {
+                            Direction = "Turn left",
+                            Description = "Continue to the product section",
+                            Landmark = new NavigationLandmark { Description = "Product display section" }
+                        }
+                    },
+                StartLocation = $"Current Location ({location.Lat:F4}, {location.Lon:F4})",
+                EstimatedTime = "3-5 minutes"
+            };
+        }
+
         private string ExtractLocationInfoFromSteps(List<AgentStep> steps)
         {
             // Extract relevant location information from the agent steps
-            var locationSteps = steps.Where(s => s.Agent.Contains("Location", StringComparison.OrdinalIgnoreCase) 
+            var locationSteps = steps.Where(s => s.Agent.Contains("Location", StringComparison.OrdinalIgnoreCase)
                                               || s.Agent.Contains("Navigation", StringComparison.OrdinalIgnoreCase))
                                      .Select(s => s.Result)
                                      .ToList();
-            
+
             return locationSteps.Any() ? string.Join("; ", locationSteps) : "No specific location information available";
         }
+        #endregion
 
+        #region Product Alternative Members
         private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(List<AgentStep> steps, string productQuery)
         {
             try
@@ -411,7 +329,7 @@ namespace MultiAgentDemo.Controllers
                 // Analyze the steps and choose the specific products for the alternatives
                 // Extract product information from the workflow steps
                 string stepsSummary = SummarizeStepsForMatchmaking(steps);
-                
+
                 // Build a comprehensive prompt for the product matchmaking agent
                 var prompt = $@"Based on the workflow analysis:
 {stepsSummary}
@@ -436,35 +354,35 @@ Focus on providing practical alternatives that match the customer's needs.";
 
                 return new[]
                 {
-                    new ProductAlternative 
-                    { 
-                        Name = $"Premium {baseProductName}", 
-                        Sku = $"PREM-{baseSku}", 
-                        Price = 129.99m, 
-                        InStock = true, 
-                        Location = "Aisle 5", 
-                        Aisle = 5, 
-                        Section = "A" 
+                    new ProductAlternative
+                    {
+                        Name = $"Premium {baseProductName}",
+                        Sku = $"PREM-{baseSku}",
+                        Price = 129.99m,
+                        InStock = true,
+                        Location = "Aisle 5",
+                        Aisle = 5,
+                        Section = "A"
                     },
-                    new ProductAlternative 
-                    { 
-                        Name = $"Standard {baseProductName}", 
-                        Sku = $"STD-{baseSku}", 
-                        Price = 79.99m, 
-                        InStock = true, 
-                        Location = "Aisle 7", 
-                        Aisle = 7, 
-                        Section = "B" 
+                    new ProductAlternative
+                    {
+                        Name = $"Standard {baseProductName}",
+                        Sku = $"STD-{baseSku}",
+                        Price = 79.99m,
+                        InStock = true,
+                        Location = "Aisle 7",
+                        Aisle = 7,
+                        Section = "B"
                     },
-                    new ProductAlternative 
-                    { 
-                        Name = $"Budget {baseProductName}", 
-                        Sku = $"BDG-{baseSku}", 
-                        Price = 39.99m, 
-                        InStock = false, 
-                        Location = "Aisle 12", 
-                        Aisle = 12, 
-                        Section = "C" 
+                    new ProductAlternative
+                    {
+                        Name = $"Budget {baseProductName}",
+                        Sku = $"BDG-{baseSku}",
+                        Price = 39.99m,
+                        InStock = false,
+                        Location = "Aisle 12",
+                        Aisle = 12,
+                        Section = "C"
                     }
                 };
             }
@@ -474,30 +392,30 @@ Focus on providing practical alternatives that match the customer's needs.";
                 // Return fake valid information if there is a problem during execution
                 return new[]
                 {
-                    new ProductAlternative 
-                    { 
-                        Name = "Alternative Product A", 
-                        Sku = "ALT-001", 
-                        Price = 89.99m, 
-                        InStock = true, 
-                        Location = "Aisle 5", 
-                        Aisle = 5, 
-                        Section = "B" 
+                    new ProductAlternative
+                    {
+                        Name = "Alternative Product A",
+                        Sku = "ALT-001",
+                        Price = 89.99m,
+                        InStock = true,
+                        Location = "Aisle 5",
+                        Aisle = 5,
+                        Section = "B"
                     },
-                    new ProductAlternative 
-                    { 
-                        Name = "Alternative Product B", 
-                        Sku = "ALT-002", 
-                        Price = 49.99m, 
-                        InStock = true, 
-                        Location = "Aisle 8", 
-                        Aisle = 8, 
-                        Section = "C" 
+                    new ProductAlternative
+                    {
+                        Name = "Alternative Product B",
+                        Sku = "ALT-002",
+                        Price = 49.99m,
+                        InStock = true,
+                        Location = "Aisle 8",
+                        Aisle = 8,
+                        Section = "C"
                     }
                 };
             }
         }
-        
+
         private string SummarizeStepsForMatchmaking(List<AgentStep> steps)
         {
             // Summarize relevant steps for product matchmaking
@@ -505,33 +423,34 @@ Focus on providing practical alternatives that match the customer's needs.";
             {
                 return "No workflow steps available";
             }
-            
+
             var summary = new StringBuilder();
             foreach (var step in steps)
             {
                 summary.AppendLine($"- {step.Agent}: {step.Result}");
             }
-            
+
             return summary.ToString();
         }
-        
+
         private string ExtractProductNameFromQuery(string productQuery)
         {
             // Simple extraction - in production, this would be more sophisticated
             // Remove common words and clean up the query
             var words = productQuery.Split(new[] { ' ', ',', '.', '?', '!' }, StringSplitOptions.RemoveEmptyEntries);
             var stopWords = new[] { "I", "can't", "find", "the", "a", "an", "in", "this", "store", "help", "product", "can", "you" };
-            
+
             var productWords = words.Where(w => !stopWords.Contains(w, StringComparer.OrdinalIgnoreCase))
                                    .Take(3);
-            
+
             return string.Join(" ", productWords);
         }
-        
+
         private string GenerateSkuFromProductName(string productName)
         {
             // Generate a simple SKU from product name
             return productName.Replace(" ", "").ToUpper().Substring(0, Math.Min(8, productName.Replace(" ", "").Length));
-        }
+        } 
+        #endregion
     }
 }
