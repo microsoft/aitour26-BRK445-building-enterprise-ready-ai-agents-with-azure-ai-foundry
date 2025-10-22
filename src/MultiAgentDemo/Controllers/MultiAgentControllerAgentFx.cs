@@ -64,9 +64,6 @@ namespace MultiAgentDemo.Controllers
             _matchmakingAgentService.SetFramework("agentfx");
             _locationAgentService.SetFramework("agentfx");
             _navigationAgentService.SetFramework("agentfx");
-
-
-
         }
 
         [HttpPost("assist")]
@@ -112,78 +109,19 @@ namespace MultiAgentDemo.Controllers
 
             try
             {
-                var orchestrationId = Guid.NewGuid().ToString();
-                var steps = new List<AgentStep>();
-
                 // build the sequential workflow
                 var agents = new List<AIAgent>
                 {
                     _productSearchAgent,
-                    _inventoryAgent,
                     _productMatchmakingAgent,
                     _locationServiceAgent,
                     _navigationAgent
                 };
                 var workflow = AgentWorkflowBuilder.BuildSequential(agents);
+                               
 
-                // Run the workflow
-                string? lastExecutorId = null;
-                List<ChatMessage> result = [];
-
-                // sync run
-                // Run run = await InProcessExecution.RunAsync(workflow, request.ProductQuery);
-                // foreach (WorkflowEvent evt in run.NewEvents)
-
-                // async run
-                StreamingRun run = await InProcessExecution.StreamAsync(workflow, request.ProductQuery);
-                await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
-                await foreach (WorkflowEvent evt in run.WatchStreamAsync().ConfigureAwait(false))
-
-                {
-                    switch (evt)
-                    {
-                        case AgentRunUpdateEvent e:
-                            if (e.ExecutorId != lastExecutorId)
-                            {
-                                lastExecutorId = e.ExecutorId;
-                                _logger.LogInformation($"ExecutorId >> {e.ExecutorId}");
-                            }
-                            break;
-
-                        case WorkflowOutputEvent outputEvent:
-                            _logger.LogInformation($"WorkflowOutputEvent >> SourceId: {outputEvent.SourceId} - Data: {outputEvent.Data}");
-                            var messages = outputEvent.As<List<ChatMessage>>() ?? new List<ChatMessage>();
-                            foreach (var message in messages)
-                            {
-                                _logger.LogInformation($"Message from {message.Role}: {message.Text}");
-                                steps.Add(new AgentStep
-                                {
-                                    Agent = message.AuthorName ?? outputEvent.SourceId,
-                                    Action = $"Search for {request.ProductQuery}",
-                                    Result = message.Text,
-                                    Timestamp = message.CreatedAt.HasValue ? message.CreatedAt.Value.UtcDateTime : DateTime.UtcNow
-                                });
-                            }
-                            break;
-
-                        default:
-                            _logger.LogInformation($"Unhandled workflow event type: {evt.GetType().Name}");
-                            break;
-                    }
-                }
-                
-
-                var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
-
-                return Ok(new MultiAgentResponse
-                {
-                    OrchestrationId = orchestrationId,
-                    OrchestationType = OrchestationType.Sequential,
-                    OrchestrationDescription = "Sequential workflow using Microsoft Agent Framework. Each agent step executes in order, with output feeding into subsequent steps. This enables complex, dependent reasoning chains.",
-                    Steps = steps.ToArray(),
-                    Alternatives = alternatives,
-                    NavigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null
-                });
+                var workflowResponse = await RunWorkFlow(request, workflow);
+                return Ok(workflowResponse);
             }
             catch (Exception ex)
             {
@@ -204,22 +142,18 @@ namespace MultiAgentDemo.Controllers
 
             try
             {
-                var orchestrationId = Guid.NewGuid().ToString();
-                var steps = new List<AgentStep>();
-
-
-
-                var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
-
-                return Ok(new MultiAgentResponse
+                // build the concurrent workflow
+                var agents = new List<AIAgent>
                 {
-                    OrchestrationId = orchestrationId,
-                    OrchestationType = OrchestationType.Concurrent,
-                    OrchestrationDescription = "Concurrent workflow using Microsoft Agent Framework. Multiple agents execute in parallel without dependencies, then results are aggregated. Ideal for independent operations that can run simultaneously.",
-                    Steps = steps.ToArray(),
-                    Alternatives = alternatives,
-                    NavigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null
-                });
+                    _productSearchAgent,
+                    _productMatchmakingAgent,
+                    _locationServiceAgent,
+                    _navigationAgent
+                };
+                var workflow = AgentWorkflowBuilder.BuildConcurrent(agents);
+                var workflowResponse = await RunWorkFlow(request, workflow);
+                return Ok(workflowResponse);
+
             }
             catch (Exception ex)
             {
@@ -240,22 +174,21 @@ namespace MultiAgentDemo.Controllers
 
             try
             {
-                var orchestrationId = Guid.NewGuid().ToString();
-                var steps = new List<AgentStep>();
-
-
-
-                var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
-
-                return Ok(new MultiAgentResponse
+                // build the product handoff workflow
+                var agents = new List<AIAgent>
                 {
-                    OrchestrationId = orchestrationId,
-                    OrchestationType = OrchestationType.Handoff,
-                    OrchestrationDescription = "Handoff workflow with branching logic using Microsoft Agent Framework. Agents dynamically pass control based on context and decision points, enabling adaptive routing and conditional execution paths.",
-                    Steps = steps.ToArray(),
-                    Alternatives = alternatives,
-                    NavigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null
-                });
+                    _productSearchAgent,
+                    _productMatchmakingAgent,
+                    _locationServiceAgent,
+                    _navigationAgent
+                };
+                var workflow = AgentWorkflowBuilder.CreateHandoffBuilderWith(_productSearchAgent)
+                    .WithHandoff(_productSearchAgent, _productMatchmakingAgent)
+                    .WithHandoff(_productMatchmakingAgent, _locationServiceAgent)
+                    .WithHandoff(_locationServiceAgent, _navigationAgent)
+                    .Build();
+                var workflowResponse = await RunWorkFlow(request, workflow);
+                return Ok(workflowResponse);
             }
             catch (Exception ex)
             {
@@ -276,33 +209,21 @@ namespace MultiAgentDemo.Controllers
 
             try
             {
-                var orchestrationId = Guid.NewGuid().ToString();
-                var steps = new List<AgentStep>();
-
-
-                var initStep = DateTime.UtcNow;
-                _logger.LogInformation("Agent Framework Workflow: Initializing group discussion");
-                steps.Add(new AgentStep
+                // build the product handoff workflow
+                var agents = new List<AIAgent>
                 {
-                    Agent = "GroupManager",
-                    Action = "Initialize collaborative discussion",
-                    Result = $"Group discussion started with query: {request.ProductQuery}",
-                    Timestamp = initStep
-                });
-
-
-
-                var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
-
-                return Ok(new MultiAgentResponse
-                {
-                    OrchestrationId = orchestrationId,
-                    OrchestationType = OrchestationType.GroupChat,
-                    OrchestrationDescription = "Group chat workflow using Microsoft Agent Framework. Agents engage in multi-turn conversation, sharing context and building collaborative insights. Each agent contributes based on previous agents' outputs.",
-                    Steps = steps.ToArray(),
-                    Alternatives = alternatives,
-                    NavigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null
-                });
+                    _productSearchAgent,
+                    _productMatchmakingAgent,
+                    _locationServiceAgent,
+                    _navigationAgent
+                };
+                var workflow = AgentWorkflowBuilder.CreateGroupChatBuilderWith(
+                    agents => new RoundRobinGroupChatManager(agents)
+                    { MaximumIterationCount = 5 })
+                    .AddParticipants(agents)
+                    .Build();
+                var workflowResponse = await RunWorkFlow(request, workflow);
+                return Ok(workflowResponse);
             }
             catch (Exception ex)
             {
@@ -325,9 +246,6 @@ namespace MultiAgentDemo.Controllers
             {
                 var orchestrationId = Guid.NewGuid().ToString();
                 var steps = new List<AgentStep>();
-
-
-
                 var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
 
                 return Ok(new MultiAgentResponse
@@ -345,6 +263,76 @@ namespace MultiAgentDemo.Controllers
                 _logger.LogError(ex, "Error in Magentic workflow using Microsoft Agent Framework");
                 return StatusCode(500, "An error occurred during Magentic workflow processing.");
             }
+        }
+
+        private async Task<MultiAgentResponse> RunWorkFlow(
+    MultiAgentRequest request,
+    Workflow workflow)
+        {
+            var orchestrationId = Guid.NewGuid().ToString();
+            var steps = new List<AgentStep>();
+
+            // Run the workflow
+            string? lastExecutorId = null;
+            List<ChatMessage> result = [];
+
+            // sync run
+            // Run run = await InProcessExecution.RunAsync(workflow, request.ProductQuery);
+            // foreach (WorkflowEvent evt in run.NewEvents)
+
+            // async run
+            StreamingRun run = await InProcessExecution.StreamAsync(workflow, request.ProductQuery);
+            await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
+            await foreach (WorkflowEvent evt in run.WatchStreamAsync().ConfigureAwait(false))
+
+            {
+                switch (evt)
+                {
+                    case AgentRunUpdateEvent e:
+                        if (e.ExecutorId != lastExecutorId)
+                        {
+                            lastExecutorId = e.ExecutorId;
+                            _logger.LogInformation($"ExecutorId >> {e.ExecutorId}");
+                        }
+                        break;
+
+                    case WorkflowOutputEvent outputEvent:
+                        _logger.LogInformation($"WorkflowOutputEvent >> SourceId: {outputEvent.SourceId} - Data: {outputEvent.Data}");
+                        var messages = outputEvent.As<List<ChatMessage>>() ?? new List<ChatMessage>();
+                        foreach (var message in messages)
+                        {
+                            _logger.LogInformation($"Message from {message.Role}: {message.Text}");
+                            steps.Add(new AgentStep
+                            {
+                                Agent = message.AuthorName ?? outputEvent.SourceId,
+                                Action = $"Search for {request.ProductQuery}",
+                                Result = message.Text,
+                                Timestamp = message.CreatedAt.HasValue ? message.CreatedAt.Value.UtcDateTime : DateTime.UtcNow
+                            });
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            // get the mermaid representation
+            var mermaidWorkflowChart = workflow.ToMermaidString();
+
+            var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+            var navigationInstructions = request.Location != null ? await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery) : null;
+
+            return new MultiAgentResponse
+            {
+                OrchestrationId = orchestrationId,
+                OrchestationType = OrchestationType.Sequential,
+                OrchestrationDescription = "Sequential workflow using Microsoft Agent Framework. Each agent step executes in order, with output feeding into subsequent steps. This enables complex, dependent reasoning chains.",
+                Steps = steps.ToArray(),
+                MermaidWorkflowRepresentation = mermaidWorkflowChart,
+                Alternatives = alternatives,
+                NavigationInstructions = navigationInstructions
+            };
         }
 
         private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location? location, string productQuery)
