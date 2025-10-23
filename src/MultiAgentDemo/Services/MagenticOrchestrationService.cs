@@ -101,7 +101,7 @@ public class MagenticOrchestrationService : IAgentOrchestrationService
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = OrchestationType.Magentic,
+            OrchestationType = OrchestrationType.Magentic,
             OrchestrationDescription = "Complex generalist multi-agent collaboration inspired by MagenticOne, featuring adaptive orchestration, specialist coordination, consensus building, and iterative refinement.",
             Steps = steps.ToArray(),
             Alternatives = alternatives,

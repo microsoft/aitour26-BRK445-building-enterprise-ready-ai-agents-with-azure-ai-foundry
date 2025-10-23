@@ -66,7 +66,7 @@ public class ConcurrentOrchestrationService : IAgentOrchestrationService
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = OrchestationType.Concurrent,
+            OrchestationType = OrchestrationType.Concurrent,
             OrchestrationDescription = "All agents executed concurrently in parallel, providing independent analysis without dependencies on each other's results.",
             Steps = steps.ToArray(),
             Alternatives = alternatives,

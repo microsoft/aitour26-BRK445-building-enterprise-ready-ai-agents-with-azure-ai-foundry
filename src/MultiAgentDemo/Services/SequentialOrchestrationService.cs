@@ -60,7 +60,7 @@ public class SequentialOrchestrationService : IAgentOrchestrationService
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = OrchestationType.Sequential,
+            OrchestationType = OrchestrationType.Sequential,
             OrchestrationDescription = "Agents executed sequentially, with each agent building upon the results of the previous agent's work.",
             Steps = steps.ToArray(),
             Alternatives = alternatives,

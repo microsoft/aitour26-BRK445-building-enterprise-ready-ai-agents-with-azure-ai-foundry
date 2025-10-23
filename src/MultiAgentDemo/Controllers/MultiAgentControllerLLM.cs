@@ -58,17 +58,17 @@ namespace MultiAgentDemo.Controllers
             }
 
             _logger.LogInformation("Starting {OrchestrationTypeName} orchestration for query: {ProductQuery} using LLM", 
-                request.OrchestrationType, request.ProductQuery);
+                request.Orchestration, request.ProductQuery);
 
             try
             {
-                var orchestrationService = GetOrchestrationService(request.OrchestrationType);
+                var orchestrationService = GetOrchestrationService(request.Orchestration);
                 var response = await orchestrationService.ExecuteAsync(request);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in {OrchestrationTypeName} orchestration using LLM", request.OrchestrationType);
+                _logger.LogError(ex, "Error in {OrchestrationTypeName} orchestration using LLM", request.Orchestration);
                 return StatusCode(500, "An error occurred during orchestration processing.");
             }
         }
@@ -81,7 +81,7 @@ namespace MultiAgentDemo.Controllers
                 return BadRequest("Request body is required and must include a ProductQuery.");
             }
 
-            request.OrchestrationType = OrchestrationType.Sequential;
+            request.Orchestration = OrchestrationType.Sequential;
             _logger.LogInformation("Starting sequential orchestration for query: {ProductQuery} using LLM", request.ProductQuery);
 
             try
@@ -104,7 +104,7 @@ namespace MultiAgentDemo.Controllers
                 return BadRequest("Request body is required and must include a ProductQuery.");
             }
 
-            request.OrchestrationType = OrchestrationType.Concurrent;
+            request.Orchestration = OrchestrationType.Concurrent;
             _logger.LogInformation("Starting concurrent orchestration for query: {ProductQuery} using LLM", request.ProductQuery);
 
             try
@@ -127,7 +127,7 @@ namespace MultiAgentDemo.Controllers
                 return BadRequest("Request body is required and must include a ProductQuery.");
             }
 
-            request.OrchestrationType = OrchestrationType.Handoff;
+            request.Orchestration = OrchestrationType.Handoff;
             _logger.LogInformation("Starting handoff orchestration for query: {ProductQuery} using LLM", request.ProductQuery);
 
             try
@@ -150,7 +150,7 @@ namespace MultiAgentDemo.Controllers
                 return BadRequest("Request body is required and must include a ProductQuery.");
             }
 
-            request.OrchestrationType = OrchestrationType.GroupChat;
+            request.Orchestration = OrchestrationType.GroupChat;
             _logger.LogInformation("Starting group chat orchestration for query: {ProductQuery} using LLM", request.ProductQuery);
 
             try
@@ -173,7 +173,7 @@ namespace MultiAgentDemo.Controllers
                 return BadRequest("Request body is required and must include a ProductQuery.");
             }
 
-            request.OrchestrationType = OrchestrationType.Magentic;
+            request.Orchestration = OrchestrationType.Magentic;
             _logger.LogInformation("Starting MagenticOne orchestration for query: {ProductQuery} using LLM", request.ProductQuery);
 
             try
@@ -188,15 +188,15 @@ namespace MultiAgentDemo.Controllers
             }
         }
 
-        private IAgentOrchestrationService GetOrchestrationService(OrchestrationType orchestrationType)
+        private IAgentOrchestrationService GetOrchestrationService(SharedEntities.OrchestrationType orchestrationType)
         {
             return orchestrationType switch
             {
-                OrchestrationType.Sequential => _sequentialOrchestration,
-                OrchestrationType.Concurrent => _concurrentOrchestration,
-                OrchestrationType.Handoff => _handoffOrchestration,
-                OrchestrationType.GroupChat => _groupChatOrchestration,
-                OrchestrationType.Magentic => _magenticOrchestration,
+                SharedEntities.OrchestrationType.Sequential => _sequentialOrchestration,
+                SharedEntities.OrchestrationType.Concurrent => _concurrentOrchestration,
+                SharedEntities.OrchestrationType.Handoff => _handoffOrchestration,
+                SharedEntities.OrchestrationType.GroupChat => _groupChatOrchestration,
+                SharedEntities.OrchestrationType.Magentic => _magenticOrchestration,
                 _ => _sequentialOrchestration
             };
         }

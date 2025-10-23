@@ -9,7 +9,7 @@ public class MultiAgentRequest
     /// <summary>
     /// The type of orchestration to use for this request. Defaults to Sequential.
     /// </summary>
-    public OrchestationType OrchestationType { get; set; } = OrchestationType.Sequential;
+    public OrchestrationType Orchestration { get; set; } = OrchestrationType.Sequential;
     
     // Image handling properties similar to SingleAgentAnalysisRequest
     public byte[]? ImageData { get; set; }

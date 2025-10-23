@@ -91,7 +91,7 @@ public class HandoffOrchestrationService : IAgentOrchestrationService
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = OrchestationType.Handoff,
+            OrchestationType = OrchestrationType.Handoff,
             OrchestrationDescription = "Agents executed using dynamic handoff logic, with each agent determining the next agent based on analysis results and business rules.",
             Steps = steps.ToArray(),
             Alternatives = alternatives,
