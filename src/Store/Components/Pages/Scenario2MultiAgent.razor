@@ -131,9 +131,6 @@
                     <div class="col-12">
                         <div class="card mb-3 result-banner">
                             <div class="row g-0 align-items-center">
-                                <div class="col-auto p-3">
-                                    <img src="@GetOrchestrationImagePath(orchestrationResult.OrchestationType)" alt="Orchestration result" class="rounded-circle result-image shadow" style="width:72px;height:72px;object-fit:cover;" />
-                                </div>
                                 <div class="col p-3">
                                     <h5 class="mb-0">@orchestrationResult.OrchestationType Agent Orchestration</h5>
                                     <small class="text-muted">Orchestration ID: @orchestrationResult.OrchestrationId</small>
@@ -141,73 +138,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Mermaid Workflow Viewer -->
-                    @if (!string.IsNullOrEmpty(orchestrationResult.MermaidWorkflowRepresentation))
-                    {
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-header" @onclick="ToggleMermaidViewer" style="cursor: pointer;">
-                                    <h5 class="card-title mb-0">
-                                        <span class="bi @(showMermaidViewer ? "bi-chevron-down" : "bi-chevron-right") me-2"></span>
-                                        <span class="bi bi-diagram-3 me-2"></span>
-                                        Workflow Diagram
-                                        <small class="text-muted">(Click to @(showMermaidViewer ? "collapse" : "expand"))</small>
-                                    </h5>
-                                </div>
-                                @if (showMermaidViewer)
-                                {
-                                    <div class="card-body">
-                                        <div class="mermaid-container">
-                                            @* <pre class="mermaid">@orchestrationResult.MermaidWorkflowRepresentation</pre> *@
-                                            <MermaidDiagram Definition="@orchestrationResult.MermaidWorkflowRepresentation" />
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-
-
-                    <!-- Agent Steps -->
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">
-                                    <span class="bi bi-diagram-3 me-2"></span>
-                                    @orchestrationResult.OrchestationType Agent Orchestration
-                                    <small class="text-muted ms-2">ID: @orchestrationResult.OrchestrationId</small>
-                                </h5>
-                                @if (!string.IsNullOrEmpty(orchestrationResult.OrchestrationDescription))
-                                {
-                                    <p class="mb-0 mt-2 text-muted">
-                                        <small>@orchestrationResult.OrchestrationDescription</small>
-                                    </p>
-                                }
-                            </div>
-                            <div class="card-body">
-                                <div class="timeline">
-                                    @foreach (var step in orchestrationResult.Steps)
-                                    {
-                                        <div class="timeline-item mb-3">
-                                            <div class="d-flex">
-                                                <div class="flex-shrink-0">
-                                                    <span class="badge @GetAgentBadgeClass(step.Agent) rounded-pill">
-                                                        @step.Agent
-                                                    </span>
-                                                </div>
-                                                <div class="flex-grow-1 ms-3">
-                                                    <h6 class="mb-1">@step.Action</h6>
-                                                    <p class="mb-1 text-muted">@step.Result</p>
-                                                    <small class="text-muted">@step.Timestamp.ToString("HH:mm:ss")</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Product Alternatives -->
                     <div class="col-12">
                         <div class="card">
@@ -293,6 +223,75 @@
                             </div>
                         </div>
                     }
+                
+
+                                        <!-- Mermaid Workflow Viewer -->
+                    @if (!string.IsNullOrEmpty(orchestrationResult.MermaidWorkflowRepresentation))
+                    {
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header" @onclick="ToggleMermaidViewer" style="cursor: pointer;">
+                                    <h5 class="card-title mb-0">
+                                        <span class="bi @(showMermaidViewer ? "bi-chevron-down" : "bi-chevron-right") me-2"></span>
+                                        <span class="bi bi-diagram-3 me-2"></span>
+                                        Workflow Diagram
+                                        <small class="text-muted">(Click to @(showMermaidViewer ? "collapse" : "expand"))</small>
+                                    </h5>
+                                </div>
+                                @if (showMermaidViewer)
+                                {
+                                    <div class="card-body">
+                                        <div class="mermaid-container">
+                                            @* <pre class="mermaid">@orchestrationResult.MermaidWorkflowRepresentation</pre> *@
+                                            <MermaidDiagram Definition="@orchestrationResult.MermaidWorkflowRepresentation" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+
+                    <!-- Agent Steps -->
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <span class="bi bi-diagram-3 me-2"></span>
+                                    @orchestrationResult.OrchestationType Agent Orchestration
+                                    <small class="text-muted ms-2">ID: @orchestrationResult.OrchestrationId</small>
+                                </h5>
+                                @if (!string.IsNullOrEmpty(orchestrationResult.OrchestrationDescription))
+                                {
+                                    <p class="mb-0 mt-2 text-muted">
+                                        <small>@orchestrationResult.OrchestrationDescription</small>
+                                    </p>
+                                }
+                            </div>
+                            <div class="card-body">
+                                <div class="timeline">
+                                    @foreach (var step in orchestrationResult.Steps)
+                                    {
+                                        <div class="timeline-item mb-3">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0">
+                                                    <span class="badge @GetAgentBadgeClass(step.Agent) rounded-pill">
+                                                        @step.Agent
+                                                    </span>
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <h6 class="mb-1">@step.Action</h6>
+                                                    <p class="mb-1 text-muted">@step.Result</p>
+                                                    <small class="text-muted">@step.Timestamp.ToString("HH:mm:ss")</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             }
             else if (!string.IsNullOrEmpty(errorMessage))

@@ -1,6 +1,8 @@
 #pragma warning disable SKEXP0110
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel.Agents.AzureAI;
+using Microsoft.SemanticKernel.ChatCompletion;
 using ZavaAgentFxAgentsProvider;
 using ZavaAIFoundrySKAgentsProvider;
 using ZavaSemanticKernelProvider;
@@ -22,7 +24,14 @@ builder.Services.AddSingleton(sp =>
     return new SemanticKernelProvider(aiFoundryConnection, chatDeploymentName);
 });
 
-builder.Services.AddSingleton(sp =>
+builder.Services.AddSingleton<IChatClient>(sp =>
+{
+    var skProvider = sp.GetService<SemanticKernelProvider>();
+    var kernel = skProvider.GetKernel();
+    return kernel.GetRequiredService<IChatCompletionService>().AsChatClient();
+});
+
+builder.Services.AddSingleton<AIFoundryAgentProvider>(sp =>
 {
     var config = sp.GetService<IConfiguration>();
     var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
@@ -30,7 +39,7 @@ builder.Services.AddSingleton(sp =>
     return new AIFoundryAgentProvider(aiFoundryProjectConnection, agentId);
 });
 
-builder.Services.AddSingleton(sp =>
+builder.Services.AddSingleton<AgentFxAgentProvider>(sp =>
 {
     var config = sp.GetService<IConfiguration>();
     var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");

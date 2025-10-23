@@ -1,11 +1,14 @@
 #pragma warning disable SKEXP0110
+using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
+using Microsoft.SemanticKernel.ChatCompletion;
 using Shared.Models;
-using System.Text.Json;
-using Microsoft.Agents.AI;
 using System.Text;
+using System.Text.Json;
+using ZavaSemanticKernelProvider;
 
 namespace AnalyzePhotoService.Controllers;
 
@@ -16,15 +19,36 @@ public class PhotoAnalysisController : ControllerBase
     private readonly ILogger<PhotoAnalysisController> _logger;
     private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
+    private readonly IChatClient _chatClient;
 
     public PhotoAnalysisController(
         ILogger<PhotoAnalysisController> logger,
         AzureAIAgent skAzureAIAgent,
-        AIAgent agentFxAgent)
+        AIAgent agentFxAgent,
+        IChatClient chatClient)
     {
         _logger = logger;
         _skAgent = skAzureAIAgent;
         _agentFxAgent = agentFxAgent;
+        _chatClient = chatClient;
+    }
+
+    [HttpPost("analyzellm")]
+    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeLLMAsync([FromForm] IFormFile image, [FromForm] string prompt, CancellationToken cancellationToken = default)
+    {
+        if (image is null)
+        {
+            return BadRequest("No image file was provided.");
+        }
+
+        _logger.LogInformation("[LLM] Analyzing photo. Prompt: {Prompt}", prompt);
+
+        return await AnalyzeWithAgentAsync(
+            prompt,
+            image.FileName,
+            async (analysisPrompt) => await GetLLMResponseAsync(analysisPrompt),
+            "[SK]",
+            cancellationToken);
     }
 
     [HttpPost("analyzesk")]
@@ -40,7 +64,7 @@ public class PhotoAnalysisController : ControllerBase
         return await AnalyzeWithAgentAsync(
             prompt,
             image.FileName,
-            async (analysisPrompt) => await GetSemanticKernelResponseAsync(analysisPrompt),
+            async (analysisPrompt) => await GetSemanticKernelResponseAsync(analysisPrompt),            
             "[SK]",
             cancellationToken);
     }
@@ -100,7 +124,16 @@ public class PhotoAnalysisController : ControllerBase
         return Ok(fallback);
     }
 
-    // Agent invocation helpers
+    // LLM Invotacion Helper
+    private async Task<string> GetLLMResponseAsync(string prompt)
+    {
+        var sb = new StringBuilder();
+        var response = await _chatClient.GetResponseAsync(prompt);
+        sb.Append(response.Text);
+        return sb.ToString();
+    }
+
+    // SK invocation helper
     private async Task<string> GetSemanticKernelResponseAsync(string prompt)
     {
         var sb = new StringBuilder();
@@ -112,6 +145,7 @@ public class PhotoAnalysisController : ControllerBase
         return sb.ToString();
     }
 
+    // Agent invocation helper
     private async Task<string> GetAgentFxResponseAsync(string prompt)
     {
         var thread = _agentFxAgent.GetNewThread();
