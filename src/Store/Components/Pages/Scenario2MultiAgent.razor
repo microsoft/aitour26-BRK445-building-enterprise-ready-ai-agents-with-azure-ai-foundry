@@ -60,12 +60,12 @@
                     <div class="mb-3">
                         <label for="orchestrationType" class="form-label">Agent Orchestration Type</label>
                         <InputSelect @bind-Value="multiAgentRequest.OrchestationType" class="form-select" id="orchestrationType">
-                            <option value="@OrchestationType.Default">Default</option>
-                            <option value="@OrchestationType.Sequential">Sequential - Step-by-step workflow</option>
-                            <option value="@OrchestationType.Concurrent">Concurrent - Parallel analysis</option>
-                            <option value="@OrchestationType.Handoff">Handoff - Dynamic routing</option>
-                            <option value="@OrchestationType.GroupChat">Group Chat - Collaborative discussion</option>
-                            <option value="@OrchestationType.Magentic">Magentic - Complex collaboration</option>
+                            <option value="@OrchestrationType.Default">Default</option>
+                            <option value="@OrchestrationType.Sequential">Sequential - Step-by-step workflow</option>
+                            <option value="@OrchestrationType.Concurrent">Concurrent - Parallel analysis</option>
+                            <option value="@OrchestrationType.Handoff">Handoff - Dynamic routing</option>
+                            <option value="@OrchestrationType.GroupChat">Group Chat - Collaborative discussion</option>
+                            <option value="@OrchestrationType.GroupChat">Magentic - Complex collaboration</option>
                         </InputSelect>
                         <div class="form-text">@GetOrchestrationDescription(multiAgentRequest.OrchestationType)</div>
                     </div>
@@ -167,7 +167,7 @@
                                                     <div class="mt-auto">
                                                         <small class="text-muted">
                                                             <span class="bi bi-geo-alt me-1"></span>
-                                                            @product.Location, Section @product.Section
+                                                            @product.Location, Section @product.Price.ToString("F2")
                                                         </small>
                                                     </div>
                                                 </div>
@@ -261,8 +261,191 @@
                                     @orchestrationResult.OrchestationType Agent Orchestration
                                     <small class="text-muted ms-2">ID: @orchestrationResult.OrchestrationId</small>
                                 </h5>
-                                @if (!string.IsNullOrEmpty(orchestrationResult.OrchestrationDescription))
-                                {
+                                @if (orchestrationResult.NavigationInstructions != null)
+                    {
+
+#line default
+#line hidden
+#nullable disable
+
+            __builder.OpenElement(239, "div");
+            __builder.AddAttribute(240, "class", "col-12");
+            __builder.OpenElement(241, "div");
+            __builder.AddAttribute(242, "class", "card");
+            __builder.AddMarkupContent(243, "<div class=\"card-header\"><h5 class=\"card-title mb-0\"><span class=\"bi bi-signpost me-2\"></span>\r\n                                        In-Store Navigation\r\n                                    </h5></div>\r\n                                ");
+            __builder.OpenElement(244, "div");
+            __builder.AddAttribute(245, "class", "card-body");
+            __builder.OpenElement(246, "div");
+            __builder.AddAttribute(247, "class", "mb-3");
+            __builder.AddMarkupContent(248, "<strong>From:</strong> ");
+#nullable restore
+#line (195,65)-(195,121) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+__builder.AddContent(249, orchestrationResult.NavigationInstructions.StartLocation
+
+#line default
+#line hidden
+#nullable disable
+            );
+            __builder.AddMarkupContent(250, "<br>\r\n                                        ");
+            __builder.AddMarkupContent(251, "<strong>Estimated Time:</strong>\r\n                                        ");
+#nullable restore
+#line (197,42)-(197,98) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+__builder.AddContent(252, orchestrationResult.NavigationInstructions.EstimatedTime
+
+#line default
+#line hidden
+#nullable disable
+            );
+            __builder.CloseElement();
+            __builder.AddMarkupContent(253, "\r\n\r\n                                    ");
+            __builder.OpenElement(254, "div");
+            __builder.AddAttribute(255, "class", "navigation-steps");
+#nullable restore
+#line (201,1)-(201,41) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+                                        
+
+#line default
+#line hidden
+#nullable disable
+
+#nullable restore
+#line (201,42)-(204,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+for (int i = 0; i < orchestrationResult.NavigationInstructions.Steps.Length; i++)
+                                        {
+                                            var step = orchestrationResult.NavigationInstructions.Steps[i];
+
+#line default
+#line hidden
+#nullable disable
+
+            __builder.OpenElement(256, "div");
+            __builder.AddAttribute(257, "class", "d-flex mb-2");
+            __builder.OpenElement(258, "div");
+            __builder.AddAttribute(259, "class", "flex-shrink-0");
+            __builder.OpenElement(260, "span");
+            __builder.AddAttribute(261, "class", "badge bg-primary rounded-circle");
+#nullable restore
+#line (206,101)-(206,106) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+__builder.AddContent(262, i + 1
+
+#line default
+#line hidden
+#nullable disable
+            );
+            __builder.CloseElement();
+            __builder.CloseElement();
+            __builder.AddMarkupContent(263, "\r\n                                                ");
+            __builder.OpenElement(264, "div");
+            __builder.AddAttribute(265, "class", "flex-grow-1 ms-3");
+            __builder.OpenElement(266, "strong");
+#nullable restore
+#line (209,62)-(209,76) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+__builder.AddContent(267, step.Direction
+
+#line default
+#line hidden
+#nullable disable
+            );
+            __builder.CloseElement();
+            __builder.AddContent(268, " - ");
+#nullable restore
+#line (209,89)-(209,105) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+__builder.AddContent(269, step.Description
+
+#line default
+#line hidden
+#nullable disable
+            );
+#nullable restore
+#line (210,1)-(210,53) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+                                                    
+
+#line default
+#line hidden
+#nullable disable
+
+#nullable restore
+#line (210,55)-(212,53) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+
+                                                        var landmarkText = step.Landmark?.ToString();
+                                                    
+
+#line default
+#line hidden
+#nullable disable
+
+#nullable restore
+#line (213,1)-(213,53) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+                                                    
+
+#line default
+#line hidden
+#nullable disable
+
+#nullable restore
+#line (213,54)-(215,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+if (!string.IsNullOrEmpty(landmarkText))
+                                                    {
+
+#line default
+#line hidden
+#nullable disable
+
+            __builder.AddMarkupContent(270, "<br>\r\n                                                        ");
+            __builder.OpenElement(271, "small");
+            __builder.AddAttribute(272, "class", "text-muted");
+            __builder.AddContent(273, "Landmark: ");
+#nullable restore
+#line (216,94)-(216,106) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+__builder.AddContent(274, landmarkText
+
+#line default
+#line hidden
+#nullable disable
+            );
+            __builder.CloseElement();
+#nullable restore
+#line (217,1)-(218,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+                                                    }
+
+#line default
+#line hidden
+#nullable disable
+
+            __builder.CloseElement();
+            __builder.CloseElement();
+#nullable restore
+#line (220,1)-(221,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+                                        }
+
+#line default
+#line hidden
+#nullable disable
+
+            __builder.CloseElement();
+            __builder.CloseElement();
+            __builder.CloseElement();
+            __builder.CloseElement();
+#nullable restore
+#line (225,1)-(226,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+                    }
+
+#line default
+#line hidden
+#nullable disable
+
+#nullable restore
+#line (229,1)-(229,21) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+                    
+
+#line default
+#line hidden
+#nullable disable
+
+#nullable restore
+#line (229,22)-(231,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
+if (!string.IsNullOrEmpty(orchestrationResult.MermaidWorkflowRepresentation))
+                    {
                                     <p class="mb-0 mt-2 text-muted">
                                         <small>@orchestrationResult.OrchestrationDescription</small>
                                     </p>
@@ -408,16 +591,16 @@
         StateHasChanged();
     }
 
-    private string GetOrchestrationDescription(OrchestationType orchestrationType)
+    private string GetOrchestrationDescription(OrchestrationType orchestrationType)
     {
         return orchestrationType switch
         {
-            OrchestationType.Default => "Agents execute in specific order to solve the problem.",
-            OrchestationType.Sequential => "Agents execute one after another, each building on the previous agent's results.",
-            OrchestationType.Concurrent => "All agents work simultaneously in parallel, providing independent analysis.",
-            OrchestationType.Handoff => "Agents dynamically pass control based on context and business rules.",
-            OrchestationType.GroupChat => "Agents collaborate in a group discussion coordinated by a manager.",
-            OrchestationType.Magentic => "Complex multi-agent collaboration inspired by MagenticOne framework.",
+            OrchestrationType.Default => "Agents execute in specific order to solve the problem.",
+            OrchestrationType.Sequential => "Agents execute one after another, each building on the previous agent's results.",
+            OrchestrationType.Concurrent => "All agents work simultaneously in parallel, providing independent analysis.",
+            OrchestrationType.Handoff => "Agents dynamically pass control based on context and business rules.",
+            OrchestrationType.GroupChat => "Agents collaborate in a group discussion coordinated by a manager.",
+            OrchestrationType.Magentic => "Complex multi-agent collaboration inspired by MagenticOne framework.",
             _ => "Choose how agents should work together to solve your query."
         };
     }
@@ -434,18 +617,18 @@
         };
     }
 
-    private string GetOrchestrationImagePath(OrchestationType orchestrationType)
+    private string GetOrchestrationImagePath(OrchestrationType orchestrationType)
     {
         // Images are expected under wwwroot/images/multiagentorchestration
         var basePath = "/images/multiagentorchestration/";
         return orchestrationType switch
         {
-            OrchestationType.Default => basePath + "default.png",
-            OrchestationType.Sequential => basePath + "sequential.png",
-            OrchestationType.Concurrent => basePath + "concurrent.png",
-            OrchestationType.Handoff => basePath + "handoff.png",
-            OrchestationType.GroupChat => basePath + "groupchat.png",
-            OrchestationType.Magentic => basePath + "magentic.png",
+            OrchestrationType.Default => basePath + "default.png",
+            OrchestrationType.Sequential => basePath + "sequential.png",
+            OrchestrationType.Concurrent => basePath + "concurrent.png",
+            OrchestrationType.Handoff => basePath + "handoff.png",
+            OrchestrationType.GroupChat => basePath + "groupchat.png",
+            OrchestrationType.Magentic => basePath + "magentic.png",
             _ => basePath + "default.png",
         };
     }

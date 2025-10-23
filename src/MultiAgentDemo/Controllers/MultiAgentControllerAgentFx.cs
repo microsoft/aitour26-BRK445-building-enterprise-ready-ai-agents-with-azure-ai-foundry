@@ -35,24 +35,24 @@ namespace MultiAgentDemo.Controllers
         public async Task<ActionResult<MultiAgentResponse>> AssistAsync([FromBody] MultiAgentRequest? request)
         {
             _logger.LogInformation("Starting {OrchestrationTypeName} orchestration for query: {ProductQuery} using Microsoft Agent Framework",
-                request.OrchestationType, request.ProductQuery);
+                request.Orchestration, request.ProductQuery);
 
             try
             {
                 // Route to specific orchestration based on type
-                return request.OrchestationType switch
+                return request.Orchestration switch
                 {
-                    OrchestationType.Sequential => await AssistSequentialAsync(request),
-                    OrchestationType.Concurrent => await AssistConcurrentAsync(request),
-                    OrchestationType.Handoff => await AssistHandoffAsync(request),
-                    OrchestationType.GroupChat => await AssistGroupChatAsync(request),
-                    OrchestationType.Magentic => await AssistMagenticAsync(request),
+                    OrchestrationType.Sequential => await AssistSequentialAsync(request),
+                    OrchestrationType.Concurrent => await AssistConcurrentAsync(request),
+                    OrchestrationType.Handoff => await AssistHandoffAsync(request),
+                    OrchestrationType.GroupChat => await AssistGroupChatAsync(request),
+                    OrchestrationType.Magentic => await AssistMagenticAsync(request),
                     _ => await AssistSequentialAsync(request)
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in {OrchestrationTypeName} orchestration using Microsoft Agent Framework", request.OrchestationType);
+                _logger.LogError(ex, "Error in {OrchestrationTypeName} orchestration using Microsoft Agent Framework", request.Orchestration);
                 return StatusCode(500, "An error occurred during orchestration processing.");
             }
         }
@@ -247,7 +247,7 @@ namespace MultiAgentDemo.Controllers
             return new MultiAgentResponse
             {
                 OrchestrationId = orchestrationId,
-                OrchestationType = OrchestationType.Sequential,
+                OrchestationType = OrchestrationType.Sequential,
                 OrchestrationDescription = "Sequential workflow using Microsoft Agent Framework. Each agent step executes in order, with output feeding into subsequent steps. This enables complex, dependent reasoning chains.",
                 Steps = steps.ToArray(),
                 MermaidWorkflowRepresentation = mermaidWorkflowChart,

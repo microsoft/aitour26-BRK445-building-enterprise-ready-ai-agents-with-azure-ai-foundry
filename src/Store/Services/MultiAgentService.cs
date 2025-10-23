@@ -23,10 +23,10 @@ public class MultiAgentService
             var framework = await _frameworkService.GetSelectedFrameworkAsync();
             
             _logger.LogInformation("Calling multi-agent service for user {UserId} with query {ProductQuery} using {OrchestationType} orchestration and {Framework} framework",
-                request.UserId, request.ProductQuery, request.OrchestationType, framework);
+                request.UserId, request.ProductQuery, request.Orchestration, framework);
 
             // Route to specific orchestration endpoint if specified, otherwise use default
-            var endpoint = GetOrchestrationEndpoint(request.OrchestationType, framework);
+            var endpoint = GetOrchestrationEndpoint(request.Orchestration, framework);
             var response = await _httpClient.PostAsJsonAsync(endpoint, request);
             var responseText = await response.Content.ReadAsStringAsync();
 
@@ -54,19 +54,24 @@ public class MultiAgentService
         }
     }
 
-    private string GetOrchestrationEndpoint(OrchestationType orchestrationType, string framework)
+    private string GetOrchestrationEndpoint(OrchestrationType orchestrationType, string framework)
     {
-        var frameworkPath = framework == "AgentFx" ? "agentfx" : "sk";
+        var frameworkPath = framework switch
+        {
+            "agentfx" => "agentfx",
+            "llm" => "llm",
+            _ => "sk"
+        };
         var baseRoute = $"/api/multiagent/{frameworkPath}";
         
         return orchestrationType switch
         {
-            OrchestationType.Default => $"{baseRoute}/assist",
-            OrchestationType.Sequential => $"{baseRoute}/assist/sequential",
-            OrchestationType.Concurrent => $"{baseRoute}/assist/concurrent",
-            OrchestationType.Handoff => $"{baseRoute}/assist/handoff",
-            OrchestationType.GroupChat => $"{baseRoute}/assist/groupchat",
-            OrchestationType.Magentic => $"{baseRoute}/assist/magentic",
+            OrchestrationType.Default => $"{baseRoute}/assist",
+            OrchestrationType.Sequential => $"{baseRoute}/assist/sequential",
+            OrchestrationType.Concurrent => $"{baseRoute}/assist/concurrent",
+            OrchestrationType.Handoff => $"{baseRoute}/assist/handoff",
+            OrchestrationType.GroupChat => $"{baseRoute}/assist/groupchat",
+            OrchestrationType.Magentic => $"{baseRoute}/assist/magentic",
             _ => $"{baseRoute}/assist" // Default endpoint
         };
     }
@@ -79,32 +84,32 @@ public class MultiAgentService
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = request.OrchestationType,
-            OrchestrationDescription = GetFallbackOrchestrationDescription(request.OrchestationType),
+            OrchestationType = request.Orchestration,
+            OrchestrationDescription = GetFallbackOrchestrationDescription(request.Orchestration),
             Steps = GetFallbackSteps(request, baseTime),
             Alternatives = GetFallbackAlternatives(request.ProductQuery),
             NavigationInstructions = request.Location != null ? CreateFallbackNavigation(request) : null
         };
     }
 
-    private string GetFallbackOrchestrationDescription(OrchestationType orchestrationType)
+    private string GetFallbackOrchestrationDescription(OrchestrationType orchestrationType)
     {
         return orchestrationType switch
         {
-            OrchestationType.Sequential => "Fallback sequential processing with step-by-step agent execution",
-            OrchestationType.Concurrent => "Fallback concurrent processing with parallel agent execution",
-            OrchestationType.Handoff => "Fallback handoff processing with dynamic agent routing",
-            OrchestationType.GroupChat => "Fallback group chat processing with collaborative agent discussion",
-            OrchestationType.Magentic => "Fallback MagenticOne processing with complex multi-agent collaboration",
+            OrchestrationType.Sequential => "Fallback sequential processing with step-by-step agent execution",
+            OrchestrationType.Concurrent => "Fallback concurrent processing with parallel agent execution",
+            OrchestrationType.Handoff => "Fallback handoff processing with dynamic agent routing",
+            OrchestrationType.GroupChat => "Fallback group chat processing with collaborative agent discussion",
+            OrchestrationType.Magentic => "Fallback MagenticOne processing with complex multi-agent collaboration",
             _ => "Fallback orchestration processing"
         };
     }
 
     private AgentStep[] GetFallbackSteps(MultiAgentRequest request, DateTime baseTime)
     {
-        return request.OrchestationType switch
+        return request.Orchestration switch
         {
-            OrchestationType.Concurrent => new[]
+            OrchestrationType.Concurrent => new[]
             {
                 new AgentStep
                 {
@@ -135,7 +140,7 @@ public class MultiAgentService
                     Timestamp = baseTime.AddMilliseconds(150)
                 }
             },
-            OrchestationType.Handoff => new[]
+            OrchestrationType.Handoff => new[]
             {
                 new AgentStep
                 {
@@ -159,7 +164,7 @@ public class MultiAgentService
                     Timestamp = baseTime.AddSeconds(2)
                 }
             },
-            OrchestationType.GroupChat => new[]
+            OrchestrationType.GroupChat => new[]
             {
                 new AgentStep
                 {
@@ -197,7 +202,7 @@ public class MultiAgentService
                     Timestamp = baseTime.AddSeconds(4)
                 }
             },
-            OrchestationType.Magentic => new[]
+            OrchestrationType.Magentic => new[]
             {
                 new AgentStep
                 {

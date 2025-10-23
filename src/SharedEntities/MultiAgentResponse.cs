@@ -7,7 +7,7 @@ public class MultiAgentResponse
     /// <summary>
     /// The type of orchestration that was used for this response.
     /// </summary>
-    public OrchestationType OrchestationType { get; set; } = OrchestationType.Sequential;
+    public OrchestrationType OrchestationType { get; set; } = OrchestrationType.Sequential;
     
     /// <summary>
     /// A description of how the orchestration was executed.

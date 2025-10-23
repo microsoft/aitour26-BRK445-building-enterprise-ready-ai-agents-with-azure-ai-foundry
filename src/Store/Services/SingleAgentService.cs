@@ -38,7 +38,12 @@ public class SingleAgentService
             content.Add(new StringContent(request.Prompt), "prompt");
             content.Add(new StringContent(request.CustomerId), "customerId");
 
-            var frameworkPath = framework == "AgentFx" ? "agentfx" : "sk";
+            var frameworkPath = framework switch
+            {
+                "agentfx" => "agentfx",
+                "llm" => "llm",
+                _ => "sk"
+            };
             var endpoint = $"/api/singleagent/{frameworkPath}/analyze";
 
             _logger.LogInformation("Calling single agent service for customer {CustomerId} using {Framework} framework", request.CustomerId, framework);

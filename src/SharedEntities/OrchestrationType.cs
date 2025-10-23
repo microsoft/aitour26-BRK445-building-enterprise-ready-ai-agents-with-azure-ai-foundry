@@ -3,7 +3,7 @@ namespace SharedEntities;
 /// <summary>
 /// Defines the different types of agent orchestration patterns available.
 /// </summary>
-public enum OrchestationType
+public enum OrchestrationType
 {
     /// <summary>
     /// Default orchestration - uses a predefined orchestration type if none is specified.

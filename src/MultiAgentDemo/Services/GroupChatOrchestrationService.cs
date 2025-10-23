@@ -96,7 +96,7 @@ public class GroupChatOrchestrationService : IAgentOrchestrationService
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = OrchestationType.GroupChat,
+            OrchestationType = OrchestrationType.GroupChat,
             OrchestrationDescription = "Agents participated in a collaborative group chat coordinated by a group manager, with multiple rounds of discussion to build consensus and share insights.",
             Steps = steps.ToArray(),
             Alternatives = alternatives,

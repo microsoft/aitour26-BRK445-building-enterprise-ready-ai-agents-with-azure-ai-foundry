@@ -79,17 +79,17 @@ namespace MultiAgentDemo.Controllers
             }
 
             _logger.LogInformation("Starting {OrchestrationTypeName} orchestration for query: {ProductQuery}", 
-                request.OrchestationType, request.ProductQuery);
+                request.Orchestration, request.ProductQuery);
 
             try
             {
-                var orchestrationService = GetOrchestrationService(request.OrchestationType);
+                var orchestrationService = GetOrchestrationService(request.Orchestration);
                 var response = await orchestrationService.ExecuteAsync(request);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in {OrchestrationTypeName} orchestration", request.OrchestationType);
+                _logger.LogError(ex, "Error in {OrchestrationTypeName} orchestration", request.Orchestration);
                 return StatusCode(500, "An error occurred during orchestration processing.");
             }
         }
@@ -195,7 +195,7 @@ namespace MultiAgentDemo.Controllers
                 return Ok(new MultiAgentResponse
                 {
                     OrchestrationId = orchestrationId,
-                    OrchestationType = OrchestationType.Sequential,
+                    OrchestationType = OrchestrationType.Sequential,
                     OrchestrationDescription = "Agents executed sequentially using Semantic Kernel ChatCompletionAgent, with each agent building upon the results of the previous agent's work.",
                     Steps = steps.ToArray(),
                     Alternatives = alternatives,
@@ -324,7 +324,7 @@ namespace MultiAgentDemo.Controllers
                 return Ok(new MultiAgentResponse
                 {
                     OrchestrationId = orchestrationId,
-                    OrchestationType = OrchestationType.Concurrent,
+                    OrchestationType = OrchestrationType.Concurrent,
                     OrchestrationDescription = "All agents executed concurrently using Semantic Kernel ChatCompletionAgent, working independently in parallel without dependencies on each other's results.",
                     Steps = steps.ToArray(),
                     Alternatives = alternatives,
@@ -477,7 +477,7 @@ namespace MultiAgentDemo.Controllers
                 return Ok(new MultiAgentResponse
                 {
                     OrchestrationId = orchestrationId,
-                    OrchestationType = OrchestationType.Handoff,
+                    OrchestationType = OrchestrationType.Handoff,
                     OrchestrationDescription = "Dynamic handoff orchestration using Semantic Kernel ChatCompletionAgent, where agents pass control based on context and business logic rules.",
                     Steps = steps.ToArray(),
                     Alternatives = alternatives,
@@ -566,7 +566,7 @@ namespace MultiAgentDemo.Controllers
                 return Ok(new MultiAgentResponse
                 {
                     OrchestrationId = orchestrationId,
-                    OrchestationType = OrchestationType.GroupChat,
+                    OrchestationType = OrchestrationType.GroupChat,
                     OrchestrationDescription = "Collaborative group chat orchestration using Semantic Kernel AgentGroupChat, where agents discuss and build consensus through multi-turn conversations.",
                     Steps = steps.ToArray(),
                     Alternatives = alternatives,
@@ -747,7 +747,7 @@ namespace MultiAgentDemo.Controllers
                 return Ok(new MultiAgentResponse
                 {
                     OrchestrationId = orchestrationId,
-                    OrchestationType = OrchestationType.Magentic,
+                    OrchestationType = OrchestrationType.Magentic,
                     OrchestrationDescription = "Magentic orchestration using Semantic Kernel ChatCompletionAgent, featuring coordinator-directed multi-agent collaboration with planning, execution, and synthesis phases.",
                     Steps = steps.ToArray(),
                     Alternatives = alternatives,
@@ -761,15 +761,15 @@ namespace MultiAgentDemo.Controllers
             }
         }
 
-        private IAgentOrchestrationService GetOrchestrationService(OrchestationType orchestrationType)
+        private IAgentOrchestrationService GetOrchestrationService(OrchestrationType orchestrationType)
         {
             return orchestrationType switch
             {
-                OrchestationType.Sequential => _sequentialOrchestration,
-                OrchestationType.Concurrent => _concurrentOrchestration,
-                OrchestationType.Handoff => _handoffOrchestration,
-                OrchestationType.GroupChat => _groupChatOrchestration,
-                OrchestationType.Magentic => _magenticOrchestration,
+                OrchestrationType.Sequential => _sequentialOrchestration,
+                OrchestrationType.Concurrent => _concurrentOrchestration,
+                OrchestrationType.Handoff => _handoffOrchestration,
+                OrchestrationType.GroupChat => _groupChatOrchestration,
+                OrchestrationType.Magentic => _magenticOrchestration,
                 _ => _sequentialOrchestration // Default fallback
             };
         }

@@ -1,6 +1,8 @@
 #pragma warning disable SKEXP0110
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel.Agents.AzureAI;
+using Microsoft.SemanticKernel.ChatCompletion;
 using ZavaAIFoundrySKAgentsProvider;
 using ZavaAgentFxAgentsProvider;
 using ZavaSemanticKernelProvider;
@@ -21,6 +23,13 @@ builder.Services.AddSingleton(sp =>
         var chatDeploymentName = config["AI_ChatDeploymentName"] ?? "gpt-5-mini";
         return new SemanticKernelProvider(openAiConnection, chatDeploymentName);
     });
+
+builder.Services.AddSingleton<IChatClient>(sp =>
+{
+    var skProvider = sp.GetService<SemanticKernelProvider>();
+    var kernel = skProvider.GetKernel();
+    return kernel.GetRequiredService<IChatCompletionService>().AsChatClient();
+});
 
 // Register Semantic Kernel agent provider
 builder.Services.AddSingleton(sp =>
