@@ -1,6 +1,7 @@
 #pragma warning disable SKEXP0110
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -18,15 +19,30 @@ public class NavigationController : ControllerBase
     private readonly ILogger<NavigationController> _logger;
     private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
+    private readonly IChatClient _chatClient;
 
     public NavigationController(
         ILogger<NavigationController> logger,
         AzureAIAgent skAgent,
-        AIAgent agentFxAgent)
+        AIAgent agentFxAgent,
+        IChatClient chatClient)
     {
         _logger = logger;
         _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
+        _chatClient = chatClient;
+    }
+
+    [HttpPost("directions/llm")]
+    public async Task<ActionResult<NavigationInstructions>> GenerateDirectionsLlmAsync([FromBody] DirectionsRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[LLM] Generating directions from {From} to {To}", FormatLocation(request.From), FormatLocation(request.To));
+
+        return await GenerateDirectionsAsync(
+            request,
+            InvokeLlmAsync,
+            "[LLM]",
+            cancellationToken);
     }
 
     [HttpPost("directions/sk")]
@@ -95,6 +111,12 @@ public class NavigationController : ControllerBase
     public IActionResult Health()
     {
         return Ok(new { Status = "Healthy", Service = "NavigationService" });
+    }
+
+    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
+    {
+        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
+        return response.Text ?? string.Empty;
     }
 
     private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)

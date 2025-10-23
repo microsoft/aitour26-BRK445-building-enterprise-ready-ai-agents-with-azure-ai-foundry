@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -20,15 +21,30 @@ public class MatchmakingController : ControllerBase
     private readonly ILogger<MatchmakingController> _logger;
     private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
+    private readonly IChatClient _chatClient;
 
     public MatchmakingController(
         ILogger<MatchmakingController> logger,
         AzureAIAgent skAgent,
-        AIAgent agentFxAgent)
+        AIAgent agentFxAgent,
+        IChatClient chatClient)
     {
         _logger = logger;
         _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
+        _chatClient = chatClient;
+    }
+
+    [HttpPost("alternatives/llm")]
+    public async Task<ActionResult<MatchmakingResult>> FindAlternativesLlmAsync([FromBody] AlternativesRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[LLM] Finding alternatives for product: {ProductQuery}, User: {UserId}", request.ProductQuery, request.UserId);
+
+        return await FindAlternativesAsync(
+            request,
+            InvokeLlmAsync,
+            "[LLM]",
+            cancellationToken);
     }
 
     [HttpPost("alternatives/sk")]
@@ -86,6 +102,12 @@ public class MatchmakingController : ControllerBase
     [HttpGet("health")]
     public IActionResult Health()
         => Ok(new { Status = "Healthy", Service = "MatchmakingService" });
+
+    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
+    {
+        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
+        return response.Text ?? string.Empty;
+    }
 
     private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)
     {

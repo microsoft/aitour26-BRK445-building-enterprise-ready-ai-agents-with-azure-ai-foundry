@@ -1,6 +1,7 @@
 #pragma warning disable SKEXP0110
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -18,15 +19,30 @@ public class LocationController : ControllerBase
     private readonly ILogger<LocationController> _logger;
     private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
+    private readonly IChatClient _chatClient;
 
     public LocationController(
         ILogger<LocationController> logger,
         AzureAIAgent skAgent,
-        AIAgent agentFxAgent)
+        AIAgent agentFxAgent,
+        IChatClient chatClient)
     {
         _logger = logger;
         _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
+        _chatClient = chatClient;
+    }
+
+    [HttpGet("find/llm")]
+    public async Task<ActionResult<LocationResult>> FindProductLocationLlmAsync([FromQuery] string product, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[LLM] Finding location for product: {Product}", product);
+
+        return await FindProductLocationAsync(
+            product,
+            InvokeLlmAsync,
+            "[LLM]",
+            cancellationToken);
     }
 
     [HttpGet("find/sk")]
@@ -90,6 +106,12 @@ public class LocationController : ControllerBase
     public IActionResult Health()
     {
         return Ok(new { Status = "Healthy", Service = "LocationService" });
+    }
+
+    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
+    {
+        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
+        return response.Text ?? string.Empty;
     }
 
     private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)

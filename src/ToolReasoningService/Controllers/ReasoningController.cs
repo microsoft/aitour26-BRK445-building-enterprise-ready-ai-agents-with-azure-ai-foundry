@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -17,15 +18,30 @@ public class ReasoningController : ControllerBase
     private readonly ILogger<ReasoningController> _logger;
     private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
+    private readonly IChatClient _chatClient;
 
     public ReasoningController(
         ILogger<ReasoningController> logger,
         AzureAIAgent skAgent,
-        AIAgent agentFxAgent)
+        AIAgent agentFxAgent,
+        IChatClient chatClient)
     {
         _logger = logger;
         _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
+        _chatClient = chatClient;
+    }
+
+    [HttpPost("generate/llm")]
+    public async Task<ActionResult<string>> GenerateReasoningLlmAsync([FromBody] ReasoningRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[LLM] Generating reasoning for prompt");
+
+        return await GenerateReasoningAsync(
+            request,
+            async (prompt, token) => await InvokeLlmAsync(prompt, token),
+            "[LLM]",
+            cancellationToken);
     }
 
     [HttpPost("generate/sk")]
@@ -78,6 +94,12 @@ public class ReasoningController : ControllerBase
         }
 
         return Ok(GenerateFallbackReasoning(request));
+    }
+
+    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
+    {
+        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
+        return response.Text ?? string.Empty;
     }
 
     private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)
