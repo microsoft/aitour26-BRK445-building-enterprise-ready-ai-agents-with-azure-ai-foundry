@@ -22,6 +22,13 @@ builder.Services.AddSingleton(sp =>
     return new SemanticKernelProvider(aiFoundryConnection, chatDeploymentName);
 });
 
+builder.Services.AddSingleton<Microsoft.Extensions.AI.IChatClient>(sp =>
+{
+    var skProvider = sp.GetService<SemanticKernelProvider>();
+    var kernel = skProvider.GetKernel();
+    return kernel.GetRequiredService<Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService>().AsChatClient();
+});
+
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetService<IConfiguration>();

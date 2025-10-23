@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -21,6 +22,7 @@ public class CustomerController : ControllerBase
     private readonly ILogger<CustomerController> _logger;
     private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
+    private readonly IChatClient _chatClient;
 
     private static readonly Dictionary<string, CustomerInformation> _customers = new()
     {
@@ -32,11 +34,25 @@ public class CustomerController : ControllerBase
     public CustomerController(
         ILogger<CustomerController> logger,
         AzureAIAgent skAgent,
-        AIAgent agentFxAgent)
+        AIAgent agentFxAgent,
+        IChatClient chatClient)
     {
         _logger = logger;
         _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
+        _chatClient = chatClient;
+    }
+
+    [HttpGet("{customerId}/llm")]
+    public async Task<ActionResult<CustomerInformation>> GetCustomerLlmAsync(string customerId, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[LLM] Getting customer information for ID: {CustomerId}", customerId);
+
+        return await GetCustomerAsync(
+            customerId,
+            async (prompt, token) => await InvokeLlmAsync(prompt, token),
+            "[LLM]",
+            cancellationToken);
     }
 
     [HttpGet("{customerId}/sk")]
@@ -61,6 +77,13 @@ public class CustomerController : ControllerBase
             async (prompt, token) => await InvokeAgentFrameworkAsync(prompt, token),
             "[AgentFx]",
             cancellationToken);
+    }
+
+    [HttpPost("match-tools/llm")]
+    public ActionResult<ToolMatchResult> MatchToolsLlm([FromBody] ToolMatchRequest request)
+    {
+        _logger.LogInformation("[LLM] Matching tools for customer {CustomerId}", request.CustomerId);
+        return MatchToolsInternal(request);
     }
 
     [HttpPost("match-tools/sk")]
@@ -125,6 +148,12 @@ public class CustomerController : ControllerBase
             _logger.LogError(ex, "Error matching tools for customer {CustomerId}", request.CustomerId);
             return StatusCode(500, "An error occurred while matching tools");
         }
+    }
+
+    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
+    {
+        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
+        return response.Text ?? string.Empty;
     }
 
     private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)

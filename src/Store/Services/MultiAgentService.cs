@@ -56,7 +56,12 @@ public class MultiAgentService
 
     private string GetOrchestrationEndpoint(OrchestationType orchestrationType, string framework)
     {
-        var frameworkPath = framework == "AgentFx" ? "agentfx" : "sk";
+        var frameworkPath = framework switch
+        {
+            "agentfx" => "agentfx",
+            "llm" => "llm",
+            _ => "sk"
+        };
         var baseRoute = $"/api/multiagent/{frameworkPath}";
         
         return orchestrationType switch

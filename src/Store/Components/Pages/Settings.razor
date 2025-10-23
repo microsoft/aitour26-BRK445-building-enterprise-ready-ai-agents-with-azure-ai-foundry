@@ -25,25 +25,24 @@
                 </div>
                 <div class="card-body">
                     <p class="text-muted">
-                        Choose which agent framework to use for the demos. Both frameworks connect to the same Azure AI Foundry agents.
+                        Choose which agent framework to use for the demos. All frameworks connect to Azure AI Foundry services.
                     </p>
 
                     <div class="mb-4">
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" role="switch" id="frameworkSwitch" 
-                                   checked="@isAgentFx" @onchange="OnFrameworkChanged">
-                            <label class="form-check-label" for="frameworkSwitch">
-                                <strong>@GetFrameworkDisplayName()</strong>
-                            </label>
-                        </div>
-                        <small class="text-muted">
+                        <label class="form-label"><strong>Select Framework:</strong></label>
+                        <select class="form-select" @bind="selectedFramework" @bind:after="OnFrameworkChanged">
+                            <option value="llm">LLM Direct Call</option>
+                            <option value="sk">Semantic Kernel (SK)</option>
+                            <option value="agentfx">Microsoft Agent Framework (AgentFx)</option>
+                        </select>
+                        <small class="text-muted mt-2 d-block">
                             @GetFrameworkDescription()
                         </small>
                     </div>
 
                     <div class="alert alert-info" role="alert">
                         <span class="bi bi-info-circle me-2"></span>
-                        <strong>Current Selection:</strong> @(isAgentFx ? "Microsoft Agent Framework (AgentFx)" : "Semantic Kernel (SK)")
+                        <strong>Current Selection:</strong> @GetFrameworkDisplayName()
                     </div>
 
                     @if (showSavedMessage)
@@ -67,10 +66,24 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr class="@(isAgentFx ? "" : "table-primary")">
+                                <tr class="@(selectedFramework == "llm" ? "table-primary" : "")">
+                                    <td><strong>LLM Direct Call</strong></td>
+                                    <td>
+                                        @if (selectedFramework == "llm")
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </td>
+                                    <td>Direct LLM calls using Microsoft.Extensions.AI</td>
+                                </tr>
+                                <tr class="@(selectedFramework == "sk" ? "table-primary" : "")">
                                     <td><strong>Semantic Kernel</strong></td>
                                     <td>
-                                        @if (!isAgentFx)
+                                        @if (selectedFramework == "sk")
                                         {
                                             <span class="badge bg-success">Active</span>
                                         }
@@ -79,12 +92,12 @@
                                             <span class="badge bg-secondary">Inactive</span>
                                         }
                                     </td>
-                                    <td>Default framework using Microsoft.SemanticKernel</td>
+                                    <td>Framework using Microsoft.SemanticKernel</td>
                                 </tr>
-                                <tr class="@(isAgentFx ? "table-primary" : "")">
+                                <tr class="@(selectedFramework == "agentfx" ? "table-primary" : "")">
                                     <td><strong>Microsoft Agent Framework</strong></td>
                                     <td>
-                                        @if (isAgentFx)
+                                        @if (selectedFramework == "agentfx")
                                         {
                                             <span class="badge bg-success">Active</span>
                                         }
@@ -93,7 +106,7 @@
                                             <span class="badge bg-secondary">Inactive</span>
                                         }
                                     </td>
-                                    <td>Alternative framework using Microsoft.Agents.AI</td>
+                                    <td>Framework using Microsoft.Agents.AI</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -105,7 +118,7 @@
 </div>
 
 @code {
-    private bool isAgentFx = false;
+    private string selectedFramework = "agentfx";
     private bool showSavedMessage = false;
 
     protected override async Task OnInitializedAsync()
@@ -114,22 +127,19 @@
         try
         {
             var savedFramework = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "agentFramework");
-            isAgentFx = savedFramework == "AgentFx";
+            selectedFramework = string.IsNullOrEmpty(savedFramework) ? "agentfx" : savedFramework.ToLowerInvariant();
         }
         catch
         {
-            // Default to Semantic Kernel if localStorage is not available
-            isAgentFx = false;
+            // Default to AgentFx if localStorage is not available
+            selectedFramework = "agentfx";
         }
     }
 
-    private async Task OnFrameworkChanged(ChangeEventArgs e)
+    private async Task OnFrameworkChanged()
     {
-        isAgentFx = (bool)(e.Value ?? false);
-        
         // Save to localStorage
-        var frameworkValue = isAgentFx ? "AgentFx" : "SK";
-        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "agentFramework", frameworkValue);
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "agentFramework", selectedFramework);
         
         // Show saved message
         showSavedMessage = true;
@@ -143,18 +153,23 @@
 
     private string GetFrameworkDisplayName()
     {
-        return isAgentFx ? "Microsoft Agent Framework (AgentFx)" : "Semantic Kernel (SK)";
+        return selectedFramework switch
+        {
+            "llm" => "LLM Direct Call",
+            "sk" => "Semantic Kernel (SK)",
+            "agentfx" => "Microsoft Agent Framework (AgentFx)",
+            _ => "Unknown"
+        };
     }
 
     private string GetFrameworkDescription()
     {
-        if (isAgentFx)
+        return selectedFramework switch
         {
-            return "Using Microsoft Agent Framework - A new framework for building AI agents with Microsoft.Agents.AI";
-        }
-        else
-        {
-            return "Using Semantic Kernel - The default framework for AI orchestration with Microsoft.SemanticKernel";
-        }
+            "llm" => "Using direct LLM calls - Direct interaction with language models using Microsoft.Extensions.AI IChatClient",
+            "sk" => "Using Semantic Kernel - Framework for AI orchestration with Microsoft.SemanticKernel",
+            "agentfx" => "Using Microsoft Agent Framework - Framework for building AI agents with Microsoft.Agents.AI",
+            _ => "Unknown framework"
+        };
     }
 }
