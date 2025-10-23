@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -20,15 +21,30 @@ public class ProductSearchController : ControllerBase
     private readonly ILogger<ProductSearchController> _logger;
     private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
+    private readonly IChatClient _chatClient;
 
     public ProductSearchController(
         ILogger<ProductSearchController> logger,
         AzureAIAgent skAgent,
-        AIAgent agentFxAgent)
+        AIAgent agentFxAgent,
+        IChatClient chatClient)
     {
         _logger = logger;
         _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
+        _chatClient = chatClient;
+    }
+
+    [HttpPost("search/llm")]
+    public async Task<ActionResult<ToolRecommendation[]>> SearchInventoryLlmAsync([FromBody] InventorySearchRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[LLM] Searching inventory for query: {SearchQuery}", request.SearchQuery);
+
+        return await SearchProductsAsync(
+            request,
+            InvokeLlmAsync,
+            "[LLM]",
+            cancellationToken);
     }
 
     [HttpPost("search/sk")]
@@ -144,6 +160,12 @@ public class ProductSearchController : ControllerBase
         }
 
         return Ok(BuildFallbackRecommendations(request.SearchQuery));
+    }
+
+    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
+    {
+        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
+        return response.Text ?? string.Empty;
     }
 
     private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)
