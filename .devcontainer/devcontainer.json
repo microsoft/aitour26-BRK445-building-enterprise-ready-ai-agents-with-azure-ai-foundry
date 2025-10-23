@@ -37,6 +37,12 @@
 			]
 		}
 	},
+	// Minimum machine requirements for GitHub Codespaces
+	"hostRequirements": {
+		"cpus": 4,
+		"memory": "16gb",
+		"storage": "32gb"
+	},
 	// Required for Docker-in-Docker
 	"privileged": true,
 	"mounts": [
