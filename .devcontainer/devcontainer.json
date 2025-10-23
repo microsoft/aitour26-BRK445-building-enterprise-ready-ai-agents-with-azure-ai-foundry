@@ -24,7 +24,7 @@
 		1433 // SQL Server
 	],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pip3 install --user -r requirements.txt && dotnet workload update && dotnet workload install aspire && dotnet tool install -g Aspire.Cli --prerelease",
+	"postCreateCommand": "python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && dotnet workload update && dotnet workload install aspire && dotnet tool install -g Aspire.Cli --prerelease",
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
@@ -33,8 +33,12 @@
 				"ms-dotnettools.csdevkit",
 				"ms-dotnettools.vscode-dotnet-runtime",
 				"ms-azuretools.vscode-docker",
-				"ms-mssql.mssql"
-			]
+				"ms-mssql.mssql",
+				"ms-python.python"
+			],
+			"settings": {
+				"python.defaultInterpreterPath": "./.venv/bin/python"
+			}
 		}
 	},
 	// Minimum machine requirements for GitHub Codespaces

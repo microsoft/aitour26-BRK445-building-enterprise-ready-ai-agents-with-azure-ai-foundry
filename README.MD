@@ -58,6 +58,36 @@ The scripts automatically deploy:
 
 See [`DEPLOYMENT.md`](./DEPLOYMENT.md) for detailed deployment instructions and troubleshooting.
 
+## 💻 Development Setup
+
+### Python Environment
+
+This project uses a Python virtual environment for documentation tools (MkDocs). The devcontainer automatically sets up the environment, but if you need to work with Python tools manually:
+
+**Activate the virtual environment:**
+```bash
+source activate-venv.sh
+```
+
+Or manually:
+```bash
+source .venv/bin/activate
+```
+
+**Available Python tools:**
+- `mkdocs` - Documentation site generator
+- `mkdocs serve` - Local documentation server
+
+### Devcontainer Notes
+
+The devcontainer is configured to:
+- ✅ Create a Python virtual environment (`.venv/`)
+- ✅ Install Python documentation tools
+- ✅ Install .NET 9 SDK and Aspire workloads
+- ✅ Install Aspire CLI tool
+
+If you encounter Python package installation errors, the devcontainer configuration has been updated to use virtual environments instead of system-wide installation.
+
 ## Technologies used
 
 - C# / .NET 9 / .NET Aspire for orchestration
