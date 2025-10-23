@@ -1,24 +1,47 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/python
+// README at: https://github.com/devcontainers/templates/tree/main/src/dotnet
 {
-	"name": "AI Tour Repo",
-	"image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
+	"name": "AI Tour Repo - .NET 9 Aspire",
+	"image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0-bookworm",
 	"features": {
-		"ghcr.io/devcontainers/features/python:1": {}
+		"ghcr.io/devcontainers/features/python:1": {},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"version": "latest",
+			"dockerDashComposeVersion": "v2"
+		},
+		"ghcr.io/devcontainers/features/dotnet:2": {
+			"version": "9.0",
+			"installUsingApt": false,
+			"aspNetCoreRuntimeVersions": "9.0"
+		}
 	},
-
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
+	"forwardPorts": [
+		5000, // Aspire Dashboard
+		5001, // Aspire Dashboard (HTTPS)
+		7000, // Blazor Frontend
+		7001, // Blazor Frontend (HTTPS)
+		1433 // SQL Server
+	],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pip3 install --user -r requirements.txt"
-
+	"postCreateCommand": "pip3 install --user -r requirements.txt && dotnet workload update && dotnet workload install aspire && dotnet tool install -g Aspire.Cli --prerelease",
 	// Configure tool-specific properties.
-	// "customizations": {},
-
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-dotnettools.csharp",
+				"ms-dotnettools.csdevkit",
+				"ms-dotnettools.vscode-dotnet-runtime",
+				"ms-azuretools.vscode-docker",
+				"ms-mssql.mssql"
+			]
+		}
+	},
+	// Required for Docker-in-Docker
+	"privileged": true,
+	"mounts": [
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+	]
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
 }
