@@ -1,3 +1,4 @@
+using MultiAgentDemo.Controllers;
 using SharedEntities;
 
 namespace MultiAgentDemo.Services;
@@ -89,12 +90,13 @@ public class GroupChatOrchestrationService : IAgentOrchestrationService
             navigation = await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery);
         }
 
-        var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+        // Generate mock alternatives for UI compatibility
+        var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
 
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = OrchestationType.GroupChat,
+            OrchestationType = OrchestrationType.GroupChat,
             OrchestrationDescription = "Agents participated in a collaborative group chat coordinated by a group manager, with multiple rounds of discussion to build consensus and share insights.",
             Steps = steps.ToArray(),
             Alternatives = alternatives,

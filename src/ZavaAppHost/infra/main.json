@@ -1,0 +1,664 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.37.4.10188",
+      "templateHash": "8520584566480487980"
+    }
+  },
+  "parameters": {
+    "environmentName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "metadata": {
+        "description": "Name of the environment that can be used as part of naming resource convention, the name of the resource group for your application will use this name, prefixed with rg-"
+      }
+    },
+    "location": {
+      "type": "string",
+      "minLength": 1,
+      "metadata": {
+        "description": "The location used for all deployed resources"
+      }
+    },
+    "principalId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Id of the user or app to assign application roles"
+      }
+    },
+    "aifoundryproject": {
+      "type": "securestring"
+    },
+    "customerinformationagentid": {
+      "type": "securestring"
+    },
+    "inventoryagentid": {
+      "type": "securestring"
+    },
+    "locationserviceagentid": {
+      "type": "securestring"
+    },
+    "navigationagentid": {
+      "type": "securestring"
+    },
+    "photoanalyzeragentid": {
+      "type": "securestring"
+    },
+    "productmatchmakingagentid": {
+      "type": "securestring"
+    },
+    "sql_password": {
+      "type": "securestring",
+      "metadata": {
+        "azd": {
+          "type": "generate",
+          "config": {
+            "length": 22,
+            "minLower": 1,
+            "minUpper": 1,
+            "minNumeric": 1
+          }
+        }
+      }
+    },
+    "toolreasoningagentid": {
+      "type": "securestring"
+    }
+  },
+  "variables": {
+    "tags": {
+      "azd-env-name": "[parameters('environmentName')]"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2022-09-01",
+      "name": "[format('rg-{0}', parameters('environmentName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "resources",
+      "resourceGroup": "[format('rg-{0}', parameters('environmentName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "principalId": {
+            "value": "[parameters('principalId')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "6501860945371482276"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "The location used for all deployed resources"
+              }
+            },
+            "principalId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Id of the user or app to assign application roles"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags that will be applied to all resources"
+              }
+            }
+          },
+          "variables": {
+            "resourceToken": "[uniqueString(resourceGroup().id)]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/managedEnvironments/dotNetComponents",
+              "apiVersion": "2024-02-02-preview",
+              "name": "[format('{0}/{1}', format('cae-{0}', variables('resourceToken')), 'aspire-dashboard')]",
+              "properties": {
+                "componentType": "AspireDashboard"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', variables('resourceToken')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[format('mi-{0}', variables('resourceToken'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2023-07-01",
+              "name": "[replace(format('acr-{0}', variables('resourceToken')), '-', '')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Basic"
+              },
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.ContainerRegistry/registries/{0}', replace(format('acr-{0}', variables('resourceToken')), '-', ''))]",
+              "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', replace(format('acr-{0}', variables('resourceToken')), '-', '')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('mi-{0}', variables('resourceToken'))), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d'))]",
+              "properties": {
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('mi-{0}', variables('resourceToken'))), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ContainerRegistry/registries', replace(format('acr-{0}', variables('resourceToken')), '-', ''))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('mi-{0}', variables('resourceToken')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2022-10-01",
+              "name": "[format('law-{0}', variables('resourceToken'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                }
+              },
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2022-05-01",
+              "name": "[format('vol{0}', variables('resourceToken'))]",
+              "location": "[parameters('location')]",
+              "kind": "StorageV2",
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "properties": {
+                "largeFileSharesState": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/fileServices",
+              "apiVersion": "2022-05-01",
+              "name": "[format('{0}/{1}', format('vol{0}', variables('resourceToken')), 'default')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', format('vol{0}', variables('resourceToken')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+              "apiVersion": "2022-05-01",
+              "name": "[format('{0}/{1}/{2}', format('vol{0}', variables('resourceToken')), 'default', take(format('{0}-{1}', toLower('sql'), toLower('zavaapphost2534ad4eb4sqldata')), 60))]",
+              "properties": {
+                "shareQuota": 1024,
+                "enabledProtocols": "SMB"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices', format('vol{0}', variables('resourceToken')), 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2024-02-02-preview",
+              "name": "[format('cae-{0}', variables('resourceToken'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "workloadProfiles": [
+                  {
+                    "workloadProfileType": "Consumption",
+                    "name": "consumption"
+                  }
+                ],
+                "appLogsConfiguration": {
+                  "destination": "log-analytics",
+                  "logAnalyticsConfiguration": {
+                    "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('law-{0}', variables('resourceToken'))), '2022-10-01').customerId]",
+                    "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', format('law-{0}', variables('resourceToken'))), '2022-10-01').primarySharedKey]"
+                  }
+                }
+              },
+              "tags": "[parameters('tags')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', format('law-{0}', variables('resourceToken')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.App/managedEnvironments/storages",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('cae-{0}', variables('resourceToken')), take(format('{0}-{1}', toLower('sql'), toLower('zavaapphost2534ad4eb4sqldata')), 32))]",
+              "properties": {
+                "azureFile": {
+                  "shareName": "[take(format('{0}-{1}', toLower('sql'), toLower('zavaapphost2534ad4eb4sqldata')), 60)]",
+                  "accountName": "[format('vol{0}', variables('resourceToken'))]",
+                  "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', format('vol{0}', variables('resourceToken'))), '2022-05-01').keys[0].value]",
+                  "accessMode": "ReadWrite"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', variables('resourceToken')))]",
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', format('vol{0}', variables('resourceToken')), 'default', take(format('{0}-{1}', toLower('sql'), toLower('zavaapphost2534ad4eb4sqldata')), 60))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', format('vol{0}', variables('resourceToken')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "MANAGED_IDENTITY_CLIENT_ID": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('mi-{0}', variables('resourceToken'))), '2023-01-31').clientId]"
+            },
+            "MANAGED_IDENTITY_NAME": {
+              "type": "string",
+              "value": "[format('mi-{0}', variables('resourceToken'))]"
+            },
+            "MANAGED_IDENTITY_PRINCIPAL_ID": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('mi-{0}', variables('resourceToken'))), '2023-01-31').principalId]"
+            },
+            "AZURE_LOG_ANALYTICS_WORKSPACE_NAME": {
+              "type": "string",
+              "value": "[format('law-{0}', variables('resourceToken'))]"
+            },
+            "AZURE_LOG_ANALYTICS_WORKSPACE_ID": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('law-{0}', variables('resourceToken')))]"
+            },
+            "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', replace(format('acr-{0}', variables('resourceToken')), '-', '')), '2023-07-01').loginServer]"
+            },
+            "AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('mi-{0}', variables('resourceToken')))]"
+            },
+            "AZURE_CONTAINER_REGISTRY_NAME": {
+              "type": "string",
+              "value": "[replace(format('acr-{0}', variables('resourceToken')), '-', '')]"
+            },
+            "AZURE_CONTAINER_APPS_ENVIRONMENT_NAME": {
+              "type": "string",
+              "value": "[format('cae-{0}', variables('resourceToken'))]"
+            },
+            "AZURE_CONTAINER_APPS_ENVIRONMENT_ID": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', variables('resourceToken')))]"
+            },
+            "AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', variables('resourceToken'))), '2024-02-02-preview').defaultDomain]"
+            },
+            "SERVICE_SQL_VOLUME_ZAVAAPPHOST2534AD4EB4SQLDATA_NAME": {
+              "type": "string",
+              "value": "[take(format('{0}-{1}', toLower('sql'), toLower('zavaapphost2534ad4eb4sqldata')), 32)]"
+            },
+            "AZURE_VOLUMES_STORAGE_ACCOUNT": {
+              "type": "string",
+              "value": "[format('vol{0}', variables('resourceToken'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('environmentName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "aifoundry",
+      "resourceGroup": "[format('rg-{0}', parameters('environmentName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "12241434541115520837"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "The location for the resource(s) to be deployed."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2024-10-01",
+              "name": "[take(format('aifoundry-{0}', uniqueString(resourceGroup().id)), 64)]",
+              "location": "[parameters('location')]",
+              "kind": "OpenAI",
+              "properties": {
+                "customSubDomainName": "[toLower(take(concat('aifoundry', uniqueString(resourceGroup().id)), 24))]",
+                "publicNetworkAccess": "Enabled",
+                "disableLocalAuth": true
+              },
+              "sku": {
+                "name": "S0"
+              },
+              "tags": {
+                "aspire-resource-name": "aifoundry"
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2024-10-01",
+              "name": "[format('{0}/{1}', take(format('aifoundry-{0}', uniqueString(resourceGroup().id)), 64), 'gpt-5-mini')]",
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "gpt-5-mini",
+                  "version": "2025-08-07"
+                }
+              },
+              "sku": {
+                "name": "GlobalStandard",
+                "capacity": 8
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', take(format('aifoundry-{0}', uniqueString(resourceGroup().id)), 64))]"
+              ]
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2024-10-01",
+              "name": "[format('{0}/{1}', take(format('aifoundry-{0}', uniqueString(resourceGroup().id)), 64), 'text-embedding-ada-002')]",
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "text-embedding-ada-002",
+                  "version": "2"
+                }
+              },
+              "sku": {
+                "name": "Standard",
+                "capacity": 8
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', take(format('aifoundry-{0}', uniqueString(resourceGroup().id)), 64))]",
+                "[resourceId('Microsoft.CognitiveServices/accounts/deployments', take(format('aifoundry-{0}', uniqueString(resourceGroup().id)), 64), 'gpt-5-mini')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "connectionString": {
+              "type": "string",
+              "value": "[format('Endpoint={0}', reference(resourceId('Microsoft.CognitiveServices/accounts', take(format('aifoundry-{0}', uniqueString(resourceGroup().id)), 64)), '2024-10-01').endpoint)]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[take(format('aifoundry-{0}', uniqueString(resourceGroup().id)), 64)]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('environmentName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "aifoundry-roles",
+      "resourceGroup": "[format('rg-{0}', parameters('environmentName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "aifoundry_outputs_name": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'aifoundry'), '2022-09-01').outputs.name.value]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "principalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.MANAGED_IDENTITY_PRINCIPAL_ID.value]"
+          },
+          "principalType": {
+            "value": "ServicePrincipal"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "2211145131470015374"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "The location for the resource(s) to be deployed."
+              }
+            },
+            "aifoundry_outputs_name": {
+              "type": "string"
+            },
+            "principalType": {
+              "type": "string"
+            },
+            "principalId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('aifoundry_outputs_name'))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('aifoundry_outputs_name')), parameters('principalId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')]",
+                "principalType": "[parameters('principalType')]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'aifoundry')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('environmentName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "appInsights",
+      "resourceGroup": "[format('rg-{0}', parameters('environmentName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "6789249480465693377"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "The location for the resource(s) to be deployed."
+              }
+            },
+            "applicationType": {
+              "type": "string",
+              "defaultValue": "web"
+            },
+            "kind": {
+              "type": "string",
+              "defaultValue": "web"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2025-02-01",
+              "name": "[take(format('lawappInsights-{0}', uniqueString(resourceGroup().id)), 63)]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                }
+              },
+              "tags": {
+                "aspire-resource-name": "law_appInsights"
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[take(format('appInsights-{0}', uniqueString(resourceGroup().id)), 260)]",
+              "kind": "[parameters('kind')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "Application_Type": "[parameters('applicationType')]",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', take(format('lawappInsights-{0}', uniqueString(resourceGroup().id)), 63))]"
+              },
+              "tags": {
+                "aspire-resource-name": "appInsights"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', take(format('lawappInsights-{0}', uniqueString(resourceGroup().id)), 63))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "appInsightsConnectionString": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', take(format('appInsights-{0}', uniqueString(resourceGroup().id)), 260)), '2020-02-02').ConnectionString]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[take(format('appInsights-{0}', uniqueString(resourceGroup().id)), 260)]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('environmentName')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "MANAGED_IDENTITY_CLIENT_ID": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.MANAGED_IDENTITY_CLIENT_ID.value]"
+    },
+    "MANAGED_IDENTITY_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.MANAGED_IDENTITY_NAME.value]"
+    },
+    "AZURE_LOG_ANALYTICS_WORKSPACE_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.AZURE_LOG_ANALYTICS_WORKSPACE_NAME.value]"
+    },
+    "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT.value]"
+    },
+    "AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID.value]"
+    },
+    "AZURE_CONTAINER_REGISTRY_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.AZURE_CONTAINER_REGISTRY_NAME.value]"
+    },
+    "AZURE_CONTAINER_APPS_ENVIRONMENT_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_NAME.value]"
+    },
+    "AZURE_CONTAINER_APPS_ENVIRONMENT_ID": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID.value]"
+    },
+    "AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN.value]"
+    },
+    "SERVICE_SQL_VOLUME_ZAVAAPPHOST2534AD4EB4SQLDATA_NAME": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.SERVICE_SQL_VOLUME_ZAVAAPPHOST2534AD4EB4SQLDATA_NAME.value]"
+    },
+    "AZURE_VOLUMES_STORAGE_ACCOUNT": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'resources'), '2022-09-01').outputs.AZURE_VOLUMES_STORAGE_ACCOUNT.value]"
+    },
+    "AIFOUNDRY_CONNECTIONSTRING": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'aifoundry'), '2022-09-01').outputs.connectionString.value]"
+    },
+    "APPINSIGHTS_APPINSIGHTSCONNECTIONSTRING": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('environmentName'))), 'Microsoft.Resources/deployments', 'appInsights'), '2022-09-01').outputs.appInsightsConnectionString.value]"
+    }
+  }
+}

@@ -211,7 +211,7 @@
 </style>
 
 @code {
-    private AgentTesterRequest request = new() { UserId = "USER-001" };
+    private AgentTesterRequest request = new() { UserId = "1" };
     private AgentTesterResponse? testResult;
     private AvailableAgent[] availableAgents = Array.Empty<AvailableAgent>();
     private bool isLoading = false;
@@ -325,7 +325,7 @@
 
     private void ClearForm()
     {
-        request = new AgentTesterRequest { UserId = "USER-001" };
+        request = new AgentTesterRequest { UserId = "1" };
         testResult = null;
         errorMessage = string.Empty;
         StateHasChanged();

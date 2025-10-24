@@ -1,3 +1,4 @@
+using MultiAgentDemo.Controllers;
 using SharedEntities;
 
 namespace MultiAgentDemo.Services;
@@ -53,12 +54,13 @@ public class SequentialOrchestrationService : IAgentOrchestrationService
             navigation = await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery);
         }
 
-        var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+        // Generate mock alternatives for UI compatibility
+        var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
 
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = OrchestationType.Sequential,
+            OrchestationType = OrchestrationType.Sequential,
             OrchestrationDescription = "Agents executed sequentially, with each agent building upon the results of the previous agent's work.",
             Steps = steps.ToArray(),
             Alternatives = alternatives,
@@ -145,15 +147,5 @@ public class SequentialOrchestrationService : IAgentOrchestrationService
             _logger.LogWarning(ex, "GenerateNavigationInstructions failed");
             return new NavigationInstructions { Steps = new[] { new NavigationStep { Direction = "General", Description = $"Head to the area where {productQuery} is typically located", Landmark = new NavigationLandmark { Description = "General area" } } }, StartLocation = string.Empty, EstimatedTime = string.Empty };
         }
-    }
-
-    private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(string productQuery)
-    {
-        await Task.Delay(10);
-        return new[]
-        {
-            new ProductAlternative { Name = $"Standard {productQuery}", Sku = "STD-" + productQuery.Replace(" ", "").ToUpper(), Price = 49.99m, InStock = true, Location = "Aisle 5", Aisle = 5, Section = "B" },
-            new ProductAlternative { Name = $"Budget {productQuery}", Sku = "BDG-" + productQuery.Replace(" ", "").ToUpper(), Price = 24.99m, InStock = false, Location = "Aisle 12", Aisle = 12, Section = "C" }
-        };
     }
 }

@@ -6,6 +6,7 @@ public class NavigationAgentService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<NavigationAgentService> _logger;
+    private string _framework = "sk"; // Default to Semantic Kernel
 
     public NavigationAgentService(HttpClient httpClient, ILogger<NavigationAgentService> logger)
     {
@@ -13,12 +14,24 @@ public class NavigationAgentService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Sets the agent framework to use for service calls
+    /// </summary>
+    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    public void SetFramework(string framework)
+    {
+        _framework = framework?.ToLowerInvariant() ?? "sk";
+        _logger.LogInformation($"[NavigationAgentService] Framework set to: {_framework}");
+    }
+
     public async Task<NavigationInstructions> GenerateDirectionsAsync(Location fromLocation, Location toLocation)
     {
         try
         {
             var request = new { From = fromLocation, To = toLocation };
-            var response = await _httpClient.PostAsJsonAsync("/api/navigation/directions", request);
+            var endpoint = $"/api/navigation/directions/{_framework}";
+            _logger.LogInformation($"[NavigationAgentService] Calling endpoint: {endpoint}");
+            var response = await _httpClient.PostAsJsonAsync(endpoint, request);
 
             _logger.LogInformation($"NavigationAgentService HTTP status code: {response.StatusCode}");
 

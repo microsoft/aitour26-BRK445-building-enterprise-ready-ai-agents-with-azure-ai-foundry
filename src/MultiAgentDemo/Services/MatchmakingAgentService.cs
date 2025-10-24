@@ -6,6 +6,7 @@ public class MatchmakingAgentService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<MatchmakingAgentService> _logger;
+    private string _framework = "sk"; // Default to Semantic Kernel
 
     public MatchmakingAgentService(HttpClient httpClient, ILogger<MatchmakingAgentService> logger)
     {
@@ -13,12 +14,24 @@ public class MatchmakingAgentService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Sets the agent framework to use for service calls
+    /// </summary>
+    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    public void SetFramework(string framework)
+    {
+        _framework = framework?.ToLowerInvariant() ?? "sk";
+        _logger.LogInformation($"[MatchmakingAgentService] Framework set to: {_framework}");
+    }
+
     public async Task<MatchmakingResult> FindAlternativesAsync(string productQuery, string userId)
     {
         try
         {
             var request = new { ProductQuery = productQuery, UserId = userId };
-            var response = await _httpClient.PostAsJsonAsync("/api/matchmaking/alternatives", request);
+            var endpoint = $"/api/matchmaking/alternatives/{_framework}";
+            _logger.LogInformation($"[MatchmakingAgentService] Calling endpoint: {endpoint}");
+            var response = await _httpClient.PostAsJsonAsync(endpoint, request);
             
             _logger.LogInformation($"MatchmakingAgentService HTTP status code: {response.StatusCode}");
             

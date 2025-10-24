@@ -18,6 +18,7 @@ Prior to delivering the workshop please:
 | Prerequisites | [`Prerequisites`](./docs/Prerequisites.md) | Internal | Tooling and access required to run the demos |
 | Cloud Resources | [`Needed Cloud Resources`](./docs/02.NeededCloudResources.md) | Internal | Cloud resources required to run the demos |
 | How to run demo locally | [`HowToRunDemoLocally`](./docs/HowToRunDemoLocally.md) | Internal | Step-by-step instructions to build and run the demo locally |
+| How to setup demo environment using CodeSpaces | [SetupCodespaces](Coming soon) | External | Step-by-step instructions to run the demo using codespaces |
 
 ## 🚀Get Started
 

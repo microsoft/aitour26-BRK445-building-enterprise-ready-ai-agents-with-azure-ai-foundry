@@ -6,6 +6,7 @@ public class LocationAgentService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<LocationAgentService> _logger;
+    private string _framework = "sk"; // Default to Semantic Kernel
 
     public LocationAgentService(HttpClient httpClient, ILogger<LocationAgentService> logger)
     {
@@ -13,11 +14,23 @@ public class LocationAgentService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Sets the agent framework to use for service calls
+    /// </summary>
+    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    public void SetFramework(string framework)
+    {
+        _framework = framework?.ToLowerInvariant() ?? "sk";
+        _logger.LogInformation($"[LocationAgentService] Framework set to: {_framework}");
+    }
+
     public async Task<LocationResult> FindProductLocationAsync(string productQuery)
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/api/location/find?product={Uri.EscapeDataString(productQuery)}");
+            var endpoint = $"/api/location/find/{_framework}?product={Uri.EscapeDataString(productQuery)}";
+            _logger.LogInformation($"[LocationAgentService] Calling endpoint: {endpoint}");
+            var response = await _httpClient.GetAsync(endpoint);
             
             _logger.LogInformation($"LocationAgentService HTTP status code: {response.StatusCode}");
             
