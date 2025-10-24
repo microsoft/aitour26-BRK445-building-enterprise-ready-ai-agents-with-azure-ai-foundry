@@ -1,10 +1,9 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/dotnet
 {
-	"name": "BRK445 - Python .NET 9 Aspire",
+	"name": "BRK445 - .NET 9 Aspire Only (No Python)",
 	"image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0-bookworm",
 	"features": {
-		"ghcr.io/devcontainers/features/python:1": {},
 		"ghcr.io/devcontainers/features/azure-cli:1": {
 			"version": "latest"
 		},
@@ -27,7 +26,7 @@
 		1433 // SQL Server
 	],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && dotnet workload update && dotnet workload install aspire && dotnet tool install -g Aspire.Cli --prerelease",
+	"postCreateCommand": "dotnet workload update && dotnet workload install aspire && dotnet tool install -g Aspire.Cli --prerelease",
 	// Use 'postStartCommand' to fix Docker socket permissions
 	"postStartCommand": "sudo chown root:docker /var/run/docker.sock 2>/dev/null || true",
 	// Configure tool-specific properties.
@@ -38,12 +37,8 @@
 				"ms-dotnettools.csdevkit",
 				"ms-dotnettools.vscode-dotnet-runtime",
 				"ms-azuretools.vscode-docker",
-				"ms-mssql.mssql",
-				"ms-python.python"
-			],
-			"settings": {
-				"python.defaultInterpreterPath": "./.venv/bin/python"
-			}
+				"ms-mssql.mssql"
+			]
 		}
 	},
 	// Minimum machine requirements for GitHub Codespaces
