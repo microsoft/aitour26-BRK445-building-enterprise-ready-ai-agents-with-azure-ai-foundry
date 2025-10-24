@@ -124,7 +124,7 @@ public class PhotoAnalysisController : ControllerBase
         return Ok(fallback);
     }
 
-    // LLM Invotacion Helper
+    // LLM Invocation Helper
     private async Task<string> GetLLMResponseAsync(string prompt)
     {
         var sb = new StringBuilder();
