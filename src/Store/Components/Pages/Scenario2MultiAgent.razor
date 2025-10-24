@@ -270,37 +270,26 @@
                                     <small class="text-muted ms-2">ID: @orchestrationResult.OrchestrationId</small>
                                 </h5>
                                 @if (orchestrationResult.NavigationInstructions != null)
-                    {
-
-#line default
-#line hidden
-#nullable disable
-
-            __builder.OpenElement(239, "div");
-            __builder.AddAttribute(240, "class", "col-12");
-            __builder.OpenElement(241, "div");
-            __builder.AddAttribute(242, "class", "card");
-            __builder.AddMarkupContent(243, "<div class=\"card-header\"><h5 class=\"card-title mb-0\"><span class=\"bi bi-signpost me-2\"></span>\r\n                                        In-Store Navigation\r\n                                    </h5></div>\r\n                                ");
-            __builder.OpenElement(244, "div");
-            __builder.AddAttribute(245, "class", "card-body");
-            __builder.OpenElement(246, "div");
-            __builder.AddAttribute(247, "class", "mb-3");
-            __builder.AddMarkupContent(248, "<strong>From:</strong> ");
-#nullable restore
-#line (195,65)-(195,121) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-__builder.AddContent(249, orchestrationResult.NavigationInstructions.StartLocation
-
-#line default
-#line hidden
-#nullable disable
-            );
-            __builder.AddMarkupContent(250, "<br>\r\n                                        ");
-            __builder.AddMarkupContent(251, "<strong>Estimated Time:</strong>\r\n                                        ");
-#nullable restore
-#line (197,42)-(197,98) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-__builder.AddContent(252, orchestrationResult.NavigationInstructions.EstimatedTime
-
-#line default
+                                {
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h5 class="card-title mb-0">
+                                                    <span class="bi bi-signpost me-2"></span>
+                                                    In-Store Navigation
+                                                </h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <strong>From:</strong> @orchestrationResult.NavigationInstructions.StartLocation
+                                                    <br />
+                                                    <strong>Estimated Time:</strong> @orchestrationResult.NavigationInstructions.EstimatedTime
+                                                </div>
+                                                <!-- Add more navigation details here if needed -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
 #line hidden
 #nullable disable
             );
