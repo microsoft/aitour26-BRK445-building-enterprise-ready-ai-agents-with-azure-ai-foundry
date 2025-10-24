@@ -1,4 +1,6 @@
 #pragma warning disable SKEXP0110
+#pragma warning disable SKEXP0001
+
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel.Agents.AzureAI;

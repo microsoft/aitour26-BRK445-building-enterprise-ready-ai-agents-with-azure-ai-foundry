@@ -4,11 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 using Shared.Models;
 using System.Text;
 using System.Text.Json;
-using ZavaSemanticKernelProvider;
 
 namespace AnalyzePhotoService.Controllers;
 

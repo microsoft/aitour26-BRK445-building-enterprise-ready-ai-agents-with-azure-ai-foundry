@@ -230,6 +230,35 @@
                         </div>
                     }
 
+
+                    <!-- Mermaid Workflow Viewer -->
+                    @if (!string.IsNullOrEmpty(orchestrationResult.MermaidWorkflowRepresentation))
+                    {
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header" @onclick="ToggleMermaidViewer" style="cursor: pointer;">
+                                    <h5 class="card-title mb-0">
+                                        <span class="bi @(showMermaidViewer ? "bi-chevron-down" : "bi-chevron-right") me-2"></span>
+                                        <span class="bi bi-diagram-3 me-2"></span>
+                                        Workflow Diagram
+                                        <small class="text-muted">(Click to @(showMermaidViewer ? "collapse" : "expand"))</small>
+                                    </h5>
+                                </div>
+                                @if (showMermaidViewer)
+                                {
+                                    <div class="card-body">
+                                        <div class="mermaid-container">
+                                            @* <pre class="mermaid">@orchestrationResult.MermaidWorkflowRepresentation</pre> *@
+                                            <MermaidDiagram Definition="@orchestrationResult.MermaidWorkflowRepresentation" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+
+
                     <!-- Agent Steps -->
                     <div class="col-12">
                         <div class="card">
