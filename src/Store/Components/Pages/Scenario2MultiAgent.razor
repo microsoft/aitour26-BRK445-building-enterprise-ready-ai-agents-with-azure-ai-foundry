@@ -21,7 +21,15 @@
                 <div>
                     <strong>Current Working Mode:</strong> @currentFramework
                     <small class="ms-2 text-muted">
-                        @(currentFramework == "SK" ? "(Semantic Kernel)" : "(Microsoft Agent Framework)")
+                        @{
+                            string frameworkLabel = currentFramework switch
+                            {
+                                "SK" => "(Semantic Kernel)",
+                                "llm" => "(LLM Framework)",
+                                _ => "(Microsoft Agent Framework)"
+                            };
+                        }
+                        @frameworkLabel
                     </small>
                 </div>
             </div>
@@ -65,7 +73,7 @@
                             <option value="@OrchestrationType.Concurrent">Concurrent - Parallel analysis</option>
                             <option value="@OrchestrationType.Handoff">Handoff - Dynamic routing</option>
                             <option value="@OrchestrationType.GroupChat">Group Chat - Collaborative discussion</option>
-                            <option value="@OrchestrationType.GroupChat">Magentic - Complex collaboration</option>
+                            <option value="@OrchestrationType.Magentic">Magentic - Complex collaboration</option>
                         </InputSelect>
                         <div class="form-text">@GetOrchestrationDescription(multiAgentRequest.OrchestationType)</div>
                     </div>
@@ -167,7 +175,7 @@
                                                     <div class="mt-auto">
                                                         <small class="text-muted">
                                                             <span class="bi bi-geo-alt me-1"></span>
-                                                            @product.Location, Section @product.Price.ToString("F2")
+                                                            @product.Location, Section @product.Section
                                                         </small>
                                                     </div>
                                                 </div>

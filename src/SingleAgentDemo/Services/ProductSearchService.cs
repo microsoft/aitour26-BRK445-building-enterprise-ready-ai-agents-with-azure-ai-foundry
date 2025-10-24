@@ -21,7 +21,7 @@ public class ProductSearchService
     public void SetFramework(string framework)
     {
         _framework = framework?.ToLowerInvariant() ?? "sk";
-        _logger.LogInformation($"[InventoryService] Framework set to: {_framework}");
+        _logger.LogInformation($"[ProductSearchService] Framework set to: {_framework}");
     }
 
     public async Task<InternalToolRecommendation[]> EnrichWithInventoryAsync(InternalToolRecommendation[] tools)

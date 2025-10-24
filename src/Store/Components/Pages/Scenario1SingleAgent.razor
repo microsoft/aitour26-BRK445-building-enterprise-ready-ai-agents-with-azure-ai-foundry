@@ -21,7 +21,15 @@
                 <div>
                     <strong>Current Working Mode:</strong> @currentFramework
                     <small class="ms-2 text-muted">
-                        @(currentFramework == "SK" ? "(Semantic Kernel)" : "(Microsoft Agent Framework)")
+                        @{
+                            string frameworkLabel = currentFramework switch
+                            {
+                                "SK" => "(Semantic Kernel)",
+                                "llm" => "(LLM Framework)",
+                                _ => "(Microsoft Agent Framework)"
+                            };
+                        }
+                        @frameworkLabel
                     </small>
                 </div>
             </div>
