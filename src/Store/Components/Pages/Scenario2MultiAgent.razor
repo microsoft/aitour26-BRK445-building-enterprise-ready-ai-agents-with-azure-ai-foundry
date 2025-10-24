@@ -200,11 +200,9 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="mb-3">
-                                        <strong>From:</strong> @orchestrationResult.NavigationInstructions.StartLocation<br>
-                                        <strong>Estimated Time:</strong>
-                                        @orchestrationResult.NavigationInstructions.EstimatedTime
+                                        <strong>From:</strong> @orchestrationResult.NavigationInstructions.StartLocation<br />
+                                        <strong>Estimated Time:</strong> @orchestrationResult.NavigationInstructions.EstimatedTime
                                     </div>
-
                                     <div class="navigation-steps">
                                         @for (int i = 0; i < orchestrationResult.NavigationInstructions.Steps.Length; i++)
                                         {
@@ -231,34 +229,6 @@
                             </div>
                         </div>
                     }
-                
-
-                                        <!-- Mermaid Workflow Viewer -->
-                    @if (!string.IsNullOrEmpty(orchestrationResult.MermaidWorkflowRepresentation))
-                    {
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-header" @onclick="ToggleMermaidViewer" style="cursor: pointer;">
-                                    <h5 class="card-title mb-0">
-                                        <span class="bi @(showMermaidViewer ? "bi-chevron-down" : "bi-chevron-right") me-2"></span>
-                                        <span class="bi bi-diagram-3 me-2"></span>
-                                        Workflow Diagram
-                                        <small class="text-muted">(Click to @(showMermaidViewer ? "collapse" : "expand"))</small>
-                                    </h5>
-                                </div>
-                                @if (showMermaidViewer)
-                                {
-                                    <div class="card-body">
-                                        <div class="mermaid-container">
-                                            @* <pre class="mermaid">@orchestrationResult.MermaidWorkflowRepresentation</pre> *@
-                                            <MermaidDiagram Definition="@orchestrationResult.MermaidWorkflowRepresentation" />
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-
 
                     <!-- Agent Steps -->
                     <div class="col-12">
@@ -269,180 +239,8 @@
                                     @orchestrationResult.OrchestationType Agent Orchestration
                                     <small class="text-muted ms-2">ID: @orchestrationResult.OrchestrationId</small>
                                 </h5>
-                                @if (orchestrationResult.NavigationInstructions != null)
+                                @if (!string.IsNullOrEmpty(orchestrationResult.OrchestrationDescription))
                                 {
-                                    <div class="col-12">
-                                        <div class="card">
-                                            <div class="card-header">
-                                                <h5 class="card-title mb-0">
-                                                    <span class="bi bi-signpost me-2"></span>
-                                                    In-Store Navigation
-                                                </h5>
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="mb-3">
-                                                    <strong>From:</strong> @orchestrationResult.NavigationInstructions.StartLocation
-                                                    <br />
-                                                    <strong>Estimated Time:</strong> @orchestrationResult.NavigationInstructions.EstimatedTime
-                                                </div>
-                                                <!-- Add more navigation details here if needed -->
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-#line hidden
-#nullable disable
-            );
-            __builder.CloseElement();
-            __builder.AddMarkupContent(253, "\r\n\r\n                                    ");
-            __builder.OpenElement(254, "div");
-            __builder.AddAttribute(255, "class", "navigation-steps");
-#nullable restore
-#line (201,1)-(201,41) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-                                        
-
-#line default
-#line hidden
-#nullable disable
-
-#nullable restore
-#line (201,42)-(204,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-for (int i = 0; i < orchestrationResult.NavigationInstructions.Steps.Length; i++)
-                                        {
-                                            var step = orchestrationResult.NavigationInstructions.Steps[i];
-
-#line default
-#line hidden
-#nullable disable
-
-            __builder.OpenElement(256, "div");
-            __builder.AddAttribute(257, "class", "d-flex mb-2");
-            __builder.OpenElement(258, "div");
-            __builder.AddAttribute(259, "class", "flex-shrink-0");
-            __builder.OpenElement(260, "span");
-            __builder.AddAttribute(261, "class", "badge bg-primary rounded-circle");
-#nullable restore
-#line (206,101)-(206,106) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-__builder.AddContent(262, i + 1
-
-#line default
-#line hidden
-#nullable disable
-            );
-            __builder.CloseElement();
-            __builder.CloseElement();
-            __builder.AddMarkupContent(263, "\r\n                                                ");
-            __builder.OpenElement(264, "div");
-            __builder.AddAttribute(265, "class", "flex-grow-1 ms-3");
-            __builder.OpenElement(266, "strong");
-#nullable restore
-#line (209,62)-(209,76) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-__builder.AddContent(267, step.Direction
-
-#line default
-#line hidden
-#nullable disable
-            );
-            __builder.CloseElement();
-            __builder.AddContent(268, " - ");
-#nullable restore
-#line (209,89)-(209,105) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-__builder.AddContent(269, step.Description
-
-#line default
-#line hidden
-#nullable disable
-            );
-#nullable restore
-#line (210,1)-(210,53) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-                                                    
-
-#line default
-#line hidden
-#nullable disable
-
-#nullable restore
-#line (210,55)-(212,53) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-
-                                                        var landmarkText = step.Landmark?.ToString();
-                                                    
-
-#line default
-#line hidden
-#nullable disable
-
-#nullable restore
-#line (213,1)-(213,53) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-                                                    
-
-#line default
-#line hidden
-#nullable disable
-
-#nullable restore
-#line (213,54)-(215,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-if (!string.IsNullOrEmpty(landmarkText))
-                                                    {
-
-#line default
-#line hidden
-#nullable disable
-
-            __builder.AddMarkupContent(270, "<br>\r\n                                                        ");
-            __builder.OpenElement(271, "small");
-            __builder.AddAttribute(272, "class", "text-muted");
-            __builder.AddContent(273, "Landmark: ");
-#nullable restore
-#line (216,94)-(216,106) 26 "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-__builder.AddContent(274, landmarkText
-
-#line default
-#line hidden
-#nullable disable
-            );
-            __builder.CloseElement();
-#nullable restore
-#line (217,1)-(218,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-                                                    }
-
-#line default
-#line hidden
-#nullable disable
-
-            __builder.CloseElement();
-            __builder.CloseElement();
-#nullable restore
-#line (220,1)-(221,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-                                        }
-
-#line default
-#line hidden
-#nullable disable
-
-            __builder.CloseElement();
-            __builder.CloseElement();
-            __builder.CloseElement();
-            __builder.CloseElement();
-#nullable restore
-#line (225,1)-(226,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-                    }
-
-#line default
-#line hidden
-#nullable disable
-
-#nullable restore
-#line (229,1)-(229,21) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-                    
-
-#line default
-#line hidden
-#nullable disable
-
-#nullable restore
-#line (229,22)-(231,1) "D:\elbruno\aitour26-BRK445-building-enterprise-ready-ai-agents-with-azure-ai-foundry\src\Store\Components\Pages\Scenario2MultiAgent.razor"
-if (!string.IsNullOrEmpty(orchestrationResult.MermaidWorkflowRepresentation))
-                    {
                                     <p class="mb-0 mt-2 text-muted">
                                         <small>@orchestrationResult.OrchestrationDescription</small>
                                     </p>
@@ -502,15 +300,15 @@ if (!string.IsNullOrEmpty(orchestrationResult.MermaidWorkflowRepresentation))
         position: relative;
     }
 
-        .timeline-item:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            left: 12px;
-            top: 50px;
-            width: 2px;
-            height: calc(100% - 20px);
-            background-color: #dee2e6;
-        }
+    .timeline-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 12px;
+        top: 50px;
+        width: 2px;
+        height: calc(100% - 20px);
+        background-color: #dee2e6;
+    }
 
     .navigation-steps .badge {
         width: 24px;
