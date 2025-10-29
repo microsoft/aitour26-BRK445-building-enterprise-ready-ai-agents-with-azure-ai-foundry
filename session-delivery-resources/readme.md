@@ -13,7 +13,7 @@ Prior to delivering the workshop please:
 | Resource | Link | Type | Description |
 |---|---|---:|---|
 | Session Delivery Deck | [Deck](https://aka.ms/AAxri1f) | External | Main slide deck for the session |
-| Full Session Recording | [Recording VS2022](https://youtu.be/AwKSBaA2HXQ) <br> [Recording CodeSpaces](coming soon) | External | Full train-the-trainer recorded session |
+| Full Session Recording | [Recording VS2022](https://youtu.be/AwKSBaA2HXQ) <br> -- <br> [Recording CodeSpaces - coming soon](https://youtu.be/AwKSBaA2HXQ) | External | Full train-the-trainer recorded session |
 | Demo source code | [`/src` demo source](../src) | Internal | Demo source code used in the live demos |
 | Prerequisites | [`Prerequisites`](./docs/Prerequisites.md) | Internal | Tooling and access required to run the demos |
 | Cloud Resources | [`Needed Cloud Resources`](./docs/02.NeededCloudResources.md) | Internal | Cloud resources required to run the demos |
@@ -33,9 +33,9 @@ The workshop mixes short live demos with recorded segments for reference.
 | 07 mins | Introduction & content | Live | Presenter: lead — slides 1–3 |
 | 06 mins | Demo — AI Foundry Agents | Live (recorded fallback) | [Recorded demo](https://aka.ms/AAxri1g) |
 | 04 mins | Content | Live | Key point: agent overview |
-| 06 mins | Demo — Aspire + Single Agent | Recorded (recommended) | [Recorded demo VS2022](https://aka.ms/AAxrpqj) <br> [Recorded demo CodeSpaces](coming soon) |
+| 06 mins | Demo — Aspire + Single Agent | Recorded (recommended) | [Recorded demo VS2022](https://aka.ms/AAxrpqj) <br> [Recorded demo CodeSpaces - coming soon]() |
 | 03 mins | Content | Live | Transition & Q&A |
-| 07 mins | Demo — Multi-Agent Orchestration | Live (recorded fallback) | [Recorded demo](https://aka.ms/AAxrab6)  <br> [Recorded demo CodeSpaces](coming soon) |
+| 07 mins | Demo — Multi-Agent Orchestration | Live (recorded fallback) | [Recorded demo](https://aka.ms/AAxrab6)  <br> [Recorded demo CodeSpaces - coming soon]() |
 | 04 mins | Content | Live | Observability & tracing |
 | 02 mins | Demo — Azure Monitor & Diagnostics | Recorded | [Recorded demo](https://aka.ms/AAxrpqk) |
 | 04 mins | Content / Q&A | Live | Wrap-up & next steps |
