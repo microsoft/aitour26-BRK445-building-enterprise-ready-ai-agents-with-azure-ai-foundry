@@ -12,18 +12,18 @@ internal static class PathResolver
  var baseDirCandidate = Path.GetFullPath(normalized, AppContext.BaseDirectory);
  if (File.Exists(baseDirCandidate)) return baseDirCandidate;
  var probe = new DirectoryInfo(AppContext.BaseDirectory);
- for (int i =0; i <6 && probe != null; i++)
+ for (int i = 0; i < 6 && probe != null; i++)
  {
  var candidate = Path.Combine(probe.FullName, normalized);
  if (File.Exists(candidate)) return candidate;
  probe = probe.Parent;
  }
  var parts = normalized.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
- if (parts.Length >1)
+ if (parts.Length > 1)
  {
  var withoutFirst = string.Join(Path.DirectorySeparatorChar, parts.Skip(1));
  probe = new DirectoryInfo(AppContext.BaseDirectory);
- for (int i =0; i <6 && probe != null; i++)
+ for (int i = 0; i < 6 && probe != null; i++)
  {
  var candidate = Path.Combine(probe.FullName, withoutFirst);
  if (File.Exists(candidate)) return candidate;
