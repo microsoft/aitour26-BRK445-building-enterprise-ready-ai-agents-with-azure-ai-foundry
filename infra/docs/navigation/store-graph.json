@@ -1,0 +1,109 @@
+{
+    "nodes": [
+        {
+            "id": "ENTRANCE_FRONT",
+            "type": "entry",
+            "zone": "A"
+        },
+        {
+            "id": "ENTRANCE_SIDE",
+            "type": "entry",
+            "zone": "B"
+        },
+        {
+            "id": "AISLE_A1",
+            "type": "aisle",
+            "zone": "A"
+        },
+        {
+            "id": "AISLE_A2",
+            "type": "aisle",
+            "zone": "A"
+        },
+        {
+            "id": "AISLE_B1",
+            "type": "aisle",
+            "zone": "B"
+        },
+        {
+            "id": "AISLE_B2",
+            "type": "aisle",
+            "zone": "B"
+        },
+        {
+            "id": "AISLE_C1",
+            "type": "aisle",
+            "zone": "C"
+        },
+        {
+            "id": "AISLE_C2",
+            "type": "aisle",
+            "zone": "C"
+        },
+        {
+            "id": "AISLE_D1",
+            "type": "aisle",
+            "zone": "D"
+        },
+        {
+            "id": "CHECKOUT_E1",
+            "type": "service",
+            "zone": "E"
+        }
+    ],
+    "edges": [
+        {
+            "from": "ENTRANCE_FRONT",
+            "to": "AISLE_A1",
+            "distanceMeters": 12
+        },
+        {
+            "from": "ENTRANCE_FRONT",
+            "to": "CHECKOUT_E1",
+            "distanceMeters": 15
+        },
+        {
+            "from": "ENTRANCE_SIDE",
+            "to": "AISLE_B1",
+            "distanceMeters": 10
+        },
+        {
+            "from": "AISLE_A1",
+            "to": "AISLE_A2",
+            "distanceMeters": 8
+        },
+        {
+            "from": "AISLE_A2",
+            "to": "AISLE_B2",
+            "distanceMeters": 6
+        },
+        {
+            "from": "AISLE_B1",
+            "to": "AISLE_B2",
+            "distanceMeters": 5
+        },
+        {
+            "from": "AISLE_B2",
+            "to": "AISLE_C1",
+            "distanceMeters": 7
+        },
+        {
+            "from": "AISLE_C1",
+            "to": "AISLE_C2",
+            "distanceMeters": 6
+        },
+        {
+            "from": "AISLE_C2",
+            "to": "AISLE_D1",
+            "distanceMeters": 9
+        },
+        {
+            "from": "AISLE_D1",
+            "to": "CHECKOUT_E1",
+            "distanceMeters": 11
+        }
+    ],
+    "restrictedNodes": [
+        "AISLE_C1"
+    ]
+}

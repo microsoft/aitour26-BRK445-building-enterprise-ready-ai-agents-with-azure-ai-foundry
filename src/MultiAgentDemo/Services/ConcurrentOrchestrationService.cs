@@ -1,3 +1,4 @@
+using MultiAgentDemo.Controllers;
 using SharedEntities;
 
 namespace MultiAgentDemo.Services;
@@ -59,13 +60,13 @@ public class ConcurrentOrchestrationService : IAgentOrchestrationService
         {
             navigation = await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery);
         }
+        var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
 
-        var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
 
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = OrchestationType.Concurrent,
+            OrchestationType = OrchestrationType.Concurrent,
             OrchestrationDescription = "All agents executed concurrently in parallel, providing independent analysis without dependencies on each other's results.",
             Steps = steps.ToArray(),
             Alternatives = alternatives,
@@ -152,16 +153,5 @@ public class ConcurrentOrchestrationService : IAgentOrchestrationService
             _logger.LogWarning(ex, "GenerateNavigationInstructions failed");
             return new NavigationInstructions { Steps = new[] { new NavigationStep { Direction = "General", Description = $"Head to the area where {productQuery} is typically located", Landmark = new NavigationLandmark { Description = "General area" } } }, StartLocation = string.Empty, EstimatedTime = string.Empty };
         }
-    }
-
-    private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(string productQuery)
-    {
-        await Task.Delay(10);
-        return new[]
-        {
-            new ProductAlternative { Name = $"Premium {productQuery}", Sku = "PREM-" + productQuery.Replace(" ", "").ToUpper(), Price = 89.99m, InStock = true, Location = "Aisle 3", Aisle = 3, Section = "A" },
-            new ProductAlternative { Name = $"Standard {productQuery}", Sku = "STD-" + productQuery.Replace(" ", "").ToUpper(), Price = 49.99m, InStock = true, Location = "Aisle 5", Aisle = 5, Section = "B" },
-            new ProductAlternative { Name = $"Economy {productQuery}", Sku = "ECO-" + productQuery.Replace(" ", "").ToUpper(), Price = 29.99m, InStock = false, Location = "Aisle 12", Aisle = 12, Section = "C" }
-        };
     }
 }

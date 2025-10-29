@@ -5,6 +5,7 @@
 @using SharedEntities
 @inject SingleAgentService SingleAgentService
 @inject ILogger<Scenario1SingleAgent> Logger
+@inject AgentFrameworkService AgentFrameworkService
 
 @attribute [StreamRendering(true)]
 @rendermode InteractiveServer
@@ -13,6 +14,27 @@
 <PageTitle>Zava Store - Single Agent Analysis</PageTitle>
 
 <div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info d-flex align-items-center" role="alert">
+                <span class="bi bi-info-circle me-2"></span>
+                <div>
+                    <strong>Current Working Mode:</strong> @currentFramework
+                    <small class="ms-2 text-muted">
+                        @{
+                            string frameworkLabel = currentFramework switch
+                            {
+                                "SK" => "(Semantic Kernel)",
+                                "llm" => "(LLM Framework)",
+                                _ => "(Microsoft Agent Framework)"
+                            };
+                        }
+                        @frameworkLabel
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col-12">
             <h1 class="mb-4">
@@ -68,7 +90,7 @@
                         <div class="mb-3">
                             <label for="customerId" class="form-label">Customer ID</label>
                             <InputText @bind-Value="analysisRequest.CustomerId" class="form-control" id="customerId"
-                                       placeholder="e.g., CUST-001" />
+                                       placeholder="e.g., 1" />
                         </div>
 
                         <button id="btnAnalyze" class="btn btn-primary" @onclick="SubmitAnalysis"
@@ -181,7 +203,7 @@
 </div>
 
 @code {
-    private SingleAgentAnalysisRequestModel analysisRequest = new() { CustomerId = "CUST-001", Prompt = string.Empty };
+    private SingleAgentAnalysisRequestModel analysisRequest = new() { CustomerId = "1", Prompt = string.Empty };
     private const string DefaultPrompt = "I want to paint this room blue. What tools do I need?";
     private void SetDefaultPrompt()
     {
@@ -193,6 +215,12 @@
     private string? imagePreviewUrl;
     private bool isSubmitting = false;
     private string errorMessage = string.Empty;
+    private string currentFramework = "SK";
+    
+    protected override async Task OnInitializedAsync()
+    {
+        currentFramework = await AgentFrameworkService.GetSelectedFrameworkAsync();
+    }
 
     private void OnImageSelected(InputFileChangeEventArgs e)
     {

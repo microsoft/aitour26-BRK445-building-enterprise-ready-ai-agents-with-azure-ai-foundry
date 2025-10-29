@@ -6,11 +6,22 @@ public class InventoryAgentService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<InventoryAgentService> _logger;
+    private string _framework = "sk"; // Default to Semantic Kernel
 
     public InventoryAgentService(HttpClient httpClient, ILogger<InventoryAgentService> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Sets the agent framework to use for service calls
+    /// </summary>
+    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    public void SetFramework(string framework)
+    {
+        _framework = framework?.ToLowerInvariant() ?? "sk";
+        _logger.LogInformation($"[InventoryAgentService] Framework set to: {_framework}");
     }
 
     public async Task<InventorySearchResult> SearchProductsAsync(string productQuery)
@@ -28,7 +39,9 @@ public class InventoryAgentService
                 "application/json"
             );
 
-            var response = await _httpClient.PostAsync($"/api/search", httpContent);
+            var endpoint = $"/api/search/{_framework}";
+            _logger.LogInformation($"[InventoryAgentService] Calling endpoint: {endpoint}");
+            var response = await _httpClient.PostAsync(endpoint, httpContent);
 
             _logger.LogInformation($"InventoryAgentService HTTP status code: {response.StatusCode}");
 

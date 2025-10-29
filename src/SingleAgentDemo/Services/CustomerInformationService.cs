@@ -6,6 +6,7 @@ public class CustomerInformationService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<CustomerInformationService> _logger;
+    private string _framework = "sk"; // Default to Semantic Kernel
 
     public CustomerInformationService(HttpClient httpClient, ILogger<CustomerInformationService> logger)
     {
@@ -13,11 +14,23 @@ public class CustomerInformationService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Sets the agent framework to use for service calls
+    /// </summary>
+    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    public void SetFramework(string framework)
+    {
+        _framework = framework?.ToLowerInvariant() ?? "sk";
+        _logger.LogInformation($"[CustomerInformationService] Framework set to: {_framework}");
+    }
+
     public async Task<CustomerInformation> GetCustomerInformationAsync(string customerId)
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/api/Customer/{customerId}");
+            var endpoint = $"/api/Customer/{customerId}/{_framework}";
+            _logger.LogInformation($"[CustomerInformationService] Calling endpoint: {endpoint}");
+            var response = await _httpClient.GetAsync(endpoint);
             
             _logger.LogInformation($"CustomerInformationService HTTP status code: {response.StatusCode}");
             
@@ -48,7 +61,9 @@ public class CustomerInformationService
                 Prompt = prompt
             };
 
-            var response = await _httpClient.PostAsJsonAsync("/api/Customer/match-tools", matchRequest);
+            var endpoint = $"/api/Customer/match-tools/{_framework}";
+            _logger.LogInformation($"[CustomerInformationService] Calling endpoint: {endpoint}");
+            var response = await _httpClient.PostAsJsonAsync(endpoint, matchRequest);
             
             _logger.LogInformation($"CustomerInformationService MatchTools HTTP status code: {response.StatusCode}");
             

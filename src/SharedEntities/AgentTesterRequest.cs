@@ -13,5 +13,5 @@ public class AgentTesterRequest
     [MinLength(3, ErrorMessage = "Question must be at least 3 characters long")]
     public string Question { get; set; } = string.Empty;
     
-    public string UserId { get; set; } = "USER-001"; // Default user ID
+    public string UserId { get; set; } = "1"; // Default user ID
 }

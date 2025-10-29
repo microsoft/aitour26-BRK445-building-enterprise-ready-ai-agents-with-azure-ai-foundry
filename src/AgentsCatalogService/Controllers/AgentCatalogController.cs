@@ -1,11 +1,14 @@
 #pragma warning disable SKEXP0110
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Agents.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using SharedEntities;
+using System.Text;
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaAgentFxAgentsProvider;
 
 namespace AgentsCatalogService.Controllers;
 
@@ -14,15 +17,17 @@ namespace AgentsCatalogService.Controllers;
 public class AgentCatalogController : ControllerBase
 {
     private readonly ILogger<AgentCatalogController> _logger;
-    private AzureAIAgent? _agent;
     private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
+    private readonly AgentFxAgentProvider _agentFxAgentProvider;
 
     public AgentCatalogController(
         ILogger<AgentCatalogController> logger,
-        AIFoundryAgentProvider aIFoundryAgentProvider)
+        AIFoundryAgentProvider aIFoundryAgentProvider,
+        AgentFxAgentProvider agentFxAgentProvider)
     {
         _logger = logger;
         _aIFoundryAgentProvider = aIFoundryAgentProvider;
+        _agentFxAgentProvider = agentFxAgentProvider;
     }
 
     [HttpGet("agents")]
@@ -46,38 +51,53 @@ public class AgentCatalogController : ControllerBase
         }
     }
 
-    [HttpPost("test")]
-    public async Task<ActionResult<AgentTesterResponse>> TestAgentAsync([FromBody] AgentTesterRequest request)
+    [HttpPost("testsk")]
+    public async Task<ActionResult<AgentTesterResponse>> TestAgentSkAsync([FromBody] AgentTesterRequest request, CancellationToken cancellationToken)
     {
-        var agentId = "";
-        var question = "";
+        _logger.LogInformation("[SK] Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
+
+        return await TestAgentAsync(
+            request,
+            InvokeSemanticKernelAsync,
+            "[SK]",
+            cancellationToken);
+    }
+
+    [HttpPost("testagentfx")]
+    public async Task<ActionResult<AgentTesterResponse>> TestAgentFxAsync([FromBody] AgentTesterRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[AgentFx] Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
+
+        return await TestAgentAsync(
+            request,
+            InvokeAgentFrameworkAsync,
+            "[AgentFx]",
+            cancellationToken);
+    }
+
+    private async Task<ActionResult<AgentTesterResponse>> TestAgentAsync(
+        AgentTesterRequest request,
+        Func<string, string, CancellationToken, Task<string>> invokeAgentAsync,
+        string logPrefix,
+        CancellationToken cancellationToken)
+    {
+        var agentId = request.AgentId;
+        var question = request.Question;
 
         try
         {
-            _logger.LogInformation("Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
+            var prompt = BuildTestPrompt(agentId, question);
+            var agentResponse = await invokeAgentAsync(agentId, prompt, cancellationToken);
+            _logger.LogInformation("{Prefix} Raw agent response length: {Length}", logPrefix, agentResponse.Length);
 
-            agentId = request.AgentId;
-            question = request.Question;
+            var hasResponse = !string.IsNullOrWhiteSpace(agentResponse);
+            var finalResponse = hasResponse
+                ? agentResponse
+                : GenerateFallbackResponse(agentId, question);
 
-            var prompt = $@"
-You are a helpful AI assistant specializing in DIY projects and tool recommendations.
-Agent Type: {AgentCatalog.GetAgentName(agentId)}
-User Question: {question}
-
-Please provide a helpful and informative response based on your expertise.
-Keep the response concise but thorough, and be encouraging while maintaining safety awareness.
-";
-
-            // Create a Semantic Kernel agent based on the agent definition using the agentId
-            var agentResponse = string.Empty;
-            _agent = await _aIFoundryAgentProvider.GetAzureAIAgent(agentId);
-            AzureAIAgentThread agentThread = new(_agent.Client);
-
-            ChatMessageContent message = new(AuthorRole.User, prompt);
-            await foreach (ChatMessageContent response in _agent.InvokeAsync(message, agentThread))
+            if (!hasResponse)
             {
-                _logger.LogInformation("Received response from agent: {Content}", response.Content);
-                agentResponse += (response.Content);
+                _logger.LogWarning("{Prefix} Empty response from agent. Using fallback message.", logPrefix);
             }
 
             var agentTesterResponse = new AgentTesterResponse
@@ -85,24 +105,20 @@ Keep the response concise but thorough, and be encouraging while maintaining saf
                 AgentId = agentId,
                 AgentName = AgentCatalog.GetAgentName(agentId),
                 Question = question,
-                Response = string.IsNullOrWhiteSpace(agentResponse)
-                    ? GenerateFallbackResponse(agentId, question)
-                    : agentResponse,
+                Response = finalResponse,
                 Timestamp = DateTime.UtcNow,
-                IsSuccessful = !string.IsNullOrWhiteSpace(agentResponse),
-                ErrorMessage = string.IsNullOrWhiteSpace(agentResponse)
-                    ? "No response generated by the agent."
-                    : null
+                IsSuccessful = hasResponse,
+                ErrorMessage = hasResponse ? null : "No response generated by the agent."
             };
-            _logger.LogInformation("Agent response: {Response}", agentTesterResponse.Response);
 
+            _logger.LogInformation("{Prefix} Agent response delivered.", logPrefix);
             return Ok(agentTesterResponse);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error testing agent {AgentId}", agentId);
+            _logger.LogError(ex, "{Prefix} Error testing agent {AgentId}", logPrefix, agentId);
 
-            var fallbackResponse = new AgentTesterResponse
+            return Ok(new AgentTesterResponse
             {
                 AgentId = agentId,
                 AgentName = AgentCatalog.GetAgentName(agentId),
@@ -111,11 +127,47 @@ Keep the response concise but thorough, and be encouraging while maintaining saf
                 Timestamp = DateTime.UtcNow,
                 IsSuccessful = false,
                 ErrorMessage = ex.Message
-            };
-
-            return Ok(fallbackResponse);
+            });
         }
     }
+
+    private async Task<string> InvokeSemanticKernelAsync(string agentId, string prompt, CancellationToken cancellationToken)
+    {
+        var agent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync(agentId);
+        AzureAIAgentThread agentThread = new(agent.Client);
+
+        var sb = new StringBuilder();
+        ChatMessageContent message = new(AuthorRole.User, prompt);
+        await foreach (ChatMessageContent response in agent.InvokeAsync(message, agentThread).WithCancellation(cancellationToken))
+        {
+            sb.Append(response.Content);
+        }
+
+        return sb.ToString();
+    }
+
+    private async Task<string> InvokeAgentFrameworkAsync(string agentId, string prompt, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var agent = await _agentFxAgentProvider.GetAIAgentAsync(agentId);
+        var thread = agent.GetNewThread();
+        var response = await agent.RunAsync(prompt, thread);
+        return response?.Text ?? string.Empty;
+    }
+
+    private string BuildTestPrompt(string agentId, string question)
+    {
+        return $@"
+You are a helpful AI assistant specializing in DIY projects and tool recommendations.
+Agent Type: {AgentCatalog.GetAgentName(agentId)}
+User Question: {question}
+
+Please provide a helpful and informative response based on your expertise.
+Keep the response concise but thorough, and be encouraging while maintaining safety awareness.
+";
+    }
+
     private string GenerateFallbackResponse(string agentId, string question)
     {
         var agentName = AgentCatalog.GetAgentName(agentId);

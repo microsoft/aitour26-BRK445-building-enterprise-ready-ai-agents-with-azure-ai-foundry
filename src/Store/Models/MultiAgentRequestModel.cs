@@ -17,7 +17,7 @@ public class MultiAgentRequestModel
     /// <summary>
     /// The type of orchestration to use for this request. Defaults to Sequential.
     /// </summary>
-    public OrchestationType OrchestationType { get; set; } = OrchestationType.Sequential;
+    public OrchestrationType OrchestationType { get; set; } = OrchestrationType.Sequential;
 
     public IBrowserFile? Image { get; set; }
 
@@ -29,7 +29,7 @@ public class MultiAgentRequestModel
             UserId = UserId,
             ProductQuery = ProductQuery,
             Location = Location,
-            OrchestationType = OrchestationType
+            Orchestration = OrchestationType
         };
 
         if (Image != null)

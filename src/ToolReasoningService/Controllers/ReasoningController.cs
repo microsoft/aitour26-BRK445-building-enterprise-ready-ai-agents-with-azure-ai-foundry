@@ -1,12 +1,13 @@
 #pragma warning disable SKEXP0110
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Shared.Models;
-using ZavaAIFoundrySKAgentsProvider;
-using ZavaSemanticKernelProvider;
+using System.Text;
 
 namespace ToolReasoningService.Controllers;
 
@@ -15,46 +16,116 @@ namespace ToolReasoningService.Controllers;
 public class ReasoningController : ControllerBase
 {
     private readonly ILogger<ReasoningController> _logger;
-    private readonly Kernel _kernel;
-    private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
-    private AzureAIAgent _agent;
+    private readonly AzureAIAgent _skAgent;
+    private readonly AIAgent _agentFxAgent;
+    private readonly IChatClient _chatClient;
 
     public ReasoningController(
-        ILogger<ReasoningController> logger, 
-        SemanticKernelProvider semanticKernelProvider,
-        AIFoundryAgentProvider aIFoundryAgentProvider)
+        ILogger<ReasoningController> logger,
+        AzureAIAgent skAgent,
+        AIAgent agentFxAgent,
+        IChatClient chatClient)
     {
         _logger = logger;
-        _kernel = semanticKernelProvider.GetKernel();
-        _aIFoundryAgentProvider = aIFoundryAgentProvider;
+        _skAgent = skAgent;
+        _agentFxAgent = agentFxAgent;
+        _chatClient = chatClient;
     }
 
-    [HttpPost("generate")]
-    public async Task<ActionResult<string>> GenerateReasoningAsync([FromBody] ReasoningRequest request)
+    [HttpPost("generate/llm")]
+    public async Task<ActionResult<string>> GenerateReasoningLlmAsync([FromBody] ReasoningRequest request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("[LLM] Generating reasoning for prompt");
+
+        return await GenerateReasoningAsync(
+            request,
+            async (prompt, token) => await InvokeLlmAsync(prompt, token),
+            "[LLM]",
+            cancellationToken);
+    }
+
+    [HttpPost("generate/sk")]
+    public async Task<ActionResult<string>> GenerateReasoningSkAsync([FromBody] ReasoningRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[SK] Generating reasoning for prompt");
+
+        return await GenerateReasoningAsync(
+            request,
+            async (prompt, token) => await InvokeSemanticKernelAsync(prompt, token),
+            "[SK]",
+            cancellationToken);
+    }
+
+    [HttpPost("generate/agentfx")]
+    public async Task<ActionResult<string>> GenerateReasoningAgentFxAsync([FromBody] ReasoningRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[AgentFx] Generating reasoning for prompt");
+
+        return await GenerateReasoningAsync(
+            request,
+            async (prompt, token) => await InvokeAgentFrameworkAsync(prompt, token),
+            "[AgentFx]",
+            cancellationToken);
+    }
+
+    private async Task<ActionResult<string>> GenerateReasoningAsync(
+        ReasoningRequest request,
+        Func<string, CancellationToken, Task<string>> invokeAgent,
+        string logPrefix,
+        CancellationToken cancellationToken)
+    {
+        var reasoningPrompt = BuildReasoningPrompt(request);
+
         try
         {
-            var sanitizedPrompt = request.Prompt?.Replace("\r", "").Replace("\n", "");
-            _logger.LogInformation("Generating reasoning for prompt: {Prompt}", sanitizedPrompt);
+            var agentResponse = await invokeAgent(reasoningPrompt, cancellationToken);
+            _logger.LogInformation("{Prefix} Raw agent response length: {Length}", logPrefix, agentResponse.Length);
 
-            // Use Semantic Kernel for AI reasoning
-            var reasoning = await GenerateDetailedReasoningWithAI(request);
+            if (!string.IsNullOrWhiteSpace(agentResponse))
+            {
+                return Ok(agentResponse);
+            }
 
-            return Ok(reasoning);
+            _logger.LogWarning("{Prefix} Empty response received. Falling back to heuristic reasoning.", logPrefix);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating reasoning");
-            
-            // Fallback to rule-based reasoning
-            var fallbackReasoning = GenerateDetailedReasoning(request);
-            return Ok(fallbackReasoning);
+            _logger.LogWarning(ex, "{Prefix} Agent invocation failed. Falling back to heuristic reasoning.", logPrefix);
         }
+
+        return Ok(GenerateFallbackReasoning(request));
     }
 
-    private async Task<string> GenerateDetailedReasoningWithAI(ReasoningRequest request)
+    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
     {
-        var reasoningPrompt = $@"
+        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
+        return response.Text ?? string.Empty;
+    }
+
+    private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)
+    {
+        var sb = new StringBuilder();
+        AzureAIAgentThread agentThread = new(_skAgent.Client);
+        await foreach (ChatMessageContent response in _skAgent.InvokeAsync(prompt, agentThread).WithCancellation(cancellationToken))
+        {
+            sb.Append(response.Content);
+        }
+
+        return sb.ToString();
+    }
+
+    private async Task<string> InvokeAgentFrameworkAsync(string prompt, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var thread = _agentFxAgent.GetNewThread();
+        var response = await _agentFxAgent.RunAsync(prompt, thread);
+        return response?.Text ?? string.Empty;
+    }
+
+    #region Prompt & fallback helpers
+
+    private static string BuildReasoningPrompt(ReasoningRequest request) => $@"
 You are an expert DIY consultant. Based on the following information, provide detailed reasoning for tool recommendations:
 
 **Project Task:** {request.Prompt}
@@ -73,83 +144,49 @@ Please provide:
 Format your response with clear sections and be encouraging while being practical about safety and skill requirements.
 ";
 
-        try
-        {
-            // Create a Semantic Kernel agent based on the agent definition
-            var agentResponse = string.Empty;
-            _agent = await _aIFoundryAgentProvider.GetAzureAIAgent();
-            AzureAIAgentThread agentThread = new(_agent.Client);
-            try
-            {
-                ChatMessageContent message = new(AuthorRole.User, reasoningPrompt);
-                await foreach (ChatMessageContent response in _agent.InvokeAsync(message, agentThread))
-                {
-                    _logger.LogInformation("Received response from agent: {Content}", response.Content);    
-                    agentResponse += (response.Content);
-                }
-            }
-            finally
-            {
-                // Clean up the agent thread to avoid resource leaks
-                // await agentThread.DeleteAsync();
-            }
-            return agentResponse ?? GenerateDetailedReasoning(request);
-        }
-        catch
-        {
-            return GenerateDetailedReasoning(request);
-        }
-    }
-
-    private string GenerateDetailedReasoning(ReasoningRequest request)
+    private static string GenerateFallbackReasoning(ReasoningRequest request)
     {
-        var promptLower = request.Prompt.ToLower();
+        var promptLower = request.Prompt.ToLowerInvariant();
         var materials = request.PhotoAnalysis.DetectedMaterials;
         var ownedTools = request.Customer.OwnedTools;
         var skills = request.Customer.Skills;
 
-        var reasoning = $"Based on your project '{request.Prompt}' and analysis of the uploaded image, here's my reasoning for tool recommendations:\n\n";
+        var reasoning = new StringBuilder();
+        reasoning.AppendLine($"Based on your project '{request.Prompt}' and the provided photo analysis, here's my reasoning for tool recommendations:\n");
+        reasoning.AppendLine("**Task Analysis:**");
+        reasoning.AppendLine($"- The image analysis highlights: {request.PhotoAnalysis.Description}");
+        reasoning.AppendLine($"- Key materials involved: {string.Join(", ", materials)}\n");
 
-        // Analyze the task
-        reasoning += "**Task Analysis:**\n";
-        reasoning += $"- The image analysis reveals: {request.PhotoAnalysis.Description}\n";
-        reasoning += $"- Detected materials that need attention: {string.Join(", ", materials)}\n\n";
+        reasoning.AppendLine("**Your Profile:**");
+        reasoning.AppendLine($"- Available tools: {string.Join(", ", ownedTools)}");
+        reasoning.AppendLine($"- Skill level: {string.Join(", ", skills)}\n");
 
-        // Analyze customer profile
-        reasoning += "**Your Profile:**\n";
-        reasoning += $"- Available tools: {string.Join(", ", ownedTools)}\n";
-        reasoning += $"- Skill level: {string.Join(", ", skills)}\n\n";
-
-        // Provide specific reasoning
-        reasoning += "**Recommendations:**\n";
+        reasoning.AppendLine("**Recommendations:**");
 
         if (promptLower.Contains("paint"))
         {
-            reasoning += "- For painting projects, you'll need specialized application tools. Your existing tools like measuring tape and screwdriver will be useful for preparation work.\n";
-            reasoning += "- A paint roller will provide even coverage on large surfaces, while brushes are essential for detail work and edges.\n";
-            reasoning += "- Drop cloths are crucial to protect surrounding areas from paint splatter.\n";
+            reasoning.AppendLine("- A paint roller offers efficient coverage for large surfaces, while brushes are essential for edges and trim.");
+            reasoning.AppendLine("- Drop cloths will protect surrounding areas from splatter.");
         }
         else if (promptLower.Contains("wood"))
         {
-            reasoning += "- Woodworking requires precision cutting tools. If you don't have a saw, this will be essential for accurate cuts.\n";
-            reasoning += "- Wood stain or finish will protect and enhance the appearance of your wood project.\n";
-            reasoning += "- Your measuring tools will be critical for accurate measurements.\n";
+            reasoning.AppendLine("- A quality saw supports precise cuts, and wood stain finishes the project while adding protection.");
+            reasoning.AppendLine("- Measuring tools remain critical for accurate results.");
         }
         else if (promptLower.Contains("tile"))
         {
-            reasoning += "- Tile work requires specialized tools for cutting and setting tiles properly.\n";
-            reasoning += "- Proper adhesive and grout are essential for a durable installation.\n";
-            reasoning += "- Spacers and levels ensure professional-looking results.\n";
+            reasoning.AppendLine("- Tile cutters, spacers, and proper adhesive are necessary for a clean installation.");
+            reasoning.AppendLine("- Grout and leveling tools help achieve professional results.");
         }
         else
         {
-            reasoning += "- Based on the general nature of your project, I'm recommending safety equipment as a priority.\n";
-            reasoning += "- Safety glasses and work gloves are essential for any DIY project.\n";
-            reasoning += "- Your existing tools will handle most basic tasks, so we're focusing on safety and project-specific needs.\n";
+            reasoning.AppendLine("- Safety equipment (glasses, gloves) should accompany any DIY effort.");
+            reasoning.AppendLine("- General-purpose tools cover most common adjustments during execution.");
         }
 
-        reasoning += "\n**Safety Note:** Always prioritize safety equipment for any DIY project, regardless of your skill level.";
-
-        return reasoning;
+        reasoning.AppendLine("\n**Safety Note:** Always wear appropriate protective gear and work at a comfortable pace to avoid mistakes.");
+        return reasoning.ToString();
     }
+
+    #endregion
 }

@@ -1,3 +1,4 @@
+using MultiAgentDemo.Controllers;
 using SharedEntities;
 
 namespace MultiAgentDemo.Services;
@@ -85,12 +86,12 @@ public class HandoffOrchestrationService : IAgentOrchestrationService
             navigation = await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery);
         }
 
-        var alternatives = await GenerateProductAlternativesAsync(request.ProductQuery);
+        var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
 
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = OrchestationType.Handoff,
+            OrchestationType = OrchestrationType.Handoff,
             OrchestrationDescription = "Agents executed using dynamic handoff logic, with each agent determining the next agent based on analysis results and business rules.",
             Steps = steps.ToArray(),
             Alternatives = alternatives,
@@ -232,16 +233,6 @@ public class HandoffOrchestrationService : IAgentOrchestrationService
             _logger.LogWarning(ex, "GenerateNavigationInstructions failed");
             return new NavigationInstructions { Steps = new[] { new NavigationStep { Direction = "General", Description = $"Head to the area where {productQuery} is typically located", Landmark = new NavigationLandmark { Description = "General area" } } }, StartLocation = string.Empty, EstimatedTime = string.Empty };
         }
-    }
-
-    private async Task<ProductAlternative[]> GenerateProductAlternativesAsync(string productQuery)
-    {
-        await Task.Delay(10);
-        return new[]
-        {
-            new ProductAlternative { Name = $"Expert-recommended {productQuery}", Sku = "EXP-" + productQuery.Replace(" ", "").ToUpper(), Price = 149.99m, InStock = true, Location = "Aisle 2", Aisle = 2, Section = "A" },
-            new ProductAlternative { Name = $"Alternative {productQuery}", Sku = "ALT-" + productQuery.Replace(" ", "").ToUpper(), Price = 79.99m, InStock = true, Location = "Aisle 8", Aisle = 8, Section = "B" }
-        };
     }
 
     private class HandoffContext

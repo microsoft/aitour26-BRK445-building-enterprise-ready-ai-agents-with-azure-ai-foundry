@@ -9,9 +9,32 @@
 @rendermode InteractiveServer
 
 
+@inject AgentFrameworkService AgentFrameworkService
+
 <PageTitle>Zava Store - Multi-Agent Orchestration</PageTitle>
 
 <div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info d-flex align-items-center" role="alert">
+                <span class="bi bi-info-circle me-2"></span>
+                <div>
+                    <strong>Current Working Mode:</strong> @currentFramework
+                    <small class="ms-2 text-muted">
+                        @{
+                            string frameworkLabel = currentFramework switch
+                            {
+                                "SK" => "(Semantic Kernel)",
+                                "llm" => "(LLM Framework)",
+                                _ => "(Microsoft Agent Framework)"
+                            };
+                        }
+                        @frameworkLabel
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col-md-4">
             <div class="card">
@@ -45,12 +68,12 @@
                     <div class="mb-3">
                         <label for="orchestrationType" class="form-label">Agent Orchestration Type</label>
                         <InputSelect @bind-Value="multiAgentRequest.OrchestationType" class="form-select" id="orchestrationType">
-                            <option value="@OrchestationType.Default">Default</option>
-                            <option value="@OrchestationType.Sequential">Sequential - Step-by-step workflow</option>
-                            <option value="@OrchestationType.Concurrent">Concurrent - Parallel analysis</option>
-                            <option value="@OrchestationType.Handoff">Handoff - Dynamic routing</option>
-                            <option value="@OrchestationType.GroupChat">Group Chat - Collaborative discussion</option>
-                            <option value="@OrchestationType.Magentic">Magentic - Complex collaboration</option>
+                            <option value="@OrchestrationType.Default">Default</option>
+                            <option value="@OrchestrationType.Sequential">Sequential - Step-by-step workflow</option>
+                            <option value="@OrchestrationType.Concurrent">Concurrent - Parallel analysis</option>
+                            <option value="@OrchestrationType.Handoff">Handoff - Dynamic routing</option>
+                            <option value="@OrchestrationType.GroupChat">Group Chat - Collaborative discussion</option>
+                            <option value="@OrchestrationType.Magentic">Magentic - Complex collaboration</option>
                         </InputSelect>
                         <div class="form-text">@GetOrchestrationDescription(multiAgentRequest.OrchestationType)</div>
                     </div>
@@ -80,7 +103,7 @@
 
                     <div class="mb-3">
                         <label for="userId" class="form-label">User ID <small class="text-muted">(optional)</small></label>
-                        <InputText @bind-Value="multiAgentRequest.UserId" class="form-control" id="userId" placeholder="e.g., USER-001" />
+                        <InputText @bind-Value="multiAgentRequest.UserId" class="form-control" id="userId" placeholder="e.g., 1" />
                     </div>
 
                     <div class="mb-3">
@@ -116,9 +139,6 @@
                     <div class="col-12">
                         <div class="card mb-3 result-banner">
                             <div class="row g-0 align-items-center">
-                                <div class="col-auto p-3">
-                                    <img src="@GetOrchestrationImagePath(orchestrationResult.OrchestationType)" alt="Orchestration result" class="rounded-circle result-image shadow" style="width:72px;height:72px;object-fit:cover;" />
-                                </div>
                                 <div class="col p-3">
                                     <h5 class="mb-0">@orchestrationResult.OrchestationType Agent Orchestration</h5>
                                     <small class="text-muted">Orchestration ID: @orchestrationResult.OrchestrationId</small>
@@ -126,46 +146,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Agent Steps -->
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">
-                                    <span class="bi bi-diagram-3 me-2"></span>
-                                    @orchestrationResult.OrchestationType Agent Orchestration
-                                    <small class="text-muted ms-2">ID: @orchestrationResult.OrchestrationId</small>
-                                </h5>
-                                @if (!string.IsNullOrEmpty(orchestrationResult.OrchestrationDescription))
-                                {
-                                    <p class="mb-0 mt-2 text-muted">
-                                        <small>@orchestrationResult.OrchestrationDescription</small>
-                                    </p>
-                                }
-                            </div>
-                            <div class="card-body">
-                                <div class="timeline">
-                                    @foreach (var step in orchestrationResult.Steps)
-                                    {
-                                        <div class="timeline-item mb-3">
-                                            <div class="d-flex">
-                                                <div class="flex-shrink-0">
-                                                    <span class="badge @GetAgentBadgeClass(step.Agent) rounded-pill">
-                                                        @step.Agent
-                                                    </span>
-                                                </div>
-                                                <div class="flex-grow-1 ms-3">
-                                                    <h6 class="mb-1">@step.Action</h6>
-                                                    <p class="mb-1 text-muted">@step.Result</p>
-                                                    <small class="text-muted">@step.Timestamp.ToString("HH:mm:ss")</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Product Alternatives -->
                     <div class="col-12">
                         <div class="card">
@@ -220,11 +200,9 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="mb-3">
-                                        <strong>From:</strong> @orchestrationResult.NavigationInstructions.StartLocation<br>
-                                        <strong>Estimated Time:</strong>
-                                        @orchestrationResult.NavigationInstructions.EstimatedTime
+                                        <strong>From:</strong> @orchestrationResult.NavigationInstructions.StartLocation<br />
+                                        <strong>Estimated Time:</strong> @orchestrationResult.NavigationInstructions.EstimatedTime
                                     </div>
-
                                     <div class="navigation-steps">
                                         @for (int i = 0; i < orchestrationResult.NavigationInstructions.Steps.Length; i++)
                                         {
@@ -251,6 +229,76 @@
                             </div>
                         </div>
                     }
+
+
+                    <!-- Mermaid Workflow Viewer -->
+                    @if (!string.IsNullOrEmpty(orchestrationResult.MermaidWorkflowRepresentation))
+                    {
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header" @onclick="ToggleMermaidViewer" style="cursor: pointer;">
+                                    <h5 class="card-title mb-0">
+                                        <span class="bi @(showMermaidViewer ? "bi-chevron-down" : "bi-chevron-right") me-2"></span>
+                                        <span class="bi bi-diagram-3 me-2"></span>
+                                        Workflow Diagram
+                                        <small class="text-muted">(Click to @(showMermaidViewer ? "collapse" : "expand"))</small>
+                                    </h5>
+                                </div>
+                                @if (showMermaidViewer)
+                                {
+                                    <div class="card-body">
+                                        <div class="mermaid-container">
+                                            @* <pre class="mermaid">@orchestrationResult.MermaidWorkflowRepresentation</pre> *@
+                                            <MermaidDiagram Definition="@orchestrationResult.MermaidWorkflowRepresentation" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+
+
+                    <!-- Agent Steps -->
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <span class="bi bi-diagram-3 me-2"></span>
+                                    @orchestrationResult.OrchestationType Agent Orchestration
+                                    <small class="text-muted ms-2">ID: @orchestrationResult.OrchestrationId</small>
+                                </h5>
+                                @if (!string.IsNullOrEmpty(orchestrationResult.OrchestrationDescription))
+                                {
+                                    <p class="mb-0 mt-2 text-muted">
+                                        <small>@orchestrationResult.OrchestrationDescription</small>
+                                    </p>
+                                }
+                            </div>
+                            <div class="card-body">
+                                <div class="timeline">
+                                    @foreach (var step in orchestrationResult.Steps)
+                                    {
+                                        <div class="timeline-item mb-3">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0">
+                                                    <span class="badge @GetAgentBadgeClass(step.Agent) rounded-pill">
+                                                        @step.Agent
+                                                    </span>
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <h6 class="mb-1">@step.Action</h6>
+                                                    <p class="mb-1 text-muted">@step.Result</p>
+                                                    <small class="text-muted">@step.Timestamp.ToString("HH:mm:ss")</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             }
             else if (!string.IsNullOrEmpty(errorMessage))
@@ -281,15 +329,15 @@
         position: relative;
     }
 
-        .timeline-item:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            left: 12px;
-            top: 50px;
-            width: 2px;
-            height: calc(100% - 20px);
-            background-color: #dee2e6;
-        }
+    .timeline-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 12px;
+        top: 50px;
+        width: 2px;
+        height: calc(100% - 20px);
+        background-color: #dee2e6;
+    }
 
     .navigation-steps .badge {
         width: 24px;
@@ -311,10 +359,22 @@
     .result-image {
         border-radius: 8px;
     }
+
+    .mermaid-container {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        overflow-x: auto;
+    }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+</script>
+
 @code {
-    private MultiAgentRequestModel multiAgentRequest = new() { UserId = "USER-001" };
+    private MultiAgentRequestModel multiAgentRequest = new() { UserId = "1" };
     private MultiAgentResponse? orchestrationResult;
     private IBrowserFile? selectedFile;
     private bool isSubmitting = false;
@@ -323,6 +383,18 @@
     private double latitude = 47.6062;
     private double longitude = -122.3321;
     private const string DefaultProductQuery = "I can't find the product 'Paint Sprayer - TurboSpray 750', I'm in this store, can you help?";
+    private bool showMermaidViewer = false;
+    private string currentFramework = "SK";
+    
+    protected override async Task OnInitializedAsync()
+    {
+        currentFramework = await AgentFrameworkService.GetSelectedFrameworkAsync();
+    }
+    
+    private void ToggleMermaidViewer()
+    {
+        showMermaidViewer = !showMermaidViewer;
+    }
 
     private void OnImageSelected(InputFileChangeEventArgs e)
     {
@@ -343,16 +415,16 @@
         StateHasChanged();
     }
 
-    private string GetOrchestrationDescription(OrchestationType orchestrationType)
+    private string GetOrchestrationDescription(OrchestrationType orchestrationType)
     {
         return orchestrationType switch
         {
-            OrchestationType.Default => "Agents execute in specific order to solve the problem.",
-            OrchestationType.Sequential => "Agents execute one after another, each building on the previous agent's results.",
-            OrchestationType.Concurrent => "All agents work simultaneously in parallel, providing independent analysis.",
-            OrchestationType.Handoff => "Agents dynamically pass control based on context and business rules.",
-            OrchestationType.GroupChat => "Agents collaborate in a group discussion coordinated by a manager.",
-            OrchestationType.Magentic => "Complex multi-agent collaboration inspired by MagenticOne framework.",
+            OrchestrationType.Default => "Agents execute in specific order to solve the problem.",
+            OrchestrationType.Sequential => "Agents execute one after another, each building on the previous agent's results.",
+            OrchestrationType.Concurrent => "All agents work simultaneously in parallel, providing independent analysis.",
+            OrchestrationType.Handoff => "Agents dynamically pass control based on context and business rules.",
+            OrchestrationType.GroupChat => "Agents collaborate in a group discussion coordinated by a manager.",
+            OrchestrationType.Magentic => "Complex multi-agent collaboration inspired by MagenticOne framework.",
             _ => "Choose how agents should work together to solve your query."
         };
     }
@@ -369,18 +441,18 @@
         };
     }
 
-    private string GetOrchestrationImagePath(OrchestationType orchestrationType)
+    private string GetOrchestrationImagePath(OrchestrationType orchestrationType)
     {
         // Images are expected under wwwroot/images/multiagentorchestration
         var basePath = "/images/multiagentorchestration/";
         return orchestrationType switch
         {
-            OrchestationType.Default => basePath + "default.png",
-            OrchestationType.Sequential => basePath + "sequential.png",
-            OrchestationType.Concurrent => basePath + "concurrent.png",
-            OrchestationType.Handoff => basePath + "handoff.png",
-            OrchestationType.GroupChat => basePath + "groupchat.png",
-            OrchestationType.Magentic => basePath + "magentic.png",
+            OrchestrationType.Default => basePath + "default.png",
+            OrchestrationType.Sequential => basePath + "sequential.png",
+            OrchestrationType.Concurrent => basePath + "concurrent.png",
+            OrchestrationType.Handoff => basePath + "handoff.png",
+            OrchestrationType.GroupChat => basePath + "groupchat.png",
+            OrchestrationType.Magentic => basePath + "magentic.png",
             _ => basePath + "default.png",
         };
     }

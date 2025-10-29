@@ -24,11 +24,11 @@ IResourceBuilder<IResourceWithConnectionString>? locationServiceAgentId;
 IResourceBuilder<IResourceWithConnectionString>? navigationAgentId;
 IResourceBuilder<IResourceWithConnectionString>? photoAnalyzerAgentId;
 IResourceBuilder<IResourceWithConnectionString>? productMatchMakingAgentId;
+IResourceBuilder<IResourceWithConnectionString>? productSearchAgentId;
 IResourceBuilder<IResourceWithConnectionString>? toolReasoningAgentId;
 
 // application insights connection string
 IResourceBuilder<IResourceWithConnectionString>? appInsights;
-
 
 var products = builder.AddProject<Projects.Products>("products")
     .WithReference(productsDb)
@@ -47,7 +47,6 @@ var toolReasoningService = builder.AddProject<Projects.ToolReasoningService>("to
 var inventoryService = builder.AddProject<Projects.InventoryService>("inventoryservice")
     .WithExternalHttpEndpoints();
 
-// Add new multi-agent specific services
 var matchmakingService = builder.AddProject<Projects.MatchmakingService>("matchmakingservice")
     .WithExternalHttpEndpoints();
 
@@ -57,28 +56,26 @@ var locationService = builder.AddProject<Projects.LocationService>("locationserv
 var navigationService = builder.AddProject<Projects.NavigationService>("navigationservice")
     .WithExternalHttpEndpoints();
 
+var productSearchService = builder.AddProject<Projects.ProductSearchService>("productsearchservice")
+    .WithExternalHttpEndpoints();
+
 // Add new agent demo services
 var singleAgentDemo = builder.AddProject<Projects.SingleAgentDemo>("singleagentdemo")
     .WithReference(analyzePhotoService)
     .WithReference(customerInformationService)
     .WithReference(toolReasoningService)
     .WithReference(inventoryService)
+    .WithReference(productSearchService)
     .WithExternalHttpEndpoints();
 
 var multiAgentDemo = builder.AddProject<Projects.MultiAgentDemo>("multiagentdemo")
-    .WaitFor(analyzePhotoService)
     .WithReference(analyzePhotoService)
-    .WaitFor(customerInformationService)
     .WithReference(customerInformationService)
-    .WaitFor(toolReasoningService)
     .WithReference(toolReasoningService)
-    .WaitFor(inventoryService)
     .WithReference(inventoryService)
-    .WaitFor(matchmakingService)
+    .WithReference(productSearchService)
     .WithReference(matchmakingService)
-    .WaitFor(locationService)
     .WithReference(locationService)
-    .WaitFor(navigationService)
     .WithReference(navigationService)
     .WithExternalHttpEndpoints();
 
@@ -97,6 +94,8 @@ var agentscatalogservice = builder.AddProject<Projects.AgentsCatalogService>("ag
     .WithReference(locationService)
     .WaitFor(navigationService)
     .WithReference(navigationService)
+    .WaitFor(productSearchService)
+    .WithReference(productSearchService)
     .WithExternalHttpEndpoints();
 
 var store = builder.AddProject<Projects.Store>("store")
@@ -114,6 +113,8 @@ var store = builder.AddProject<Projects.Store>("store")
     .WithReference(locationService)
     .WaitFor(navigationService)
     .WithReference(navigationService)
+    .WaitFor(productSearchService)
+    .WithReference(productSearchService)
     .WithReference(products)
     .WaitFor(products)
     .WithReference(singleAgentDemo)
@@ -123,7 +124,6 @@ var store = builder.AddProject<Projects.Store>("store")
     .WithReference(agentscatalogservice)
     .WaitFor(agentscatalogservice)    
     .WithExternalHttpEndpoints();
-
 
 if (builder.ExecutionContext.IsPublishMode)
 {
@@ -167,11 +167,16 @@ if (builder.ExecutionContext.IsPublishMode)
     navigationService
         .WithReference(appInsights)
         .WithExternalHttpEndpoints();
-
-    singleAgentDemo.WithReference(appInsights)
+    productSearchService
+        .WithReference(appInsights)
         .WithExternalHttpEndpoints();
 
-    multiAgentDemo.WithReference(appInsights)
+    singleAgentDemo
+        .WithReference(appInsights)
+        .WithExternalHttpEndpoints();
+
+    multiAgentDemo
+        .WithReference(appInsights)
         .WithExternalHttpEndpoints();
 
     agentscatalogservice
@@ -184,9 +189,7 @@ else
 {
     openai = builder.AddConnectionString("aifoundry");
 
-    appInsights = builder.AddConnectionString(
-    "appinsights",
-    "APPLICATIONINSIGHTS_CONNECTION_STRING");
+    appInsights = builder.AddConnectionString("appinsights", "APPLICATIONINSIGHTS_CONNECTION_STRING");
 
     products.WithReference(appInsights);
 
@@ -214,19 +217,21 @@ else
         .WithExternalHttpEndpoints();
     navigationService
         .WithReference(appInsights)
+        .WithExternalHttpEndpoints();    
+    productSearchService
+        .WithReference(appInsights)
         .WithExternalHttpEndpoints();
 
     singleAgentDemo.WithReference(appInsights)
         .WithExternalHttpEndpoints();
 
-    multiAgentDemo.WithReference(appInsights)
+    multiAgentDemo
+        .WithReference(appInsights)
         .WithExternalHttpEndpoints();
 
     agentscatalogservice
         .WithReference(appInsights)
         .WithExternalHttpEndpoints();
-
-
 }
 
 // aifoundry settings here
@@ -237,18 +242,18 @@ locationServiceAgentId = builder.AddConnectionString("locationserviceagentid");
 navigationAgentId = builder.AddConnectionString("navigationagentid");
 photoAnalyzerAgentId = builder.AddConnectionString("photoanalyzeragentid");
 productMatchMakingAgentId = builder.AddConnectionString("productmatchmakingagentid");
+productSearchAgentId = builder.AddConnectionString("productsearchagentid");
 toolReasoningAgentId = builder.AddConnectionString("toolreasoningagentid");
 
-products.WithReference(openai)
+products
+    .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName)
     .WithEnvironment("AI_embeddingsDeploymentName", embeddingsDeploymentName);
-
 analyzePhotoService
     .WithReference(aifoundryproject)
     .WithReference(photoAnalyzerAgentId)
     .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
-
 customerInformationService
     .WithReference(aifoundryproject)
     .WithReference(customerInformationAgentId)
@@ -265,15 +270,23 @@ inventoryService
     .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 matchmakingService
+    .WithReference(productMatchMakingAgentId)
     .WithReference(aifoundryproject)
     .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 locationService
+    .WithReference(locationServiceAgentId)
     .WithReference(aifoundryproject)
     .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 navigationService
+    .WithReference(navigationAgentId)
     .WithReference(aifoundryproject)
+    .WithReference(openai)
+    .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
+productSearchService
+    .WithReference(aifoundryproject)
+    .WithReference(productSearchAgentId)
     .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 singleAgentDemo
@@ -282,12 +295,14 @@ singleAgentDemo
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 multiAgentDemo
     .WithReference(aifoundryproject)
+    .WithReference(customerInformationAgentId)
     .WithReference(inventoryAgentId)
-    .WithReference(toolReasoningAgentId)
-    .WithReference(navigationAgentId)
     .WithReference(locationServiceAgentId)
+    .WithReference(navigationAgentId)
     .WithReference(photoAnalyzerAgentId)
     .WithReference(productMatchMakingAgentId)
+    .WithReference(productSearchAgentId)
+    .WithReference(toolReasoningAgentId)
     .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 
@@ -299,6 +314,7 @@ agentscatalogservice
     .WithReference(navigationAgentId)
     .WithReference(photoAnalyzerAgentId)
     .WithReference(productMatchMakingAgentId)
+    .WithReference(productSearchAgentId)
     .WithReference(toolReasoningAgentId)
     .WithReference(openai)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);

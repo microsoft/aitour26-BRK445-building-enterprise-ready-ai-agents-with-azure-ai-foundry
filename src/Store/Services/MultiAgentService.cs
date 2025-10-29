@@ -7,22 +7,26 @@ public class MultiAgentService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<MultiAgentService> _logger;
+    private readonly AgentFrameworkService _frameworkService;
 
-    public MultiAgentService(HttpClient httpClient, ILogger<MultiAgentService> logger)
+    public MultiAgentService(HttpClient httpClient, ILogger<MultiAgentService> logger, AgentFrameworkService frameworkService)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _frameworkService = frameworkService;
     }
 
     public async Task<MultiAgentResponse?> AssistAsync(MultiAgentRequest request)
     {
         try
         {
-            _logger.LogInformation("Calling multi-agent service for user {UserId} with query {ProductQuery} using {OrchestationType} orchestration",
-                request.UserId, request.ProductQuery, request.OrchestationType);
+            var framework = await _frameworkService.GetSelectedFrameworkAsync();
+            
+            _logger.LogInformation("Calling multi-agent service for user {UserId} with query {ProductQuery} using {OrchestationType} orchestration and {Framework} framework",
+                request.UserId, request.ProductQuery, request.Orchestration, framework);
 
             // Route to specific orchestration endpoint if specified, otherwise use default
-            var endpoint = GetOrchestrationEndpoint(request.OrchestationType);
+            var endpoint = GetOrchestrationEndpoint(request.Orchestration, framework);
             var response = await _httpClient.PostAsJsonAsync(endpoint, request);
             var responseText = await response.Content.ReadAsStringAsync();
 
@@ -50,17 +54,25 @@ public class MultiAgentService
         }
     }
 
-    private string GetOrchestrationEndpoint(OrchestationType orchestrationType)
+    private string GetOrchestrationEndpoint(OrchestrationType orchestrationType, string framework)
     {
+        var frameworkPath = framework switch
+        {
+            "agentfx" => "agentfx",
+            "llm" => "llm",
+            _ => "sk"
+        };
+        var baseRoute = $"/api/multiagent/{frameworkPath}";
+        
         return orchestrationType switch
         {
-            OrchestationType.Default => "/api/multiagent/assist",
-            OrchestationType.Sequential => "/api/multiagent/assist/sequential",
-            OrchestationType.Concurrent => "/api/multiagent/assist/concurrent",
-            OrchestationType.Handoff => "/api/multiagent/assist/handoff",
-            OrchestationType.GroupChat => "/api/multiagent/assist/groupchat",
-            OrchestationType.Magentic => "/api/multiagent/assist/magentic",
-            _ => "/api/multiagent/assist" // Default endpoint
+            OrchestrationType.Default => $"{baseRoute}/assist",
+            OrchestrationType.Sequential => $"{baseRoute}/assist/sequential",
+            OrchestrationType.Concurrent => $"{baseRoute}/assist/concurrent",
+            OrchestrationType.Handoff => $"{baseRoute}/assist/handoff",
+            OrchestrationType.GroupChat => $"{baseRoute}/assist/groupchat",
+            OrchestrationType.Magentic => $"{baseRoute}/assist/magentic",
+            _ => $"{baseRoute}/assist" // Default endpoint
         };
     }
 
@@ -68,36 +80,36 @@ public class MultiAgentService
     {
         var orchestrationId = Guid.NewGuid().ToString("N")[..8];
         var baseTime = DateTime.UtcNow;
-
+                
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
-            OrchestationType = request.OrchestationType,
-            OrchestrationDescription = GetFallbackOrchestrationDescription(request.OrchestationType),
+            OrchestationType = request.Orchestration,
+            OrchestrationDescription = GetFallbackOrchestrationDescription(request.Orchestration),
             Steps = GetFallbackSteps(request, baseTime),
             Alternatives = GetFallbackAlternatives(request.ProductQuery),
             NavigationInstructions = request.Location != null ? CreateFallbackNavigation(request) : null
         };
     }
 
-    private string GetFallbackOrchestrationDescription(OrchestationType orchestrationType)
+    private string GetFallbackOrchestrationDescription(OrchestrationType orchestrationType)
     {
         return orchestrationType switch
         {
-            OrchestationType.Sequential => "Fallback sequential processing with step-by-step agent execution",
-            OrchestationType.Concurrent => "Fallback concurrent processing with parallel agent execution",
-            OrchestationType.Handoff => "Fallback handoff processing with dynamic agent routing",
-            OrchestationType.GroupChat => "Fallback group chat processing with collaborative agent discussion",
-            OrchestationType.Magentic => "Fallback MagenticOne processing with complex multi-agent collaboration",
+            OrchestrationType.Sequential => "Fallback sequential processing with step-by-step agent execution",
+            OrchestrationType.Concurrent => "Fallback concurrent processing with parallel agent execution",
+            OrchestrationType.Handoff => "Fallback handoff processing with dynamic agent routing",
+            OrchestrationType.GroupChat => "Fallback group chat processing with collaborative agent discussion",
+            OrchestrationType.Magentic => "Fallback MagenticOne processing with complex multi-agent collaboration",
             _ => "Fallback orchestration processing"
         };
     }
 
     private AgentStep[] GetFallbackSteps(MultiAgentRequest request, DateTime baseTime)
     {
-        return request.OrchestationType switch
+        return request.Orchestration switch
         {
-            OrchestationType.Concurrent => new[]
+            OrchestrationType.Concurrent => new[]
             {
                 new AgentStep
                 {
@@ -128,7 +140,7 @@ public class MultiAgentService
                     Timestamp = baseTime.AddMilliseconds(150)
                 }
             },
-            OrchestationType.Handoff => new[]
+            OrchestrationType.Handoff => new[]
             {
                 new AgentStep
                 {
@@ -152,7 +164,7 @@ public class MultiAgentService
                     Timestamp = baseTime.AddSeconds(2)
                 }
             },
-            OrchestationType.GroupChat => new[]
+            OrchestrationType.GroupChat => new[]
             {
                 new AgentStep
                 {
@@ -190,7 +202,7 @@ public class MultiAgentService
                     Timestamp = baseTime.AddSeconds(4)
                 }
             },
-            OrchestationType.Magentic => new[]
+            OrchestrationType.Magentic => new[]
             {
                 new AgentStep
                 {
@@ -262,10 +274,10 @@ public class MultiAgentService
         };
     }
 
-    private ProductAlternative[] GetFallbackAlternatives(string productQuery)
+    private List<ProductAlternative> GetFallbackAlternatives(string productQuery)
     {
-        return new[]
-        {
+        return
+        [
             new ProductAlternative
             {
                 Name = $"Premium {productQuery}",
@@ -296,7 +308,7 @@ public class MultiAgentService
                 Aisle = 12,
                 Section = "C"
             }
-        };
+        ];
     }
 
     private NavigationInstructions CreateFallbackNavigation(MultiAgentRequest request)
