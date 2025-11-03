@@ -27,7 +27,7 @@
 		1433 // SQL Server
 	],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && dotnet workload update && dotnet workload install aspire && dotnet tool install -g Aspire.Cli --prerelease",
+	"postCreateCommand": "python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt && dotnet workload update && dotnet workload install aspire && dotnet tool install -g Aspire.Cli --prerelease",
 	// Use 'postStartCommand' to fix Docker socket permissions
 	"postStartCommand": "sudo chown root:docker /var/run/docker.sock 2>/dev/null || true",
 	// Configure tool-specific properties.
