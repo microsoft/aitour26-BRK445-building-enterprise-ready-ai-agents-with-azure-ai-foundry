@@ -36,7 +36,7 @@ public class AnalyzePhotoService
             content.Add(streamContent, "image", image.FileName);
             content.Add(new StringContent(prompt), "prompt");
 
-            var endpoint = $"/api/PhotoAnalysis/analyze/{_framework}";
+            var endpoint = $"/api/PhotoAnalysis/analyze{_framework}";
             _logger.LogInformation($"[AnalyzePhotoService] Calling endpoint: {endpoint}");
             var response = await _httpClient.PostAsync(endpoint, content);
             
