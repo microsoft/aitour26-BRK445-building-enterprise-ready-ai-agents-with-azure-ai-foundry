@@ -2,7 +2,7 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/dotnet
 {
 	"name": "BRK445 - Python .NET 10 Aspire",
-	"image": "mcr.microsoft.com/devcontainers/dotnet:1-10.0-bookworm",
+	"image": "mcr.microsoft.com/devcontainers/dotnet:latest",
 	"features": {
 		"ghcr.io/devcontainers/features/python:1": {},
 		"ghcr.io/devcontainers/features/azure-cli:1": {
@@ -13,9 +13,9 @@
 			"dockerDashComposeVersion": "v2"
 		},
 		"ghcr.io/devcontainers/features/dotnet:2": {
-			"version": "10.0",
-			"installUsingApt": false,
-			"aspNetCoreRuntimeVersions": "10.0"
+			"version": "9.0",
+			"installUsingApt": true,
+			"aspNetCoreRuntimeVersions": "9.0"
 		}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -27,7 +27,7 @@
 		1433 // SQL Server
 	],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt && dotnet workload update && dotnet workload install aspire && dotnet tool install -g Aspire.Cli --prerelease",
+	"postCreateCommand": "curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --version 10.0 --install-dir /usr/local/bin && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt && dotnet workload update && dotnet workload install aspire && dotnet tool install -g Aspire.Cli --prerelease",
 	// Use 'postStartCommand' to fix Docker socket permissions
 	"postStartCommand": "sudo chown root:docker /var/run/docker.sock 2>/dev/null || true",
 	// Configure tool-specific properties.
