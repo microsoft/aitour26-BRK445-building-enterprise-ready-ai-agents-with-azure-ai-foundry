@@ -9,8 +9,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
-        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://0.0.0.0:19009",
-        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://0.0.0.0:20136",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:19009",
+        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20136",
         "ASPNETCORE_URLS": "http://0.0.0.0:15295",
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
