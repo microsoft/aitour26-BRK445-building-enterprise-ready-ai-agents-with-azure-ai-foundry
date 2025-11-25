@@ -13,9 +13,9 @@
 			"dockerDashComposeVersion": "v2"
 		},
 		"ghcr.io/devcontainers/features/dotnet:2": {
-			"version": "9.0",
+			"version": "10.0",
 			"installUsingApt": true,
-			"aspNetCoreRuntimeVersions": "9.0"
+			"aspNetCoreRuntimeVersions": "10.0"
 		}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
