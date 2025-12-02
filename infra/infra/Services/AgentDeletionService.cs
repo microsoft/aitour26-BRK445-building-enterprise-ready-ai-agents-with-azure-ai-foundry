@@ -11,53 +11,82 @@ namespace Infra.AgentDeployment;
 
 internal interface IAgentDeletionService
 {
-    void DeleteExisting(IEnumerable<AgentDefinition> definitions);
+    void DeleteExisting(IEnumerable<AgentDefinition> definitions, bool deleteAgents, bool deleteIndexes, bool deleteDatasets);
 }
 
 internal sealed class AgentDeletionService : IAgentDeletionService
 {
     private readonly AIProjectClient _client;
     public AgentDeletionService(AIProjectClient client) => _client = client;
-    public void DeleteExisting(IEnumerable<AgentDefinition> definitions)
+    public void DeleteExisting(IEnumerable<AgentDefinition> definitions, bool deleteAgents, bool deleteIndexes, bool deleteDatasets)
     {
         try
         {
-            AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .Start("Deleting existing agents...", ctx =>
-                {
-                    var namesToDelete = new HashSet<string>(definitions.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
-                    int deletedAgents = 0;
+            if (deleteAgents)
+            {
+                DeleteAgents(definitions);
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[yellow]Skipping agent deletion.[/]");
+            }
 
-                    // Get all agents and delete matching ones
-                    var agents = _client.Agents.GetAgents();
-                    foreach (var existing in agents)
-                    {
-                        if (namesToDelete.Contains(existing.Name))
-                        {
-                            try
-                            {
-                                _client.Agents.DeleteAgent(existing.Name);
-                                AnsiConsole.MarkupLine($"[red]✓[/] Deleted agent: [grey]{existing.Name}[/] ({existing.Id})");
-                                deletedAgents++;
-                            }
-                            catch (Exception exDel)
-                            {
-                                AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete agent [grey]'{existing.Name}'[/] ({existing.Id}): {exDel.Message}");
-                            }
-                        }
-                    }
-                    AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedAgents} agent(s).\n");
-                });
+            if (deleteDatasets)
+            {
+                DeleteReferencedFiles(definitions);
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[yellow]Skipping dataset (file) deletion.[/]");
+            }
 
-            DeleteReferencedFiles(definitions);
-            DeleteVectorStores(definitions);
+            if (deleteIndexes)
+            {
+                DeleteVectorStores(definitions);
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[yellow]Skipping index (vector store) deletion.[/]");
+            }
+
+            AnsiConsole.WriteLine();
         }
         catch (Exception ex)
         {
             AnsiConsole.MarkupLine($"[yellow]⚠[/] Unexpected error during deletion: {ex.Message}");
             AnsiConsole.MarkupLine("[grey]Continuing with agent creation...[/]\n");
         }
+    }
+
+    private void DeleteAgents(IEnumerable<AgentDefinition> definitions)
+    {
+        AnsiConsole.Status()
+            .Spinner(Spinner.Known.Dots)
+            .Start("Deleting existing agents...", ctx =>
+            {
+                var namesToDelete = new HashSet<string>(definitions.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
+                int deletedAgents = 0;
+
+                // Get all agents and delete matching ones
+                var agents = _client.Agents.GetAgents();
+                foreach (var existing in agents)
+                {
+                    if (namesToDelete.Contains(existing.Name))
+                    {
+                        try
+                        {
+                            _client.Agents.DeleteAgent(existing.Name);
+                            AnsiConsole.MarkupLine($"[red]✓[/] Deleted agent: [grey]{existing.Name}[/] ({existing.Id})");
+                            deletedAgents++;
+                        }
+                        catch (Exception exDel)
+                        {
+                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete agent [grey]'{existing.Name}'[/] ({existing.Id}): {exDel.Message}");
+                        }
+                    }
+                }
+                AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedAgents} agent(s).\n");
+            });
     }
 
     private void DeleteReferencedFiles(IEnumerable<AgentDefinition> definitions)

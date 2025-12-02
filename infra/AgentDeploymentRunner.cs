@@ -66,14 +66,18 @@ public class AgentDeploymentRunner
         AnsiConsole.MarkupLine($"[cyan]Found {definitions.Length} agent definition(s) to process.[/]");
         AnsiConsole.WriteLine();
 
-        bool deleteRequested = ShouldDelete(deleteFlag);
-        if (deleteRequested)
+        // Ask for each deletion type separately
+        bool deleteAgents = ShouldDeleteAgents(deleteFlag);
+        bool deleteIndexes = ShouldDeleteIndexes(deleteFlag);
+        bool deleteDatasets = ShouldDeleteDatasets(deleteFlag);
+
+        if (deleteAgents || deleteIndexes || deleteDatasets)
         {
-            _deletionService.DeleteExisting(definitions);
+            _deletionService.DeleteExisting(definitions, deleteAgents, deleteIndexes, deleteDatasets);
         }
         else
         {
-            AnsiConsole.MarkupLine("[yellow]Skipping deletion of existing agents.[/]\n");
+            AnsiConsole.MarkupLine("[yellow]Skipping all deletion operations.[/]\n");
         }
 
         if (!ConfirmCreation())
@@ -92,11 +96,25 @@ public class AgentDeploymentRunner
         AnsiConsole.MarkupLine("[green]✓ Agent deployment completed successfully![/]");
     }
 
-    private bool ShouldDelete(bool? flag)
+    private bool ShouldDeleteAgents(bool? flag)
     {
         if (flag.HasValue) return flag.Value; // command line override
 
-        return AnsiConsole.Confirm("[yellow]Delete existing agents matching definitions?[/]", true);
+        return AnsiConsole.Confirm("[yellow]Delete existing agents?[/]", true);
+    }
+
+    private bool ShouldDeleteIndexes(bool? flag)
+    {
+        if (flag.HasValue) return flag.Value; // command line override
+
+        return AnsiConsole.Confirm("[yellow]Delete existing indexes (vector stores)?[/]", true);
+    }
+
+    private bool ShouldDeleteDatasets(bool? flag)
+    {
+        if (flag.HasValue) return flag.Value; // command line override
+
+        return AnsiConsole.Confirm("[yellow]Delete existing datasets (files)?[/]", true);
     }
 
     private bool ConfirmCreation()

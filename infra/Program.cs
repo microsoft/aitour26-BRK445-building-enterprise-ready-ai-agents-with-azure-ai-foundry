@@ -7,57 +7,43 @@ using Spectre.Console;
 // Console deployer for persistent agents
 // Refactored for readability and single-responsibility separation.
 
-AnsiConsole.Write(new FigletText("AI Agents Deployer").Centered().Color(Color.Blue));
+AnsiConsole.Write(new FigletText("BRK445 - INFRA").Centered().Color(Color.Blue));
 AnsiConsole.WriteLine();
 
 var config = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
 
-// Default values
-const string DefaultProjectEndpoint = "https://your-project.services.ai.azure.com/api/projects/your-project";
-const string DefaultModelDeploymentName = "gpt-4.1-mini";
-const string DefaultTenantId = "";
+// Read user secrets values (may be null or empty)
+var secretProjectEndpoint = config["ProjectEndpoint"] ?? "";
+var secretModelDeploymentName = config["ModelDeploymentName"] ?? "";
+var secretTenantId = config["TenantId"] ?? "";
 
-// Read configuration with defaults
-var projectEndpoint = config["ProjectEndpoint"];
-var modelDeploymentName = config["ModelDeploymentName"];
-var tenantId = config["TenantId"];
+// Always prompt user with secrets as defaults
+var projectEndpoint = AnsiConsole.Prompt(
+    new TextPrompt<string>("Enter [green]Project Endpoint[/]:")
+        .DefaultValue(secretProjectEndpoint)
+        .AllowEmpty()
+        .Validate(value =>
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return ValidationResult.Error("[red]Project Endpoint cannot be empty[/]");
+            return ValidationResult.Success();
+        }));
 
-// Prompt for missing values with defaults
-if (string.IsNullOrWhiteSpace(projectEndpoint))
-{
-    projectEndpoint = AnsiConsole.Ask<string>("Enter [green]Project Endpoint[/]:", DefaultProjectEndpoint);
-}
-else
-{
-    AnsiConsole.MarkupLine($"[grey]Using Project Endpoint:[/] [cyan]{projectEndpoint}[/]");
-}
+var modelDeploymentName = AnsiConsole.Prompt(
+    new TextPrompt<string>("Enter [green]Model Deployment Name[/]:")
+        .DefaultValue(secretModelDeploymentName)
+        .AllowEmpty()
+        .Validate(value =>
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return ValidationResult.Error("[red]Model Deployment Name cannot be empty[/]");
+            return ValidationResult.Success();
+        }));
 
-if (string.IsNullOrWhiteSpace(modelDeploymentName))
-{
-    modelDeploymentName = AnsiConsole.Ask<string>("Enter [green]Model Deployment Name[/]:", DefaultModelDeploymentName);
-}
-else
-{
-    AnsiConsole.MarkupLine($"[grey]Using Model Deployment:[/] [cyan]{modelDeploymentName}[/]");
-}
-
-if (string.IsNullOrWhiteSpace(tenantId))
-{
-    tenantId = AnsiConsole.Prompt(
-        new TextPrompt<string>("Enter [green]Tenant ID[/] (optional):")
-            .AllowEmpty()
-            .DefaultValue(DefaultTenantId));
-}
-else
-{
-    AnsiConsole.MarkupLine($"[grey]Using Tenant ID:[/] [cyan]{tenantId}[/]");
-}
-
-if (string.IsNullOrWhiteSpace(projectEndpoint) || string.IsNullOrWhiteSpace(modelDeploymentName))
-{
-    AnsiConsole.MarkupLine("[red]Error: Missing required configuration settings: ProjectEndpoint, ModelDeploymentName[/]");
-    return;
-}
+var tenantId = AnsiConsole.Prompt(
+    new TextPrompt<string>("Enter [green]Tenant ID[/] (optional):")
+        .DefaultValue(secretTenantId)
+        .AllowEmpty());
 
 AnsiConsole.WriteLine();
 AnsiConsole.WriteLine();
