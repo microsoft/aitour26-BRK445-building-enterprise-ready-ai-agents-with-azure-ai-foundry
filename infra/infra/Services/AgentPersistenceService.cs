@@ -42,9 +42,20 @@ internal sealed class AgentPersistenceService : IAgentPersistenceService
         foreach (var a in created) txt.WriteLine($"- Name: {a.Name} | Id: {a.Id}");
 
         if (_taskTracker != null)
-            _taskTracker.AddLog($"[green]✓[/] Plain text log: [grey]{logPath}[/]");
+        {
+            _taskTracker.AddLog($"[green]✓[/] Plain text log:");
+            _taskTracker.SetOutputPaths(logPath, null);
+        }
         else
-            AnsiConsole.MarkupLine($"[green]✓[/] Plain text log: [grey]{logPath}[/]");
+        {
+            AnsiConsole.MarkupLine($"[green]✓[/] Plain text log:");
+            var tp = new Spectre.Console.TextPath(logPath)
+                .RootColor(Color.Green)
+                .SeparatorColor(Color.Grey)
+                .StemColor(Color.White)
+                .LeafColor(Color.Yellow);
+            AnsiConsole.Write(tp);
+        }
 
         var jsonPath = Path.Combine(AppContext.BaseDirectory, "CreatedAgents.json");
         var map = new Dictionary<string, string>();
@@ -53,9 +64,20 @@ internal sealed class AgentPersistenceService : IAgentPersistenceService
         File.WriteAllText(jsonPath, json, Encoding.UTF8);
 
         if (_taskTracker != null)
-            _taskTracker.AddLog($"[green]✓[/] JSON connection string map: [grey]{jsonPath}[/]");
+        {
+            _taskTracker.AddLog($"[green]✓[/] JSON connection string map:");
+            _taskTracker.SetOutputPaths(_taskTracker != null ? logPath : null, jsonPath);
+        }
         else
-            AnsiConsole.MarkupLine($"[green]✓[/] JSON connection string map: [grey]{jsonPath}[/]");
+        {
+            AnsiConsole.MarkupLine($"[green]✓[/] JSON connection string map:");
+            var tp = new Spectre.Console.TextPath(jsonPath)
+                .RootColor(Color.Green)
+                .SeparatorColor(Color.Grey)
+                .StemColor(Color.White)
+                .LeafColor(Color.Yellow);
+            AnsiConsole.Write(tp);
+        }
     }
     private static string BuildConnectionStringKey(string name)
     {

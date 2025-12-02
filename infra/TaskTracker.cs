@@ -20,6 +20,8 @@ public class TaskTracker
     private LiveDisplayContext? _liveContext;
     private Table? _mainTable;
     private bool _liveActive = false;
+    private string? _lastPlainTextLogPath;
+    private string? _lastJsonLogPath;
 
     // Dynamic operation counters
     private int _agentsToDelete = 0;
@@ -173,6 +175,16 @@ public class TaskTracker
         }
     }
 
+    public void SetOutputPaths(string? plainTextPath, string? jsonPath)
+    {
+        lock (_lock)
+        {
+            _lastPlainTextLogPath = plainTextPath;
+            _lastJsonLogPath = jsonPath;
+            UpdateDisplay();
+        }
+    }
+
     public void StartLiveDisplay()
     {
         _mainTable = BuildMainTable();
@@ -245,13 +257,24 @@ public class TaskTracker
         // Configuration
         var tenantDisplay = string.IsNullOrWhiteSpace(_tenantId) ? "[italic grey]none[/]" : _tenantId;
         var configGrid = new Grid().AddColumn().AddColumn();
-        var projectPath = new TextPath(_projectEndpoint)
-            .RootColor(Color.CadetBlue)
-            .SeparatorColor(Color.Grey)
-            .StemColor(Color.White)
-            .LeafColor(Color.Yellow);
+        // Use TextPath only for local file/system paths; URLs should be rendered as links
+        IRenderable projectRenderable;
+        if (Uri.IsWellFormedUriString(_projectEndpoint, UriKind.Absolute))
+        {
+            var safeText = Markup.Escape(_projectEndpoint);
+            projectRenderable = new Markup($"[link={safeText}]{safeText}[/]");
+        }
+        else
+        {
+            var projectPath = new TextPath(_projectEndpoint)
+                .RootColor(Color.CadetBlue)
+                .SeparatorColor(Color.Grey)
+                .StemColor(Color.White)
+                .LeafColor(Color.Yellow);
+            projectRenderable = projectPath;
+        }
         configGrid.AddRow(new Markup("[bold yellow]Configuration :gear:[/]"));
-        configGrid.AddRow(new Markup("[grey]Project:[/]"), projectPath);
+        configGrid.AddRow(new Markup("[grey]Project:[/]"), projectRenderable);
         configGrid.AddRow(new Markup("[grey]Model:[/]"), new Markup($"{_modelName}"));
         configGrid.AddRow(new Markup("[grey]Tenant:[/]"), new Markup($"{tenantDisplay}"));
         table.AddRow(configGrid);
@@ -263,6 +286,32 @@ public class TaskTracker
         // Activity Log (last 8 lines)
         var logText = BuildLogText();
         table.AddRow(new Rows(new Markup("[bold yellow]Activity Log :memo:[/]"), new Markup(logText)));
+
+        // Outputs section with TextPath for generated files on new lines
+        if (!string.IsNullOrWhiteSpace(_lastPlainTextLogPath) || !string.IsNullOrWhiteSpace(_lastJsonLogPath))
+        {
+            var renderables = new List<IRenderable>();
+            renderables.Add(new Markup("[bold yellow]Outputs :floppy_disk:[/]"));
+            if (!string.IsNullOrWhiteSpace(_lastPlainTextLogPath))
+            {
+                var tp = new TextPath(_lastPlainTextLogPath!)
+                    .RootColor(Color.Green)
+                    .SeparatorColor(Color.Grey)
+                    .StemColor(Color.White)
+                    .LeafColor(Color.Yellow);
+                renderables.Add(new Rows(new Markup("[grey]Plain text log:[/]"), tp));
+            }
+            if (!string.IsNullOrWhiteSpace(_lastJsonLogPath))
+            {
+                var tp = new TextPath(_lastJsonLogPath!)
+                    .RootColor(Color.Green)
+                    .SeparatorColor(Color.Grey)
+                    .StemColor(Color.White)
+                    .LeafColor(Color.Yellow);
+                renderables.Add(new Rows(new Markup("[grey]JSON map:[/]"), tp));
+            }
+            table.AddRow(new Rows(renderables.ToArray()));
+        }
 
         // Always show input cell at bottom separated by a line
         var inputContent = "[grey]" + new string('─', 60) + "[/]\n[bold yellow]> Input :keyboard:[/]\n[yellow on blue]" + (_currentInteraction ?? "") + "[/]";
