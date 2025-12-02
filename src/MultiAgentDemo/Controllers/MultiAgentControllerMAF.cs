@@ -179,17 +179,10 @@ namespace MultiAgentDemo.Controllers
         [HttpPost("assist/magentic")]
         public async Task<ActionResult<MultiAgentResponse>> AssistMagenticAsync([FromBody] MultiAgentRequest? request)
         {
-            _logger.LogInformation("Starting Magentic workflow for query: {ProductQuery} using Microsoft Agent Framework", request.ProductQuery);
+            _logger.LogInformation("Starting Magentic workflow for query: {ProductQuery} using Microsoft Agent Framework", request?.ProductQuery);
 
-            try
-            {
-                throw new NotImplementedException("The Magentic workflow is not implemented yet.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in Magentic workflow using Microsoft Agent Framework");
-                return StatusCode(500, "An error occurred during Magentic workflow processing.");
-            }
+            // MagenticOne workflow is not yet implemented - return 501 Not Implemented
+            return StatusCode(501, "The MagenticOne workflow is not yet implemented in the MAF framework. Please use another orchestration type or the MAF Foundry implementation.");
         }
 
         private async Task<MultiAgentResponse> RunWorkFlow(MultiAgentRequest request, Workflow workflow)
