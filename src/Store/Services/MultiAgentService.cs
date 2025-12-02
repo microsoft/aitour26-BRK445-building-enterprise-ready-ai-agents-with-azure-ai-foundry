@@ -58,7 +58,8 @@ public class MultiAgentService
     {
         var frameworkPath = framework switch
         {
-            "agentfx" => "agentfx",
+            "maf" => "maf",
+            "maffoundry" => "maffoundry",
             "llm" => "llm",
             _ => "sk"
         };

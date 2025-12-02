@@ -59,15 +59,27 @@ public class ProductSearchController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("search/agentfx")]
-    public async Task<ActionResult<ToolRecommendation[]>> SearchInventoryAgentFxAsync([FromBody] InventorySearchRequest request, CancellationToken cancellationToken)
+    [HttpPost("search/maf")]
+    public async Task<ActionResult<ToolRecommendation[]>> SearchInventoryMAFAsync([FromBody] InventorySearchRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[AgentFx] Searching inventory for query: {SearchQuery}", request.SearchQuery);
+        _logger.LogInformation("[MAF] Searching inventory for query: {SearchQuery}", request.SearchQuery);
 
         return await SearchProductsAsync(
             request,
             InvokeAgentFrameworkAsync,
-            "[AgentFx]",
+            "[MAF]",
+            cancellationToken);
+    }
+
+    [HttpPost("search/maffoundry")]
+    public async Task<ActionResult<ToolRecommendation[]>> SearchInventoryMAFFoundryAsync([FromBody] InventorySearchRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[MAFFoundry] Searching inventory for query: {SearchQuery}", request.SearchQuery);
+
+        return await SearchProductsAsync(
+            request,
+            InvokeAgentFrameworkAsync,
+            "[MAFFoundry]",
             cancellationToken);
     }
 

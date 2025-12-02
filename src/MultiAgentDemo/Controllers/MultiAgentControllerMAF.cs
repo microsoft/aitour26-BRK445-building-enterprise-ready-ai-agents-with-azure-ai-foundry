@@ -8,17 +8,17 @@ using System.Text;
 namespace MultiAgentDemo.Controllers
 {
     [ApiController]
-    [Route("api/multiagent/agentfx")]
-    public class MultiAgentControllerAgentFx : ControllerBase
+    [Route("api/multiagent/maf")]
+    public class MultiAgentControllerMAF : ControllerBase
     {
-        private readonly ILogger<MultiAgentControllerAgentFx> _logger;
+        private readonly ILogger<MultiAgentControllerMAF> _logger;
         private readonly AIAgent _locationServiceAgent;
         private readonly AIAgent _navigationAgent;
         private readonly AIAgent _productMatchmakingAgent;
         private readonly AIAgent _productSearchAgent;
 
-        public MultiAgentControllerAgentFx(
-            ILogger<MultiAgentControllerAgentFx> logger,
+        public MultiAgentControllerMAF(
+            ILogger<MultiAgentControllerMAF> logger,
             [FromKeyedServices("locationserviceagentid")] AIAgent locationServiceAgent,
             [FromKeyedServices("navigationagentid")] AIAgent navigationAgent,
             [FromKeyedServices("productmatchmakingagentid")] AIAgent productMatchmakingAgent,

@@ -67,15 +67,27 @@ public class CustomerController : ControllerBase
             cancellationToken);
     }
 
-    [HttpGet("{customerId}/agentfx")]
-    public async Task<ActionResult<CustomerInformation>> GetCustomerAgentFxAsync(string customerId, CancellationToken cancellationToken)
+    [HttpGet("{customerId}/maf")]
+    public async Task<ActionResult<CustomerInformation>> GetCustomerMAFAsync(string customerId, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[AgentFx] Getting customer information for ID: {CustomerId}", customerId);
+        _logger.LogInformation("[MAF] Getting customer information for ID: {CustomerId}", customerId);
 
         return await GetCustomerAsync(
             customerId,
             async (prompt, token) => await InvokeAgentFrameworkAsync(prompt, token),
-            "[AgentFx]",
+            "[MAF]",
+            cancellationToken);
+    }
+
+    [HttpGet("{customerId}/maffoundry")]
+    public async Task<ActionResult<CustomerInformation>> GetCustomerMAFFoundryAsync(string customerId, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[MAFFoundry] Getting customer information for ID: {CustomerId}", customerId);
+
+        return await GetCustomerAsync(
+            customerId,
+            async (prompt, token) => await InvokeAgentFrameworkAsync(prompt, token),
+            "[MAFFoundry]",
             cancellationToken);
     }
 
@@ -93,10 +105,17 @@ public class CustomerController : ControllerBase
         return MatchToolsInternal(request);
     }
 
-    [HttpPost("match-tools/agentfx")]
-    public ActionResult<ToolMatchResult> MatchToolsAgentFx([FromBody] ToolMatchRequest request)
+    [HttpPost("match-tools/maf")]
+    public ActionResult<ToolMatchResult> MatchToolsMAF([FromBody] ToolMatchRequest request)
     {
-        _logger.LogInformation("[AgentFx] Matching tools for customer {CustomerId}", request.CustomerId);
+        _logger.LogInformation("[MAF] Matching tools for customer {CustomerId}", request.CustomerId);
+        return MatchToolsInternal(request);
+    }
+
+    [HttpPost("match-tools/maffoundry")]
+    public ActionResult<ToolMatchResult> MatchToolsMAFFoundry([FromBody] ToolMatchRequest request)
+    {
+        _logger.LogInformation("[MAFFoundry] Matching tools for customer {CustomerId}", request.CustomerId);
         return MatchToolsInternal(request);
     }
 

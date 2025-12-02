@@ -63,15 +63,27 @@ public class AgentCatalogController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("testagentfx")]
-    public async Task<ActionResult<AgentTesterResponse>> TestAgentFxAsync([FromBody] AgentTesterRequest request, CancellationToken cancellationToken)
+    [HttpPost("testmaf")]
+    public async Task<ActionResult<AgentTesterResponse>> TestMAFAsync([FromBody] AgentTesterRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[AgentFx] Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
+        _logger.LogInformation("[MAF] Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
 
         return await TestAgentAsync(
             request,
             InvokeAgentFrameworkAsync,
-            "[AgentFx]",
+            "[MAF]",
+            cancellationToken);
+    }
+
+    [HttpPost("testmaffoundry")]
+    public async Task<ActionResult<AgentTesterResponse>> TestMAFFoundryAsync([FromBody] AgentTesterRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[MAFFoundry] Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
+
+        return await TestAgentAsync(
+            request,
+            InvokeAgentFrameworkAsync,
+            "[MAFFoundry]",
             cancellationToken);
     }
 
