@@ -1,5 +1,5 @@
-using Azure.AI.Agents.Persistent;
-using Infra.AgentDeployment;
+using Azure.AI.Projects;
+using Spectre.Console;
 
 namespace Infra.AgentDeployment;
 
@@ -9,7 +9,7 @@ namespace Infra.AgentDeployment;
 /// </summary>
 public class AgentDeploymentRunner
 {
-    private readonly PersistentAgentsClient _client;
+    private readonly AIProjectClient _client;
     private readonly string _modelDeploymentName;
     private readonly string _configPath;
     private readonly IAgentDefinitionLoader _definitionLoader;
@@ -19,7 +19,7 @@ public class AgentDeploymentRunner
     private readonly IAgentPersistenceService _persistenceService;
 
     public AgentDeploymentRunner(
-        PersistentAgentsClient client,
+        AIProjectClient client,
         string modelDeploymentName,
         string configPath)
         : this(
@@ -30,11 +30,12 @@ public class AgentDeploymentRunner
             new AgentDeletionService(client),
             new AgentFileUploader(client),
             new AgentCreationService(client, modelDeploymentName),
-            new AgentPersistenceService()) { }
+            new AgentPersistenceService())
+    { }
 
     // Internal primary constructor for DI / testing; keeps helper abstractions internal.
     internal AgentDeploymentRunner(
-        PersistentAgentsClient client,
+        AIProjectClient client,
         string modelDeploymentName,
         string configPath,
         IAgentDefinitionLoader definitionLoader,
@@ -58,9 +59,12 @@ public class AgentDeploymentRunner
         var definitions = _definitionLoader.LoadDefinitions();
         if (definitions.Length == 0)
         {
-            Console.WriteLine("No agent definitions to process.");
+            AnsiConsole.MarkupLine("[yellow]No agent definitions to process.[/]");
             return;
         }
+
+        AnsiConsole.MarkupLine($"[cyan]Found {definitions.Length} agent definition(s) to process.[/]");
+        AnsiConsole.WriteLine();
 
         bool deleteRequested = ShouldDelete(deleteFlag);
         if (deleteRequested)
@@ -69,12 +73,12 @@ public class AgentDeploymentRunner
         }
         else
         {
-            Console.WriteLine("Skipping deletion of existing agents.\n");
+            AnsiConsole.MarkupLine("[yellow]Skipping deletion of existing agents.[/]\n");
         }
 
         if (!ConfirmCreation())
         {
-            Console.WriteLine("Agent creation canceled by user.");
+            AnsiConsole.MarkupLine("[red]Agent creation canceled by user.[/]");
             return;
         }
 
@@ -83,23 +87,20 @@ public class AgentDeploymentRunner
 
         var createdAgents = _creationService.CreateAgents(definitions, uploadedFiles);
         _persistenceService.PersistCreated(createdAgents);
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[green]✓ Agent deployment completed successfully![/]");
     }
 
     private bool ShouldDelete(bool? flag)
     {
         if (flag.HasValue) return flag.Value; // command line override
 
-        Console.Write("Delete existing agents matching definitions? (Y/n): ");
-        var input = Console.ReadLine();
-        // Default YES when empty
-        return string.IsNullOrWhiteSpace(input) || input.Trim().Equals("y", StringComparison.OrdinalIgnoreCase);
+        return AnsiConsole.Confirm("[yellow]Delete existing agents matching definitions?[/]", true);
     }
 
     private bool ConfirmCreation()
     {
-        Console.Write("Proceed to create agents now? (Y/n): ");
-        var input = Console.ReadLine();
-        // Default YES when empty
-        return string.IsNullOrWhiteSpace(input) || input.Trim().Equals("y", StringComparison.OrdinalIgnoreCase);
+        return AnsiConsole.Confirm("[cyan]Proceed to create agents now?[/]", true);
     }
 }

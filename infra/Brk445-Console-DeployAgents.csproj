@@ -10,9 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.AI.Agents.Persistent" Version="1.2.0-beta.6" />
-    <PackageReference Include="Azure.Identity" Version="1.17.1" />
+	  <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-preview.251125.1" />
+	  <PackageReference Include="Microsoft.Agents.AI.AzureAI" Version="1.0.0-preview.251125.1" />
+	  <PackageReference Include="Azure.Identity" Version="1.17.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0" />
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
   </ItemGroup>
 
   <ItemGroup>
