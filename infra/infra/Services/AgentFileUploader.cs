@@ -79,16 +79,37 @@ internal sealed class AgentFileUploader : IAgentFileUploader
                 {
                     var info = new FileInfo(path);
                     _taskTracker.AddLog($"[cyan]Uploading[/] {info.Name}");
+
+                    // Live status spinner while uploading
+                    var cts = new System.Threading.CancellationTokenSource();
+                    var spinnerFrames = new[] { "|", "/", "-", "\\" };
+                    var spinnerTask = System.Threading.Tasks.Task.Run(() =>
+                    {
+                        int i = 0;
+                        while (!cts.IsCancellationRequested)
+                        {
+                            var frame = spinnerFrames[i++ % spinnerFrames.Length];
+                            _taskTracker.SetInteraction($"Uploading {info.Name} {frame}");
+                            System.Threading.Thread.Sleep(80);
+                        }
+                    });
+
                     ClientResult<OpenAIFile> uploadResult = fileClient.UploadFile(
                         filePath: path,
                         purpose: FileUploadPurpose.Assistants);
                     uploaded[path] = new UploadedFile(uploadResult.Value.Id, uploadResult.Value.Filename, path);
                     _taskTracker.AddLog($"[green]✓[/] Uploaded: [grey]{uploadResult.Value.Filename}[/] (Id: {uploadResult.Value.Id})");
                     _taskTracker.IncrementProgress();
+
+                    // Stop spinner and clear interaction
+                    cts.Cancel();
+                    try { spinnerTask.Wait(500); } catch { }
+                    _taskTracker.ClearInteraction();
                 }
                 catch (Exception exUp)
                 {
                     _taskTracker.AddLog($"[red]✗[/] Upload failed for [grey]{path}[/]: {exUp.Message}");
+                    _taskTracker.ClearInteraction();
                 }
             }
             _taskTracker.AddLog($"[green]✓[/] Upload complete. Successfully uploaded {uploaded.Count}/{uniquePaths.Count} file(s).");

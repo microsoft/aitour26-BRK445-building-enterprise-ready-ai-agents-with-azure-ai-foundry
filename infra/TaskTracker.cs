@@ -9,6 +9,7 @@ public class TaskTracker
 {
     private string _projectEndpoint;
     private string _modelName;
+    private string _tenantId = string.Empty;
     private readonly Dictionary<string, bool> _tasks = new();
     private readonly Dictionary<string, Dictionary<string, bool>> _subTasks = new();
     private readonly List<string> _logs = new();
@@ -60,12 +61,13 @@ public class TaskTracker
         }
     }
 
-    public void UpdateConfiguration(string projectEndpoint, string modelName)
+    public void UpdateConfiguration(string projectEndpoint, string modelName, string tenantId)
     {
         lock (_lock)
         {
             _projectEndpoint = projectEndpoint;
             _modelName = modelName;
+            _tenantId = tenantId;
             UpdateDisplay();
         }
     }
@@ -241,10 +243,12 @@ public class TaskTracker
         table.AddRow($"[bold yellow]Progress[/]\n{progressBar}");
 
         // Configuration
+        var tenantDisplay = string.IsNullOrWhiteSpace(_tenantId) ? "[italic grey]none[/]" : _tenantId;
         table.AddRow(
             $"[bold yellow]Configuration[/]\n" +
             $"[grey]Project:[/] {TruncateUrl(_projectEndpoint)}\n" +
-            $"[grey]Model:[/] {_modelName}");
+            $"[grey]Model:[/] {_modelName}\n" +
+            $"[grey]Tenant:[/] {tenantDisplay}");
 
         // Tasks
         var tasksText = BuildTasksText();
@@ -313,11 +317,11 @@ public class TaskTracker
         var plainText = System.Text.RegularExpressions.Regex.Replace(message, @"\[.*?\]", "");
         if (plainText.Length <= 100)
             return message;
-        
+
         // Find first markup tag to preserve formatting
         var firstTagMatch = System.Text.RegularExpressions.Regex.Match(message, @"^(\[.*?\])");
         var prefix = firstTagMatch.Success ? firstTagMatch.Groups[1].Value : "";
-        
+
         // Truncate and add ellipsis
         var truncated = message.Substring(0, Math.Min(message.Length, 100));
         return truncated + "...[/]";
@@ -353,7 +357,7 @@ public class TaskTracker
         {
             ("project", "Enter Project Endpoint", true, project),
             ("model", "Enter Model Deployment Name", true, model),
-            ("tenant", "Enter Tenant ID (optional, press Enter to skip)", false, tenant)
+            ("tenant", "Enter Tenant ID (optional, press ESC to skip)", false, tenant)
         };
 
         foreach (var p in prompts.ToList())
@@ -379,7 +383,16 @@ public class TaskTracker
                         }
                         else
                         {
-                            done = true;
+                            // For tenant (optional), Enter should confirm only if a value was provided.
+                            if (p.key == "tenant" && string.IsNullOrWhiteSpace(buffer))
+                            {
+                                // Do not skip on Enter; require ESC to skip.
+                                showError = false; // no error, just continue waiting for input or ESC
+                            }
+                            else
+                            {
+                                done = true;
+                            }
                         }
                     }
                     else if (key.Key == ConsoleKey.Backspace)
@@ -391,7 +404,16 @@ public class TaskTracker
                     }
                     else if (key.Key == ConsoleKey.Escape)
                     {
-                        buffer = string.Empty;
+                        // ESC will skip the Tenant ID by clearing and completing.
+                        if (p.key == "tenant")
+                        {
+                            buffer = string.Empty;
+                            done = true;
+                        }
+                        else
+                        {
+                            buffer = string.Empty;
+                        }
                     }
                     else if (!char.IsControl(key.KeyChar))
                     {
@@ -421,7 +443,7 @@ public class TaskTracker
         }
 
         ClearInteraction();
-        UpdateConfiguration(project, model);
+        UpdateConfiguration(project, model, tenant);
         return (project, model, tenant);
     }
 
