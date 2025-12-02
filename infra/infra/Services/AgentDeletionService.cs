@@ -17,7 +17,14 @@ internal interface IAgentDeletionService
 internal sealed class AgentDeletionService : IAgentDeletionService
 {
     private readonly AIProjectClient _client;
-    public AgentDeletionService(AIProjectClient client) => _client = client;
+    private readonly TaskTracker? _taskTracker;
+
+    public AgentDeletionService(AIProjectClient client, TaskTracker? taskTracker = null)
+    {
+        _client = client;
+        _taskTracker = taskTracker;
+    }
+
     public void DeleteExisting(IEnumerable<AgentDefinition> definitions, bool deleteAgents, bool deleteIndexes, bool deleteDatasets)
     {
         try
@@ -25,68 +32,118 @@ internal sealed class AgentDeletionService : IAgentDeletionService
             if (deleteAgents)
             {
                 DeleteAgents(definitions);
+                _taskTracker?.CompleteSubTask("Deleting", "Agents");
             }
             else
             {
-                AnsiConsole.MarkupLine("[yellow]Skipping agent deletion.[/]");
+                if (_taskTracker != null)
+                    _taskTracker.AddLog("[yellow]Skipping agent deletion.[/]");
+                else
+                    AnsiConsole.MarkupLine("[yellow]Skipping agent deletion.[/]");
             }
 
             if (deleteDatasets)
             {
                 DeleteReferencedFiles(definitions);
+                _taskTracker?.CompleteSubTask("Deleting", "DataSets");
             }
             else
             {
-                AnsiConsole.MarkupLine("[yellow]Skipping dataset (file) deletion.[/]");
+                if (_taskTracker != null)
+                    _taskTracker.AddLog("[yellow]Skipping dataset (file) deletion.[/]");
+                else
+                    AnsiConsole.MarkupLine("[yellow]Skipping dataset (file) deletion.[/]");
             }
 
             if (deleteIndexes)
             {
                 DeleteVectorStores(definitions);
+                _taskTracker?.CompleteSubTask("Deleting", "Indexes");
             }
             else
             {
-                AnsiConsole.MarkupLine("[yellow]Skipping index (vector store) deletion.[/]");
+                if (_taskTracker != null)
+                    _taskTracker.AddLog("[yellow]Skipping index (vector store) deletion.[/]");
+                else
+                    AnsiConsole.MarkupLine("[yellow]Skipping index (vector store) deletion.[/]");
             }
 
-            AnsiConsole.WriteLine();
+            if (_taskTracker == null)
+                AnsiConsole.WriteLine();
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[yellow]⚠[/] Unexpected error during deletion: {ex.Message}");
-            AnsiConsole.MarkupLine("[grey]Continuing with agent creation...[/]\n");
+            if (_taskTracker != null)
+            {
+                _taskTracker.AddLog($"[yellow]⚠[/] Unexpected error during deletion: {ex.Message}");
+                _taskTracker.AddLog("[grey]Continuing with agent creation...[/]");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[yellow]⚠[/] Unexpected error during deletion: {ex.Message}");
+                AnsiConsole.MarkupLine("[grey]Continuing with agent creation...[/]\n");
+            }
         }
     }
 
     private void DeleteAgents(IEnumerable<AgentDefinition> definitions)
     {
-        AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots)
-            .Start("Deleting existing agents...", ctx =>
-            {
-                var namesToDelete = new HashSet<string>(definitions.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
-                int deletedAgents = 0;
+        if (_taskTracker != null)
+        {
+            var namesToDelete = new HashSet<string>(definitions.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
+            int deletedAgents = 0;
 
-                // Get all agents and delete matching ones
-                var agents = _client.Agents.GetAgents();
-                foreach (var existing in agents)
+            _taskTracker.AddLog("[grey]Deleting existing agents...[/]");
+
+            var agents = _client.Agents.GetAgents();
+            foreach (var existing in agents)
+            {
+                if (namesToDelete.Contains(existing.Name))
                 {
-                    if (namesToDelete.Contains(existing.Name))
+                    try
                     {
-                        try
-                        {
-                            _client.Agents.DeleteAgent(existing.Name);
-                            AnsiConsole.MarkupLine($"[red]✓[/] Deleted agent: [grey]{existing.Name}[/] ({existing.Id})");
-                            deletedAgents++;
-                        }
-                        catch (Exception exDel)
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete agent [grey]'{existing.Name}'[/] ({existing.Id}): {exDel.Message}");
-                        }
+                        _client.Agents.DeleteAgent(existing.Name);
+                        _taskTracker.AddLog($"[red]✓[/] Deleted agent: [grey]{existing.Name}[/] ({existing.Id})");
+                        deletedAgents++;
+                    }
+                    catch (Exception exDel)
+                    {
+                        _taskTracker.AddLog($"[red]✗[/] Failed to delete agent [grey]'{existing.Name}'[/] ({existing.Id}): {exDel.Message}");
                     }
                 }
-                AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedAgents} agent(s).\n");
-            });
+            }
+            _taskTracker.AddLog($"[green]✓[/] Deleted {deletedAgents} agent(s).");
+        }
+        else
+        {
+            AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .Start("Deleting existing agents...", ctx =>
+                {
+                    var namesToDelete = new HashSet<string>(definitions.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
+                    int deletedAgents = 0;
+
+                    // Get all agents and delete matching ones
+                    var agents = _client.Agents.GetAgents();
+                    foreach (var existing in agents)
+                    {
+                        if (namesToDelete.Contains(existing.Name))
+                        {
+                            try
+                            {
+                                _client.Agents.DeleteAgent(existing.Name);
+                                AnsiConsole.MarkupLine($"[red]✓[/] Deleted agent: [grey]{existing.Name}[/] ({existing.Id})");
+                                deletedAgents++;
+                            }
+                            catch (Exception exDel)
+                            {
+                                AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete agent [grey]'{existing.Name}'[/] ({existing.Id}): {exDel.Message}");
+                            }
+                        }
+                    }
+                    AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedAgents} agent(s).\n");
+                });
+        }
     }
 
     private void DeleteReferencedFiles(IEnumerable<AgentDefinition> definitions)
@@ -100,10 +157,18 @@ internal sealed class AgentDeletionService : IAgentDeletionService
                 StringComparer.OrdinalIgnoreCase);
             if (fileNames.Count == 0)
             {
-                AnsiConsole.MarkupLine("[grey]No file names referenced in definitions to delete.[/]");
+                if (_taskTracker != null)
+                    _taskTracker.AddLog("[grey]No file names referenced in definitions to delete.[/]");
+                else
+                    AnsiConsole.MarkupLine("[grey]No file names referenced in definitions to delete.[/]");
                 return;
             }
-            AnsiConsole.MarkupLine($"[grey]Deleting {fileNames.Count} referenced file(s)...[/]");
+
+            if (_taskTracker != null)
+                _taskTracker.AddLog($"[grey]Deleting {fileNames.Count} referenced file(s)...[/]");
+            else
+                AnsiConsole.MarkupLine($"[grey]Deleting {fileNames.Count} referenced file(s)...[/]");
+
             int deletedFiles = 0;
 
             OpenAIClient openAIClient = _client.GetProjectOpenAIClient();
@@ -117,20 +182,34 @@ internal sealed class AgentDeletionService : IAgentDeletionService
                     if (fileNames.Contains(existingFile.Filename))
                     {
                         fileClient.DeleteFile(existingFile.Id);
-                        AnsiConsole.MarkupLine($"[red]✓[/] Deleted file: [grey]{existingFile.Filename}[/] ({existingFile.Id})");
+
+                        if (_taskTracker != null)
+                            _taskTracker.AddLog($"[red]✓[/] Deleted file: [grey]{existingFile.Filename}[/] ({existingFile.Id})");
+                        else
+                            AnsiConsole.MarkupLine($"[red]✓[/] Deleted file: [grey]{existingFile.Filename}[/] ({existingFile.Id})");
                         deletedFiles++;
                     }
                 }
                 catch (Exception exFile)
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete file [grey]'{existingFile.Filename}'[/]: {exFile.Message}");
+                    if (_taskTracker != null)
+                        _taskTracker.AddLog($"[red]✗[/] Failed to delete file [grey]'{existingFile.Filename}'[/]: {exFile.Message}");
+                    else
+                        AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete file [grey]'{existingFile.Filename}'[/]: {exFile.Message}");
                 }
             }
-            AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedFiles} file(s).\n");
+
+            if (_taskTracker != null)
+                _taskTracker.AddLog($"[green]✓[/] Deleted {deletedFiles} file(s).");
+            else
+                AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedFiles} file(s).\n");
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[yellow]⚠[/] File deletion error: {ex.Message}");
+            if (_taskTracker != null)
+                _taskTracker.AddLog($"[yellow]⚠[/] File deletion error: {ex.Message}");
+            else
+                AnsiConsole.MarkupLine($"[yellow]⚠[/] File deletion error: {ex.Message}");
         }
     }
 
@@ -145,11 +224,18 @@ internal sealed class AgentDeletionService : IAgentDeletionService
 
             if (agentNames.Count == 0)
             {
-                AnsiConsole.MarkupLine("[grey]No agent names to derive vector store patterns.[/]");
+                if (_taskTracker != null)
+                    _taskTracker.AddLog("[grey]No agent names to derive vector store patterns.[/]");
+                else
+                    AnsiConsole.MarkupLine("[grey]No agent names to derive vector store patterns.[/]");
                 return;
             }
 
-            AnsiConsole.MarkupLine($"[grey]Searching for vector stores matching {agentNames.Count} agent(s)...[/]");
+            if (_taskTracker != null)
+                _taskTracker.AddLog($"[grey]Searching for vector stores matching {agentNames.Count} agent(s)...[/]");
+            else
+                AnsiConsole.MarkupLine($"[grey]Searching for vector stores matching {agentNames.Count} agent(s)...[/]");
+
             int deletedVs = 0;
 
             OpenAIClient openAIClient = _client.GetProjectOpenAIClient();
@@ -168,20 +254,34 @@ internal sealed class AgentDeletionService : IAgentDeletionService
                     if (matches)
                     {
                         vectorStoreClient.DeleteVectorStore(vs.Id);
-                        AnsiConsole.MarkupLine($"[red]✓[/] Deleted vector store: [grey]{vs.Name}[/] ({vs.Id})");
+
+                        if (_taskTracker != null)
+                            _taskTracker.AddLog($"[red]✓[/] Deleted vector store: [grey]{vs.Name}[/] ({vs.Id})");
+                        else
+                            AnsiConsole.MarkupLine($"[red]✓[/] Deleted vector store: [grey]{vs.Name}[/] ({vs.Id})");
                         deletedVs++;
                     }
                 }
                 catch (Exception exVs)
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete vector store [grey]'{vs.Name}'[/]: {exVs.Message}");
+                    if (_taskTracker != null)
+                        _taskTracker.AddLog($"[red]✗[/] Failed to delete vector store [grey]'{vs.Name}'[/]: {exVs.Message}");
+                    else
+                        AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete vector store [grey]'{vs.Name}'[/]: {exVs.Message}");
                 }
             }
-            AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedVs} vector store(s).\n");
+
+            if (_taskTracker != null)
+                _taskTracker.AddLog($"[green]✓[/] Deleted {deletedVs} vector store(s).");
+            else
+                AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedVs} vector store(s).\n");
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[yellow]⚠[/] Vector store deletion error: {ex.Message}");
+            if (_taskTracker != null)
+                _taskTracker.AddLog($"[yellow]⚠[/] Vector store deletion error: {ex.Message}");
+            else
+                AnsiConsole.MarkupLine($"[yellow]⚠[/] Vector store deletion error: {ex.Message}");
         }
     }
 }
