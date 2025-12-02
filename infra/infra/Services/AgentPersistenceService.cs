@@ -63,10 +63,27 @@ internal sealed class AgentPersistenceService : IAgentPersistenceService
         var json = JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(jsonPath, json, Encoding.UTF8);
 
+        // Save activity log to file
+        var logFilePath = Path.Combine(AppContext.BaseDirectory, "CreatedAgents.log");
+        if (_taskTracker != null)
+        {
+            var allLogs = _taskTracker.GetAllLogs();
+            using var logWriter = new StreamWriter(logFilePath, append: false, encoding: Encoding.UTF8);
+            logWriter.WriteLine($"Activity Log - Creation Timestamp (UTC): {DateTime.UtcNow:O}");
+            logWriter.WriteLine(new string('=', 80));
+            foreach (var log in allLogs)
+            {
+                // Strip Spectre.Console markup for plain text log
+                var plainLog = System.Text.RegularExpressions.Regex.Replace(log, @"\[.*?\]", "");
+                logWriter.WriteLine(plainLog);
+            }
+            _taskTracker.AddLog($"[green]✓[/] Activity log file:");
+        }
+
         if (_taskTracker != null)
         {
             _taskTracker.AddLog($"[green]✓[/] JSON connection string map:");
-            _taskTracker.SetOutputPaths(_taskTracker != null ? logPath : null, jsonPath);
+            _taskTracker.SetOutputPaths(logPath, jsonPath, logFilePath);
         }
         else
         {

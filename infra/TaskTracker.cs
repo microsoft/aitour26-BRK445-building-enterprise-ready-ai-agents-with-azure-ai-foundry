@@ -22,6 +22,7 @@ public class TaskTracker
     private bool _liveActive = false;
     private string? _lastPlainTextLogPath;
     private string? _lastJsonLogPath;
+    private string? _lastLogFilePath;
 
     // Dynamic operation counters
     private int _agentsToDelete = 0;
@@ -157,6 +158,14 @@ public class TaskTracker
         }
     }
 
+    public List<string> GetAllLogs()
+    {
+        lock (_lock)
+        {
+            return new List<string>(_logs);
+        }
+    }
+
     public void SetInteraction(string message)
     {
         lock (_lock)
@@ -175,12 +184,16 @@ public class TaskTracker
         }
     }
 
-    public void SetOutputPaths(string? plainTextPath, string? jsonPath)
+    public void SetOutputPaths(string? plainTextPath, string? jsonPath, string? logFilePath = null)
     {
         lock (_lock)
         {
             _lastPlainTextLogPath = plainTextPath;
             _lastJsonLogPath = jsonPath;
+            if (logFilePath != null)
+            {
+                _lastLogFilePath = logFilePath;
+            }
             UpdateDisplay();
         }
     }
@@ -309,6 +322,15 @@ public class TaskTracker
                     .StemColor(Color.White)
                     .LeafColor(Color.Yellow);
                 renderables.Add(new Rows(new Markup("[grey]JSON map:[/]"), tp));
+            }
+            if (!string.IsNullOrWhiteSpace(_lastLogFilePath))
+            {
+                var tp = new TextPath(_lastLogFilePath!)
+                    .RootColor(Color.Green)
+                    .SeparatorColor(Color.Grey)
+                    .StemColor(Color.White)
+                    .LeafColor(Color.Yellow);
+                renderables.Add(new Rows(new Markup("[grey]Activity log file:[/]"), tp));
             }
             table.AddRow(new Rows(renderables.ToArray()));
         }
