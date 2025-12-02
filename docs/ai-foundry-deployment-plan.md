@@ -1,13 +1,13 @@
-# Azure AI Foundry Deployment Migration Plan
+# Microsoft Foundry Deployment Migration Plan
 
-This document captures the actionable steps required to evolve `deploy.ps1` and the associated infrastructure templates from provisioning a classic Azure OpenAI resource to Azure AI Foundry (workspace + project). Carry out the steps in order, checking off each task once complete.
+This document captures the actionable steps required to evolve `deploy.ps1` and the associated infrastructure templates from provisioning a classic Azure OpenAI resource to Microsoft Foundry (workspace + project). Carry out the steps in order, checking off each task once complete.
 
 ## Implementation Status
 
 **Date:** October 20, 2025  
 **Status:** ✅ Core implementation complete - Ready for testing
 
-### Summary of Changes:
+### Summary of Changes
 
 1. **Infrastructure Updates:**
    - Updated `infra/openai/openai.module.bicep` to use AI Foundry naming convention (`aifoundry` instead of `openai`)
@@ -26,7 +26,8 @@ This document captures the actionable steps required to evolve `deploy.ps1` and 
    - `ConnectionStrings:openai` → Alias for backward compatibility
    - `ConnectionStrings:appinsights` → Application Insights connection string
 
-### Next Steps:
+### Next Steps
+
 - User should test the deployment in their Azure subscription
 - Verify connection strings work with the application
 - Optional: Update README with deployment instructions
@@ -35,16 +36,16 @@ This document captures the actionable steps required to evolve `deploy.ps1` and 
 
 ## 1. Research & Prerequisites
 
-- [ ] Review current Azure AI Foundry ARM/Bicep schemas to understand required resource types (workspace, project, model deployments) and GA API versions.
+- [ ] Review current Microsoft Foundry ARM/Bicep schemas to understand required resource types (workspace, project, model deployments) and GA API versions.
 - [ ] Identify required RBAC role definition IDs that grant project-level access to managed identities or applications.
-- [ ] Confirm the desired model SKUs, capacity, and region support within Azure AI Foundry.
+- [ ] Confirm the desired model SKUs, capacity, and region support within Microsoft Foundry.
 - [ ] Collect sample outputs (endpoint URLs, project IDs, connection strings, and keys) to mirror in our deployment outputs.
 
 ## 2. Update Infrastructure Modules
 
 ### 2.1 `infra/openai/openai.module.bicep`
 
-- [x] Replace the existing `Microsoft.CognitiveServices/accounts` resource with Azure AI Foundry equivalents (workspace and project resources).
+- [x] Replace the existing `Microsoft.CognitiveServices/accounts` resource with Microsoft Foundry equivalents (workspace and project resources).
 - [x] Provision model deployments under the AI Foundry project using the appropriate resource types/API versions.
 - [x] Surface outputs for
   - Workspace and project names/IDs
@@ -68,7 +69,7 @@ This document captures the actionable steps required to evolve `deploy.ps1` and 
 
 - [x] Update the deployment output parsing to consume the new AI Foundry output names (AIFOUNDRY_CONNECTIONSTRING, AIFOUNDRY_NAME).
 - [x] Construct the connection details (endpoint + key) using the AI Foundry format by automatically retrieving the API key.
-- [x] Refresh console messaging and saved file content to reference "Azure AI Foundry" terminology.
+- [x] Refresh console messaging and saved file content to reference "Microsoft Foundry" terminology.
 - [x] Persist the final connection details to a local file and echo them back to the user, with the following format:
   - `ConnectionStrings:aifoundry` → `Endpoint=https://<resource>.cognitiveservices.azure.com/;Key=<apikey>`
   - `ConnectionStrings:openai` → `Endpoint=https://<resource>.cognitiveservices.azure.com/;Key=<apikey>` (alias for backward compatibility)
@@ -96,4 +97,4 @@ This document captures the actionable steps required to evolve `deploy.ps1` and 
 
 ---
 
-Once all checkboxes are complete, the project will consistently deploy Azure AI Foundry resources and furnish the correct connection details for downstream services.
+Once all checkboxes are complete, the project will consistently deploy Microsoft Foundry resources and furnish the correct connection details for downstream services.

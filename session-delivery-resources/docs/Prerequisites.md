@@ -22,5 +22,5 @@ This file lists the minimum tooling and access required to run the aspiredemo (Z
 
 See also:
 
-- `./02.NeededCloudResources.md` — instructions to create the Azure AI Foundry project, models and agents used by the demos.
+- `./02.NeededCloudResources.md` — instructions to create the Microsoft Foundry project, models and agents used by the demos.
 - `./HowToRunDemoLocally.md` — step-by-step instructions to build and run the demo locally.

@@ -20,7 +20,7 @@ After running the demo:
 4. Your selection is automatically saved in your browser's localStorage
 5. All agent demos will immediately use the selected framework (no restart needed)
 
-**Note:** All the frameworks connect to the same Azure AI Foundry agents. The selection only affects which orchestration framework is used.
+**Note:** All the frameworks connect to the same Microsoft Foundry agents. The selection only affects which orchestration framework is used.
 
 ## Quick start (terminal)
 
