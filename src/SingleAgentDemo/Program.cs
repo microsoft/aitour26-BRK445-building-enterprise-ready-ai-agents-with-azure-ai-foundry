@@ -1,5 +1,5 @@
 using SingleAgentDemo.Services;
-using ZavaAgentFxAgentsProvider;
+using ZavaMAFAgentsProvider;
 using ZavaSemanticKernelProvider;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,8 +22,8 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config!.GetConnectionString("aifoundryproject");
-    return new AgentFxAgentProvider(aiFoundryProjectConnection!);
+    var aiFoundryProjectConnection = config!.GetConnectionString("foundryproject");
+    return new MAFAgentProvider(aiFoundryProjectConnection!);
 });
 
 builder.Services.AddSingleton(sp => builder.Configuration);

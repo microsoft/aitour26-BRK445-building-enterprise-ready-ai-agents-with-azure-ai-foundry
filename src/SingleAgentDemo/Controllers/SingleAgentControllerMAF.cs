@@ -1,8 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Agents.AI;
+using Microsoft.AspNetCore.Mvc;    
 using SingleAgentDemo.Models;
 using SingleAgentDemo.Services;
-using ZavaAgentFxAgentsProvider;
+using ZavaMAFAgentsProvider;
 
 namespace SingleAgentDemo.Controllers;
 
@@ -15,7 +14,7 @@ public class SingleAgentControllerMAF : ControllerBase
     private readonly CustomerInformationService _customerInformationService;
     private readonly ToolReasoningService _toolReasoningService;
     private readonly InventoryService _inventoryService;
-    private readonly AgentFxAgentProvider _agentFxAgentProvider;
+    private readonly MAFAgentProvider _MAFAgentProvider;
     private readonly IConfiguration _configuration;
 
     public SingleAgentControllerMAF(
@@ -24,7 +23,7 @@ public class SingleAgentControllerMAF : ControllerBase
         CustomerInformationService customerInformationService,
         ToolReasoningService toolReasoningService,
         InventoryService inventoryService,
-        AgentFxAgentProvider agentFxAgentProvider,
+        MAFAgentProvider MAFAgentProvider,
         IConfiguration configuration)
     {
         _logger = logger;
@@ -32,7 +31,7 @@ public class SingleAgentControllerMAF : ControllerBase
         _customerInformationService = customerInformationService;
         _toolReasoningService = toolReasoningService;
         _inventoryService = inventoryService;
-        _agentFxAgentProvider = agentFxAgentProvider;
+        _MAFAgentProvider = MAFAgentProvider;
         _configuration = configuration;
 
         // Set framework to MAF for all agent services

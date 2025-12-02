@@ -14,7 +14,7 @@ var productsDb = sql
 // openai connection string will be used for both products and agent services
 IResourceBuilder<IResourceWithConnectionString>? openai;
 var chatDeploymentName = "gpt-5-mini";
-var embeddingsDeploymentName = "text-embedding-ada-002";
+var embeddingsDeploymentName = "text-embedding-3-small";
 
 // aifoundryproject is used for both products and agent services
 IResourceBuilder<IResourceWithConnectionString>? aifoundryproject;
@@ -137,8 +137,9 @@ if (builder.ExecutionContext.IsPublishMode)
     gpt5mini.Resource.SkuName = "GlobalStandard";
 
     var embeddingsDeployment = aoai.AddDeployment(name: embeddingsDeploymentName,
-        modelName: "text-embedding-ada-002",
-        modelVersion: "2");
+        modelName: "text-embedding-3-small",
+        modelVersion: "1");
+    embeddingsDeployment.Resource.SkuName = "GlobalStandard";
 
     products.WithReference(appInsights);
 
@@ -235,7 +236,7 @@ else
 }
 
 // aifoundry settings here
-aifoundryproject = builder.AddConnectionString("aifoundryproject");
+aifoundryproject = builder.AddConnectionString("foundryproject");
 customerInformationAgentId = builder.AddConnectionString("customerinformationagentid");
 inventoryAgentId = builder.AddConnectionString("inventoryagentid");
 locationServiceAgentId = builder.AddConnectionString("locationserviceagentid");

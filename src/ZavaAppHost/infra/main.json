@@ -31,7 +31,7 @@
         "description": "Id of the user or app to assign application roles"
       }
     },
-    "aifoundryproject": {
+    "foundryproject": {
       "type": "securestring"
     },
     "customerinformationagentid": {
@@ -412,7 +412,7 @@
               "properties": {
                 "model": {
                   "format": "OpenAI",
-                  "name": "text-embedding-ada-002",
+                  "name": "text-embedding-3-small",
                   "version": "2"
                 }
               },

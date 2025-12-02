@@ -5,7 +5,7 @@
       "principalId": {
         "value": "${AZURE_PRINCIPAL_ID}"
       },
-      "aifoundryproject": {
+      "foundryproject": {
         "value": "${AZURE_AIFOUNDRYPROJECT}"
       },
       "customerinformationagentid": {

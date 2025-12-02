@@ -13,10 +13,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\ZavaAgentFxAgentsProvider\ZavaAgentFxAgentsProvider.csproj" />
+  <ItemGroup>    
+    <ProjectReference Include="..\ZavaAIFoundrySKAgentsProvider\ZavaAIFoundrySKAgentsProvider.csproj" />    
+    <ProjectReference Include="..\ZavaMAFAgentsProvider\ZavaMAFAgentsProvider.csproj" />    
     <ProjectReference Include="..\ZavaMAFFoundryAgentsProvider\ZavaMAFFoundryAgentsProvider.csproj" />
-    <ProjectReference Include="..\ZavaAIFoundrySKAgentsProvider\ZavaAIFoundrySKAgentsProvider.csproj" />
     <ProjectReference Include="..\ZavaSemanticKernelProvider\ZavaSemanticKernelProvider.csproj" />
     <ProjectReference Include="..\ZavaServiceDefaults\ZavaServiceDefaults.csproj" />
     <ProjectReference Include="..\SharedEntities\SharedEntities.csproj" />

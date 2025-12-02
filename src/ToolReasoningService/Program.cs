@@ -4,7 +4,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using ZavaAIFoundrySKAgentsProvider;
-using ZavaAgentFxAgentsProvider;
+using ZavaMAFAgentsProvider;
 using ZavaSemanticKernelProvider;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,7 +35,7 @@ builder.Services.AddSingleton<IChatClient>(sp =>
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
+    var aiFoundryProjectConnection = config.GetConnectionString("foundryproject");
     var agentId = config.GetConnectionString("toolreasoningagentid");
     return new AIFoundryAgentProvider(aiFoundryProjectConnection, agentId);
 });
@@ -44,8 +44,8 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
-    return new AgentFxAgentProvider(aiFoundryProjectConnection);
+    var aiFoundryProjectConnection = config.GetConnectionString("foundryproject");
+    return new MAFAgentProvider(aiFoundryProjectConnection);
 });
 
 builder.Services.AddSingleton<AzureAIAgent>(sp =>
@@ -60,7 +60,7 @@ builder.Services.AddSingleton<AIAgent>(sp =>
 {
     var config = sp.GetService<IConfiguration>();
     var agentId = config.GetConnectionString("toolreasoningagentid");
-    var agentFxProvider = sp.GetService<AgentFxAgentProvider>();
+    var agentFxProvider = sp.GetService<MAFAgentProvider>();
     return agentFxProvider.GetAIAgent(agentId);
 });
 

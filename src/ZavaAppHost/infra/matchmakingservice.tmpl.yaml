@@ -26,7 +26,7 @@ properties:
       - name: connectionstrings--aifoundry
         value: '{{ .Env.AIFOUNDRY_CONNECTIONSTRING }}'
       - name: connectionstrings--aifoundryproject
-        value: '{{ securedParameter "aifoundryproject" }}'
+        value: '{{ securedParameter "foundryproject" }}'
   template:
     containers:
       - image: {{ .Image }}

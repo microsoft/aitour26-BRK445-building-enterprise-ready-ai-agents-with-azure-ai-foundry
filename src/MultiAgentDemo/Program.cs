@@ -3,8 +3,8 @@
 using Microsoft.Agents.AI;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using MultiAgentDemo.Services;
-using ZavaAgentFxAgentsProvider;
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaMAFAgentsProvider;
 using ZavaSemanticKernelProvider;
 
 // KernelAzureOpenAIConfigurator moved to its own file under Services to avoid mixing
@@ -30,15 +30,15 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
+    var aiFoundryProjectConnection = config.GetConnectionString("foundryproject");
     return new AIFoundryAgentProvider(aiFoundryProjectConnection, "");
 });
 
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
-    return new AgentFxAgentProvider(aiFoundryProjectConnection!);
+    var aiFoundryProjectConnection = config.GetConnectionString("foundryproject");
+    return new MAFAgentProvider(aiFoundryProjectConnection!);
 });
 
 builder.Services.AddSingleton(sp => builder.Configuration);
@@ -108,7 +108,7 @@ static void AddAgentInSkAndAgentFx(WebApplicationBuilder builder, string key)
     {
         var config = sp.GetRequiredService<IConfiguration>();
         var agentId = config.GetConnectionString(key.ToString());
-        var agentFxProvider = sp.GetRequiredService<AgentFxAgentProvider>();
+        var agentFxProvider = sp.GetRequiredService<MAFAgentProvider>();
         return agentFxProvider.GetAIAgent(agentId);
     });
 }

@@ -1,6 +1,6 @@
 using AgentsCatalogService;
 using ZavaAIFoundrySKAgentsProvider;
-using ZavaAgentFxAgentsProvider;
+using ZavaMAFAgentsProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,15 +16,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<AIFoundryAgentProvider>(sp =>
 {
     var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config?.GetConnectionString("aifoundryproject") ?? "";
+    var aiFoundryProjectConnection = config?.GetConnectionString("foundryproject") ?? "";
     return new AIFoundryAgentProvider(aiFoundryProjectConnection, "");
 });
 
-builder.Services.AddSingleton<AgentFxAgentProvider>(sp =>
+builder.Services.AddSingleton<MAFAgentProvider>(sp =>
 {
     var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config?.GetConnectionString("aifoundryproject") ?? "";
-    return new AgentFxAgentProvider(aiFoundryProjectConnection);
+    var aiFoundryProjectConnection = config?.GetConnectionString("foundryproject") ?? "";
+    return new MAFAgentProvider(aiFoundryProjectConnection);
 });
 
 var app = builder.Build();

@@ -5,7 +5,7 @@ namespace ZavaMAFFoundryAgentsProvider;
 
 /// <summary>
 /// Provider for Microsoft Agent Framework using Microsoft Foundry Agents.
-/// This provider creates and manages AIAgents backed by Azure Foundry Agents.
+/// This provider creates and manages AIAgents backed by Microsoft Foundry Agents.
 /// </summary>
 public class MAFFoundryAgentProvider
 {
@@ -38,7 +38,7 @@ public class MAFFoundryAgentProvider
     public AIProjectClient CreateAIProjectClient()
     {
         return new AIProjectClient(
-            _azureFoundryProjectEndpoint,
+            new Uri(_azureFoundryProjectEndpoint),
             new DefaultAzureCredential());
     }
 }

@@ -1,14 +1,13 @@
 #pragma warning disable SKEXP0110
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Agents.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using SharedEntities;
 using System.Text;
 using ZavaAIFoundrySKAgentsProvider;
-using ZavaAgentFxAgentsProvider;
+using ZavaMAFAgentsProvider;
 
 namespace AgentsCatalogService.Controllers;
 
@@ -18,16 +17,16 @@ public class AgentCatalogController : ControllerBase
 {
     private readonly ILogger<AgentCatalogController> _logger;
     private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
-    private readonly AgentFxAgentProvider _agentFxAgentProvider;
+    private readonly MAFAgentProvider _MAFAgentProvider;
 
     public AgentCatalogController(
         ILogger<AgentCatalogController> logger,
         AIFoundryAgentProvider aIFoundryAgentProvider,
-        AgentFxAgentProvider agentFxAgentProvider)
+        MAFAgentProvider MAFAgentProvider)
     {
         _logger = logger;
         _aIFoundryAgentProvider = aIFoundryAgentProvider;
-        _agentFxAgentProvider = agentFxAgentProvider;
+        _MAFAgentProvider = MAFAgentProvider;
     }
 
     [HttpGet("agents")]
@@ -162,7 +161,7 @@ public class AgentCatalogController : ControllerBase
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var agent = await _agentFxAgentProvider.GetAIAgentAsync(agentId);
+        var agent = await _MAFAgentProvider.GetAIAgentAsync(agentId);
         var thread = agent.GetNewThread();
         var response = await agent.RunAsync(prompt, thread);
         return response?.Text ?? string.Empty;

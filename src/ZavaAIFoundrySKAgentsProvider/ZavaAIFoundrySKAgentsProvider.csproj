@@ -8,11 +8,11 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SemanticKernel.Agents.Abstractions" Version="1.67.1" />
-		<PackageReference Include="Microsoft.SemanticKernel.Agents.AzureAI" Version="1.66.0-preview" />
+		<PackageReference Include="Microsoft.SemanticKernel.Agents.AzureAI" Version="1.67.1-preview" />
 		<PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.67.1" />
-		<PackageReference Include="Microsoft.SemanticKernel.Agents.Orchestration" Version="1.66.0-preview" />
-		<PackageReference Include="Microsoft.SemanticKernel.Agents.Runtime.Abstractions" Version="1.66.0-preview" />
-		<PackageReference Include="Microsoft.SemanticKernel.Agents.Runtime.Core" Version="1.66.0-preview" />
+		<PackageReference Include="Microsoft.SemanticKernel.Agents.Orchestration" Version="1.67.1-preview" />
+		<PackageReference Include="Microsoft.SemanticKernel.Agents.Runtime.Abstractions" Version="1.67.1-preview" />
+		<PackageReference Include="Microsoft.SemanticKernel.Agents.Runtime.Core" Version="1.67.1-preview" />
 	</ItemGroup>
 
 </Project>
