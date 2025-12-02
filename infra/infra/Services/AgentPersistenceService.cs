@@ -39,6 +39,6 @@ internal sealed class AgentPersistenceService : IAgentPersistenceService
     private static string BuildConnectionStringKey(string name)
     {
         var cleaned = new string(name.ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray()).Replace("analysis", "analyzer");
-        return $"ConnectionStrings:{cleaned}id";
+        return $"Parameters:{cleaned}id";
     }
 }

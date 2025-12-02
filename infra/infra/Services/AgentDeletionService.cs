@@ -138,15 +138,18 @@ internal sealed class AgentDeletionService : IAgentDeletionService
     {
         try
         {
-            var vectorStoreNames = new HashSet<string>(
-                definitions.Select(d => $"{d.Name}_vs"),
+            // Build a set of agent names to match against vector store names
+            var agentNames = new HashSet<string>(
+                definitions.Select(d => d.Name),
                 StringComparer.OrdinalIgnoreCase);
-            if (vectorStoreNames.Count == 0)
+
+            if (agentNames.Count == 0)
             {
-                AnsiConsole.MarkupLine("[grey]No vector store names derived from definitions.[/]");
+                AnsiConsole.MarkupLine("[grey]No agent names to derive vector store patterns.[/]");
                 return;
             }
-            AnsiConsole.MarkupLine($"[grey]Deleting {vectorStoreNames.Count} vector store(s)...[/]");
+
+            AnsiConsole.MarkupLine($"[grey]Searching for vector stores matching {agentNames.Count} agent(s)...[/]");
             int deletedVs = 0;
 
             OpenAIClient openAIClient = _client.GetProjectOpenAIClient();
@@ -157,7 +160,12 @@ internal sealed class AgentDeletionService : IAgentDeletionService
             {
                 try
                 {
-                    if (vectorStoreNames.Contains(vs.Name))
+                    // Check if the vector store name matches the pattern: {AgentName}_vs
+                    bool matches = agentNames.Any(agentName =>
+                        vs.Name != null &&
+                        vs.Name.StartsWith($"{agentName}_vs", StringComparison.OrdinalIgnoreCase));
+
+                    if (matches)
                     {
                         vectorStoreClient.DeleteVectorStore(vs.Id);
                         AnsiConsole.MarkupLine($"[red]✓[/] Deleted vector store: [grey]{vs.Name}[/] ({vs.Id})");
