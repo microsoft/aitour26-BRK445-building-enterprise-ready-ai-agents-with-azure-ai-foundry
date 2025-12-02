@@ -71,18 +71,6 @@ public class MatchmakingController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("alternatives/maffoundry")]
-    public async Task<ActionResult<MatchmakingResult>> FindAlternativesMAFFoundryAsync([FromBody] AlternativesRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[MAFFoundry] Finding alternatives for product: {ProductQuery}, User: {UserId}", request.ProductQuery, request.UserId);
-
-        return await FindAlternativesAsync(
-            request,
-            InvokeAgentFrameworkAsync,
-            "[MAFFoundry]",
-            cancellationToken);
-    }
-
     private async Task<ActionResult<MatchmakingResult>> FindAlternativesAsync(
         AlternativesRequest request,
         Func<string, CancellationToken, Task<string>> invokeAgentAsync,

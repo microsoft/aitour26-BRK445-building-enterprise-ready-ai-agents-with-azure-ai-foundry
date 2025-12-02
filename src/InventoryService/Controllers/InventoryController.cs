@@ -71,18 +71,6 @@ public class InventoryController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("search/maffoundry")]
-    public async Task<ActionResult<ToolRecommendation[]>> SearchInventoryMAFFoundryAsync([FromBody] InventorySearchRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[MAFFoundry] Searching inventory for query: {SearchQuery}", request.SearchQuery);
-
-        return await SearchInventoryAsync(
-            request,
-            InvokeAgentFrameworkAsync,
-            "[MAFFoundry]",
-            cancellationToken);
-    }
-
     [HttpGet("search/{sku}")]
     public ActionResult<ToolRecommendation> GetItem(string sku)
     {

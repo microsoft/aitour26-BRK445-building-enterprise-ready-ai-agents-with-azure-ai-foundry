@@ -41,7 +41,6 @@ public class SingleAgentService
             var frameworkPath = framework switch
             {
                 "maf" => "maf",
-                "maffoundry" => "maffoundry",
                 "llm" => "llm",
                 _ => "sk"
             };

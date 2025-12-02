@@ -68,18 +68,6 @@ public class ReasoningController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("generate/maffoundry")]
-    public async Task<ActionResult<string>> GenerateReasoningMAFFoundryAsync([FromBody] ReasoningRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[MAFFoundry] Generating reasoning for prompt");
-
-        return await GenerateReasoningAsync(
-            request,
-            async (prompt, token) => await InvokeAgentFrameworkAsync(prompt, token),
-            "[MAFFoundry]",
-            cancellationToken);
-    }
-
     private async Task<ActionResult<string>> GenerateReasoningAsync(
         ReasoningRequest request,
         Func<string, CancellationToken, Task<string>> invokeAgent,

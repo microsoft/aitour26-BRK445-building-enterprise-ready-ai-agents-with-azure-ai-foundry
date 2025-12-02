@@ -31,8 +31,7 @@
                     <div class="mb-4">
                         <label class="form-label"><strong>Select Framework:</strong></label>
                         <select class="form-select" @bind="selectedFramework" @bind:after="OnFrameworkChanged">
-                            <option value="maffoundry">Microsoft Foundry Agents (MAF Foundry) - Default</option>
-                            <option value="maf">Microsoft Agent Framework using App Services (MAF)</option>
+                            <option value="maf">Microsoft Agent Framework (MAF) - Default</option>
                             <option value="sk">Semantic Kernel (SK)</option>
                             <option value="llm">LLM Direct Call</option>
                         </select>
@@ -67,22 +66,8 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr class="@(selectedFramework == "maffoundry" ? "table-primary" : "")">
-                                    <td><strong>Microsoft Foundry Agents</strong></td>
-                                    <td>
-                                        @if (selectedFramework == "maffoundry")
-                                        {
-                                            <span class="badge bg-success">Active</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Inactive</span>
-                                        }
-                                    </td>
-                                    <td>Microsoft Agent Framework using Microsoft Foundry Agents (Default)</td>
-                                </tr>
                                 <tr class="@(selectedFramework == "maf" ? "table-primary" : "")">
-                                    <td><strong>Microsoft Agent Framework (App Services)</strong></td>
+                                    <td><strong>Microsoft Agent Framework (MAF)</strong></td>
                                     <td>
                                         @if (selectedFramework == "maf")
                                         {
@@ -93,7 +78,7 @@
                                             <span class="badge bg-secondary">Inactive</span>
                                         }
                                     </td>
-                                    <td>Microsoft Agent Framework using App Services</td>
+                                    <td>Microsoft Agent Framework (Default)</td>
                                 </tr>
                                 <tr class="@(selectedFramework == "sk" ? "table-primary" : "")">
                                     <td><strong>Semantic Kernel</strong></td>
@@ -133,7 +118,7 @@
 </div>
 
 @code {
-    private string selectedFramework = "maffoundry";
+    private string selectedFramework = "maf";
     private bool showSavedMessage = false;
 
     protected override async Task OnInitializedAsync()
@@ -142,12 +127,12 @@
         try
         {
             var savedFramework = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "agentFramework");
-            selectedFramework = string.IsNullOrEmpty(savedFramework) ? "maffoundry" : savedFramework.ToLowerInvariant();
+            selectedFramework = string.IsNullOrEmpty(savedFramework) ? "maf" : savedFramework.ToLowerInvariant();
         }
         catch
         {
-            // Default to MAF Foundry if localStorage is not available
-            selectedFramework = "maffoundry";
+            // Default to MAF if localStorage is not available
+            selectedFramework = "maf";
         }
     }
 
@@ -170,8 +155,7 @@
     {
         return selectedFramework switch
         {
-            "maffoundry" => "Microsoft Foundry Agents (MAF Foundry)",
-            "maf" => "Microsoft Agent Framework (App Services)",
+            "maf" => "Microsoft Agent Framework (MAF)",
             "sk" => "Semantic Kernel (SK)",
             "llm" => "LLM Direct Call",
             _ => "Unknown"
@@ -182,8 +166,7 @@
     {
         return selectedFramework switch
         {
-            "maffoundry" => "Using Microsoft Foundry Agents - Cloud-hosted agents powered by Azure AI Foundry with Azure.AI.Projects",
-            "maf" => "Using Microsoft Agent Framework with App Services - Self-hosted agents with Microsoft.Agents.AI",
+            "maf" => "Using Microsoft Agent Framework - Self-hosted agents with Microsoft.Agents.AI",
             "sk" => "Using Semantic Kernel - Framework for AI orchestration with Microsoft.SemanticKernel",
             "llm" => "Using direct LLM calls - Direct interaction with language models using Microsoft.Extensions.AI IChatClient",
             _ => "Unknown framework"

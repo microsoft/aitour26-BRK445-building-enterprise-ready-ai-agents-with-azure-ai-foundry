@@ -17,7 +17,7 @@ public class LocationAgentService
     /// <summary>
     /// Sets the agent framework to use for service calls
     /// </summary>
-    /// <param name="framework">"sk" for Semantic Kernel, "maf" for Microsoft Agent Framework (App Services), or "maffoundry" for Microsoft Foundry Agents</param>
+    /// <param name="framework">"llm" for LLM Direct Call, "sk" for Semantic Kernel, or "maf" for Microsoft Agent Framework</param>
     public void SetFramework(string framework)
     {
         _framework = framework?.ToLowerInvariant() ?? "sk";

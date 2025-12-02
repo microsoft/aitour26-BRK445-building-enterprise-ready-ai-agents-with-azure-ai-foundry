@@ -69,18 +69,6 @@ public class NavigationController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("directions/maffoundry")]
-    public async Task<ActionResult<NavigationInstructions>> GenerateDirectionsMAFFoundryAsync([FromBody] DirectionsRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[MAFFoundry] Generating directions from {From} to {To}", FormatLocation(request.From), FormatLocation(request.To));
-
-        return await GenerateDirectionsAsync(
-            request,
-            InvokeAgentFrameworkAsync,
-            "[MAFFoundry]",
-            cancellationToken);
-    }
-
     private async Task<ActionResult<NavigationInstructions>> GenerateDirectionsAsync(
         DirectionsRequest request,
         Func<string, CancellationToken, Task<string>> invokeAgentAsync,
