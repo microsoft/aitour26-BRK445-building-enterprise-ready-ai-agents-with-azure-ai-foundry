@@ -52,6 +52,12 @@ public class TaskTracker
 
         // Calculate total steps (will be updated with actual counts)
         _totalSteps = 1; // Start with environment setup
+
+        // Initialize activity log with 8 empty rows
+        for (int i = 0; i < 8; i++)
+        {
+            _logs.Add("[grey]...[/]");
+        }
     }
 
     public void UpdateConfiguration(string projectEndpoint, string modelName)
@@ -83,7 +89,7 @@ public class TaskTracker
             if (_tasks.ContainsKey(taskName) && !_tasks[taskName])
             {
                 _tasks[taskName] = true;
-                _completedSteps++;
+                // Don't increment here, we use IncrementProgress() for actual operations
             }
             UpdateDisplay();
         }
@@ -244,12 +250,12 @@ public class TaskTracker
         var tasksText = BuildTasksText();
         table.AddRow($"[bold yellow]Tasks[/]\n{tasksText}");
 
-        // Activity Log (last 5 lines only)
+        // Activity Log (last 8 lines)
         var logText = BuildLogText();
         table.AddRow($"[bold yellow]Activity Log[/]\n{logText}");
 
         // Always show input cell at bottom separated by a line
-        var inputContent = "[grey]" + new string('─', 60) + "[/]\n[bold yellow]> Input[/]\n[yellow on black]" + (_currentInteraction ?? "") + "[/]";
+        var inputContent = "[grey]" + new string('─', 60) + "[/]\n[bold yellow]> Input[/]\n[yellow on blue]" + (_currentInteraction ?? "") + "[/]";
         table.AddRow(inputContent);
 
         return table;
@@ -257,7 +263,9 @@ public class TaskTracker
 
     private string BuildProgressBar()
     {
-        var percentage = _totalSteps > 0 ? (double)_completedSteps / _totalSteps * 100 : 0;
+        // Clamp completed steps to total to ensure we reach 100%
+        var effectiveCompleted = Math.Min(_completedSteps, _totalSteps);
+        var percentage = _totalSteps > 0 ? (double)effectiveCompleted / _totalSteps * 100 : 0;
         var barWidth = 40;
         var filledWidth = (int)(barWidth * percentage / 100);
         var emptyWidth = barWidth - filledWidth;
@@ -265,7 +273,7 @@ public class TaskTracker
         var bar = "[green]" + new string('█', filledWidth) + "[/]" +
                   "[grey]" + new string('░', emptyWidth) + "[/]";
 
-        return $"{bar} [cyan]{_completedSteps}/{_totalSteps}[/] ([yellow]{percentage:F0}%[/])";
+        return $"{bar} [cyan]{effectiveCompleted}/{_totalSteps}[/] ([yellow]{percentage:F0}%[/])";
     }
 
     private string BuildTasksText()
@@ -294,13 +302,25 @@ public class TaskTracker
 
     private string BuildLogText()
     {
-        if (_logs.Count == 0)
-        {
-            return "[grey]Waiting for activity...[/]";
-        }
-
-        var recentLogs = _logs.TakeLast(5).ToList();
+        // Show last 8 rows, truncate long messages to prevent console breaking
+        var recentLogs = _logs.TakeLast(8).Select(log => TruncateLogMessage(log)).ToList();
         return string.Join("\n", recentLogs);
+    }
+
+    private string TruncateLogMessage(string message)
+    {
+        // Strip markup to measure real length
+        var plainText = System.Text.RegularExpressions.Regex.Replace(message, @"\[.*?\]", "");
+        if (plainText.Length <= 100)
+            return message;
+        
+        // Find first markup tag to preserve formatting
+        var firstTagMatch = System.Text.RegularExpressions.Regex.Match(message, @"^(\[.*?\])");
+        var prefix = firstTagMatch.Success ? firstTagMatch.Groups[1].Value : "";
+        
+        // Truncate and add ellipsis
+        var truncated = message.Substring(0, Math.Min(message.Length, 100));
+        return truncated + "...[/]";
     }
 
     private string TruncateUrl(string url)

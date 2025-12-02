@@ -43,6 +43,7 @@ try
     }
 
     taskTracker.CompleteTask("Set Environment Values");
+    taskTracker.IncrementProgress(); // Count environment setup as 1 step
 
     // Path to JSON configuration file containing agent metadata and optional knowledge files
     string agentConfigPath = Path.Combine(AppContext.BaseDirectory, "agents.json");
