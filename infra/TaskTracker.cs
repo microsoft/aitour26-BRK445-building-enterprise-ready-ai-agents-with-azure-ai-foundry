@@ -20,6 +20,14 @@ public class TaskTracker
     private Table? _mainTable;
     private bool _liveActive = false;
 
+    // Dynamic operation counters
+    private int _agentsToDelete = 0;
+    private int _indexesToDelete = 0;
+    private int _datasetsToDelete = 0;
+    private int _datasetsToCreate = 0;
+    private int _indexesToCreate = 0;
+    private int _agentsToCreate = 0;
+
     public TaskTracker(string projectEndpoint, string modelName)
     {
         _projectEndpoint = projectEndpoint;
@@ -42,8 +50,8 @@ public class TaskTracker
             ["Agents"] = false
         };
 
-        // Calculate total steps
-        _totalSteps = _tasks.Count + _subTasks.Values.Sum(st => st.Count);
+        // Calculate total steps (will be updated with actual counts)
+        _totalSteps = 1; // Start with environment setup
     }
 
     public void UpdateConfiguration(string projectEndpoint, string modelName)
@@ -90,8 +98,42 @@ public class TaskTracker
                 !_subTasks[parentTask][subTask])
             {
                 _subTasks[parentTask][subTask] = true;
-                _completedSteps++;
             }
+            UpdateDisplay();
+        }
+    }
+
+    /// <summary>
+    /// Set the expected operation counts to calculate accurate progress.
+    /// </summary>
+    public void SetOperationCounts(int agentsToDelete, int indexesToDelete, int datasetsToDelete,
+                                   int datasetsToCreate, int indexesToCreate, int agentsToCreate)
+    {
+        lock (_lock)
+        {
+            _agentsToDelete = agentsToDelete;
+            _indexesToDelete = indexesToDelete;
+            _datasetsToDelete = datasetsToDelete;
+            _datasetsToCreate = datasetsToCreate;
+            _indexesToCreate = indexesToCreate;
+            _agentsToCreate = agentsToCreate;
+
+            _totalSteps = 1 + // Environment setup
+                         agentsToDelete + indexesToDelete + datasetsToDelete +
+                         datasetsToCreate + indexesToCreate + agentsToCreate;
+
+            UpdateDisplay();
+        }
+    }
+
+    /// <summary>
+    /// Increment progress by one step (for individual file/index/agent operations).
+    /// </summary>
+    public void IncrementProgress()
+    {
+        lock (_lock)
+        {
+            _completedSteps++;
             UpdateDisplay();
         }
     }

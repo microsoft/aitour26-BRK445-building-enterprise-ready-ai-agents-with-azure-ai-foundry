@@ -76,10 +76,27 @@ public class AgentDeploymentRunner
         else
             AnsiConsole.MarkupLine($"[cyan]Found {definitions.Length} agent definition(s) to process.[/]");
 
+        // Calculate operation counts for progress tracking
+        int agentsCount = definitions.Length;
+        int indexesCount = definitions.Count(d => d.Files?.Any() == true);
+        int datasetsCount = definitions.SelectMany(d => d.Files ?? Enumerable.Empty<string>()).Distinct().Count();
+
         // Ask for each deletion type separately
         bool deleteAgents = ShouldDeleteAgents(deleteFlag);
         bool deleteIndexes = ShouldDeleteIndexes(deleteFlag);
         bool deleteDatasets = ShouldDeleteDatasets(deleteFlag);
+
+        // Set operation counts for accurate progress tracking
+        if (_taskTracker != null)
+        {
+            _taskTracker.SetOperationCounts(
+                deleteAgents ? agentsCount : 0,
+                deleteIndexes ? indexesCount : 0,
+                deleteDatasets ? datasetsCount : 0,
+                datasetsCount,
+                indexesCount,
+                agentsCount);
+        }
 
         if (deleteAgents || deleteIndexes || deleteDatasets)
         {

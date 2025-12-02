@@ -84,6 +84,7 @@ internal sealed class AgentCreationService : IAgentCreationService
                         var vectorStoreResult = vectorStoreClient.CreateVectorStore(options: vectorStoreOptions);
                         var vectorStore = vectorStoreResult.Value;
                         _taskTracker.AddLog($"[green]✓[/] Vector store created: [grey]{vectorStore.Id}[/]");
+                        _taskTracker.IncrementProgress();
 
                         _taskTracker.AddLog($"[grey]Creating agent {def.Name} with tools...[/]");
                         var fileSearchTool = new HostedFileSearchTool() { Inputs = [new HostedVectorStoreContent(vectorStore.Id)] };
@@ -112,6 +113,7 @@ internal sealed class AgentCreationService : IAgentCreationService
 
                     created.Add((def.Name, agent.Id));
                     _taskTracker.AddLog($"[green]✓[/] Created agent: [cyan]{def.Name}[/] ({agent.Id})");
+                    _taskTracker.IncrementProgress();
                 }
                 else
                 {

@@ -104,6 +104,7 @@ internal sealed class AgentDeletionService : IAgentDeletionService
                     {
                         _client.Agents.DeleteAgent(existing.Name);
                         _taskTracker.AddLog($"[red]✓[/] Deleted agent: [grey]{existing.Name}[/] ({existing.Id})");
+                        _taskTracker?.IncrementProgress();
                         deletedAgents++;
                     }
                     catch (Exception exDel)
@@ -184,7 +185,10 @@ internal sealed class AgentDeletionService : IAgentDeletionService
                         fileClient.DeleteFile(existingFile.Id);
 
                         if (_taskTracker != null)
+                        {
                             _taskTracker.AddLog($"[red]✓[/] Deleted file: [grey]{existingFile.Filename}[/] ({existingFile.Id})");
+                            _taskTracker.IncrementProgress();
+                        }
                         else
                             AnsiConsole.MarkupLine($"[red]✓[/] Deleted file: [grey]{existingFile.Filename}[/] ({existingFile.Id})");
                         deletedFiles++;
@@ -256,7 +260,10 @@ internal sealed class AgentDeletionService : IAgentDeletionService
                         vectorStoreClient.DeleteVectorStore(vs.Id);
 
                         if (_taskTracker != null)
+                        {
                             _taskTracker.AddLog($"[red]✓[/] Deleted vector store: [grey]{vs.Name}[/] ({vs.Id})");
+                            _taskTracker.IncrementProgress();
+                        }
                         else
                             AnsiConsole.MarkupLine($"[red]✓[/] Deleted vector store: [grey]{vs.Name}[/] ({vs.Id})");
                         deletedVs++;

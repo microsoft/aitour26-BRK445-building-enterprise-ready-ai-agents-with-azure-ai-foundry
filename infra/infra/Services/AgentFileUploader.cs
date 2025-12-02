@@ -84,6 +84,7 @@ internal sealed class AgentFileUploader : IAgentFileUploader
                         purpose: FileUploadPurpose.Assistants);
                     uploaded[path] = new UploadedFile(uploadResult.Value.Id, uploadResult.Value.Filename, path);
                     _taskTracker.AddLog($"[green]✓[/] Uploaded: [grey]{uploadResult.Value.Filename}[/] (Id: {uploadResult.Value.Id})");
+                    _taskTracker.IncrementProgress();
                 }
                 catch (Exception exUp)
                 {
