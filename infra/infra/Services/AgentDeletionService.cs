@@ -1,5 +1,7 @@
 using Azure.AI.Agents.Persistent;
+using Azure.AI.Projects;
 using System.IO;
+using Spectre.Console;
 
 namespace Infra.AgentDeployment;
 
@@ -10,40 +12,44 @@ internal interface IAgentDeletionService
 
 internal sealed class AgentDeletionService : IAgentDeletionService
 {
-    private readonly PersistentAgentsClient _client;
-    public AgentDeletionService(PersistentAgentsClient client) => _client = client;
+    private readonly AIProjectClient _client;
+    public AgentDeletionService(AIProjectClient client) => _client = client;
     public void DeleteExisting(IEnumerable<AgentDefinition> definitions)
     {
         try
         {
-            Console.WriteLine("Starting deletion of matching agents...");
-            var namesToDelete = new HashSet<string>(definitions.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
-            int deletedAgents =0;
-            foreach (var existing in _client.Administration.GetAgents())
-            {
-                if (namesToDelete.Contains(existing.Name))
+            AnsiConsole.Status()
+                .Spinner(Spinner.Known.Dots)
+                .Start("Deleting existing agents...", ctx =>
                 {
-                    try
+                    var namesToDelete = new HashSet<string>(definitions.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
+                    int deletedAgents = 0;
+                    foreach (var existing in _client.Administration.GetAgents())
                     {
-                        _client.Administration.DeleteAgent(existing.Id);
-                        Console.WriteLine($"Deleted agent: {existing.Name} ({existing.Id})");
-                        deletedAgents++;
+                        if (namesToDelete.Contains(existing.Name))
+                        {
+                            try
+                            {
+                                _client.Administration.DeleteAgent(existing.Id);
+                                AnsiConsole.MarkupLine($"[red]✓[/] Deleted agent: [grey]{existing.Name}[/] ({existing.Id})");
+                                deletedAgents++;
+                            }
+                            catch (Exception exDel)
+                            {
+                                AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete agent [grey]'{existing.Name}'[/] ({existing.Id}): {exDel.Message}");
+                            }
+                        }
                     }
-                    catch (Exception exDel)
-                    {
-                        Console.WriteLine($"Failed to delete agent '{existing.Name}' ({existing.Id}): {exDel.Message}");
-                    }
-                }
-            }
-            Console.WriteLine($"Deletion phase (agents) complete. Deleted {deletedAgents} agent(s).\n");
+                    AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedAgents} agent(s).\n");
+                });
 
             DeleteReferencedFiles(definitions);
             DeleteVectorStores(definitions);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Unexpected error during deletion phase: {ex.Message}");
-            Console.WriteLine("Continuing with agent creation...\n");
+            AnsiConsole.MarkupLine($"[yellow]⚠[/] Unexpected error during deletion: {ex.Message}");
+            AnsiConsole.MarkupLine("[grey]Continuing with agent creation...[/]\n");
         }
     }
 
@@ -56,13 +62,13 @@ internal sealed class AgentDeletionService : IAgentDeletionService
                     .Select(f => Path.GetFileName(f))
                     .Where(n => !string.IsNullOrWhiteSpace(n)),
                 StringComparer.OrdinalIgnoreCase);
-            if (fileNames.Count ==0)
+            if (fileNames.Count == 0)
             {
-                Console.WriteLine("No file names referenced in definitions to delete.");
+                AnsiConsole.MarkupLine("[grey]No file names referenced in definitions to delete.[/]");
                 return;
             }
-            Console.WriteLine($"Attempting to delete files referenced by definitions ({fileNames.Count} unique name(s))...");
-            int deletedFiles =0;
+            AnsiConsole.MarkupLine($"[grey]Deleting {fileNames.Count} referenced file(s)...[/]");
+            int deletedFiles = 0;
             var filesResponse = _client.Files.GetFiles();
             foreach (var existingFile in filesResponse.Value)
             {
@@ -71,20 +77,20 @@ internal sealed class AgentDeletionService : IAgentDeletionService
                     if (fileNames.Contains(existingFile.Filename))
                     {
                         _client.Files.DeleteFile(existingFile.Id);
-                        Console.WriteLine($"Deleted file: {existingFile.Filename} ({existingFile.Id})");
+                        AnsiConsole.MarkupLine($"[red]✓[/] Deleted file: [grey]{existingFile.Filename}[/] ({existingFile.Id})");
                         deletedFiles++;
                     }
                 }
                 catch (Exception exFile)
                 {
-                    Console.WriteLine($"Failed to delete file '{existingFile.Filename}' ({existingFile.Id}): {exFile.Message}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete file [grey]'{existingFile.Filename}'[/]: {exFile.Message}");
                 }
             }
-            Console.WriteLine($"File deletion phase complete. Deleted {deletedFiles} file(s).\n");
+            AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedFiles} file(s).\n");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[WARN] File deletion phase encountered an error: {ex.Message}");
+            AnsiConsole.MarkupLine($"[yellow]⚠[/] File deletion error: {ex.Message}");
         }
     }
 
@@ -95,13 +101,13 @@ internal sealed class AgentDeletionService : IAgentDeletionService
             var vectorStoreNames = new HashSet<string>(
                 definitions.Select(d => $"{d.Name}_vs"),
                 StringComparer.OrdinalIgnoreCase);
-            if (vectorStoreNames.Count ==0)
+            if (vectorStoreNames.Count == 0)
             {
-                Console.WriteLine("No vector store names derived from definitions.");
+                AnsiConsole.MarkupLine("[grey]No vector store names derived from definitions.[/]");
                 return;
             }
-            Console.WriteLine($"Attempting to delete vector stores matching agent naming convention ({vectorStoreNames.Count} name(s))...");
-            int deletedVs =0;
+            AnsiConsole.MarkupLine($"[grey]Deleting {vectorStoreNames.Count} vector store(s)...[/]");
+            int deletedVs = 0;
             var vsPageable = _client.VectorStores.GetVectorStores();
             foreach (var vs in vsPageable)
             {
@@ -110,20 +116,20 @@ internal sealed class AgentDeletionService : IAgentDeletionService
                     if (vectorStoreNames.Contains(vs.Name))
                     {
                         _client.VectorStores.DeleteVectorStore(vs.Id);
-                        Console.WriteLine($"Deleted vector store: {vs.Name} ({vs.Id})");
+                        AnsiConsole.MarkupLine($"[red]✓[/] Deleted vector store: [grey]{vs.Name}[/] ({vs.Id})");
                         deletedVs++;
                     }
                 }
                 catch (Exception exVs)
                 {
-                    Console.WriteLine($"Failed to delete vector store '{vs.Name}' ({vs.Id}): {exVs.Message}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to delete vector store [grey]'{vs.Name}'[/]: {exVs.Message}");
                 }
             }
-            Console.WriteLine($"Vector store deletion phase complete. Deleted {deletedVs} store(s).\n");
+            AnsiConsole.MarkupLine($"[green]✓[/] Deleted {deletedVs} vector store(s).\n");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[WARN] Vector store deletion phase encountered an error: {ex.Message}");
+            AnsiConsole.MarkupLine($"[yellow]⚠[/] Vector store deletion error: {ex.Message}");
         }
     }
 }
