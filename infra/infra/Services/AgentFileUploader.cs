@@ -1,6 +1,10 @@
-using Azure.AI.Agents.Persistent;
+#pragma warning disable IDE0017, OPENAI001
+
 using Azure.AI.Projects;
+using OpenAI;
+using OpenAI.Files;
 using Spectre.Console;
+using System.ClientModel;
 
 namespace Infra.AgentDeployment;
 
@@ -37,6 +41,8 @@ internal sealed class AgentFileUploader : IAgentFileUploader
         }
 
         var uploaded = new Dictionary<string, UploadedFile>(StringComparer.OrdinalIgnoreCase);
+        OpenAIClient openAIClient = _client.GetProjectOpenAIClient();
+        OpenAIFileClient fileClient = openAIClient.GetOpenAIFileClient();
 
         AnsiConsole.Progress()
             .Start(ctx =>
@@ -63,10 +69,11 @@ internal sealed class AgentFileUploader : IAgentFileUploader
                     {
                         var info = new FileInfo(path);
                         task.Description = $"[cyan]Uploading[/] {info.Name}";
-                        using var stream = File.OpenRead(path);
-                        PersistentAgentFileInfo uploadedInfo = _client.Files.UploadFile(data: stream, purpose: PersistentAgentFilePurpose.Agents, filename: info.Name);
-                        uploaded[path] = new UploadedFile(uploadedInfo.Id, uploadedInfo.Filename, path);
-                        AnsiConsole.MarkupLine($"[green]✓[/] Uploaded: [grey]{uploadedInfo.Filename}[/] (Id: {uploadedInfo.Id})");
+                        ClientResult<OpenAIFile> uploadResult = fileClient.UploadFile(
+                            filePath: path,
+                            purpose: FileUploadPurpose.Assistants);
+                        uploaded[path] = new UploadedFile(uploadResult.Value.Id, uploadResult.Value.Filename, path);
+                        AnsiConsole.MarkupLine($"[green]✓[/] Uploaded: [grey]{uploadResult.Value.Filename}[/] (Id: {uploadResult.Value.Id})");
                     }
                     catch (Exception exUp)
                     {

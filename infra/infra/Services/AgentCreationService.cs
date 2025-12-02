@@ -1,5 +1,9 @@
+#pragma warning disable IDE0017, OPENAI001
+
 using Azure.AI.Projects;
-using OpenAI.Assistants;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+using OpenAI.VectorStores;
 using Spectre.Console;
 
 namespace Infra.AgentDeployment;
@@ -40,7 +44,7 @@ internal sealed class AgentCreationService : IAgentCreationService
                         AnsiConsole.MarkupLine($"[grey]Instructions: {def.Instructions?.Length ?? 0} chars[/]");
                         AnsiConsole.MarkupLine($"[grey]Files referenced: {(def.Files?.Count ?? 0)}[/]");
 
-                        PersistentAgent agent = null;
+                        AIAgent agent = null;
                         List<string> agentFileIds = new();
 
                         if (def.Files is { Count: > 0 })
@@ -58,19 +62,34 @@ internal sealed class AgentCreationService : IAgentCreationService
                         if (agentFileIds.Count > 0)
                         {
                             ctx.Status($"Creating vector store for {def.Name}...");
-                            var fileSearchToolResource = new FileSearchToolResource();
                             var vectorStoreName = $"{def.Name}_vs";
-                            PersistentAgentsVectorStore vectorStore = _client.VectorStores.CreateVectorStore(fileIds: agentFileIds, name: vectorStoreName);
+                            var openAIClient = _client.GetProjectOpenAIClient();
+                            var vectorStoreClient = openAIClient.GetVectorStoreClient();
+
+                            var vectorStoreOptions = new VectorStoreCreationOptions()
+                            {
+                                Name = vectorStoreName
+                            };
+                            foreach (var fileId in agentFileIds)
+                            {
+                                vectorStoreOptions.FileIds.Add(fileId);
+                            }
+
+                            var vectorStoreResult = vectorStoreClient.CreateVectorStore(options: vectorStoreOptions);
+                            var vectorStore = vectorStoreResult.Value;
                             AnsiConsole.MarkupLine($"[green]✓[/] Vector store created: [grey]{vectorStore.Id}[/]");
-                            fileSearchToolResource.VectorStoreIds.Add(vectorStore.Id);
 
                             ctx.Status($"Creating agent {def.Name} with tools...");
+                            var fileSearchTool = new HostedFileSearchTool() { Inputs = [new HostedVectorStoreContent(vectorStore.Id)] };
+
                             agent = _client.CreateAIAgent(
                                 model: _modelDeploymentName,
                                 name: def.Name,
                                 instructions: def.Instructions,
-                                tools: new List<ToolDefinition> { new CodeInterpreterToolDefinition(), new FileSearchToolDefinition() },
-                                toolResources: new ToolResources { FileSearch = fileSearchToolResource });
+                                tools: [
+                                    new HostedCodeInterpreterTool() { Inputs = [] },
+                                    fileSearchTool
+                                ]);
                         }
 
                         if (agent == null)
@@ -80,7 +99,7 @@ internal sealed class AgentCreationService : IAgentCreationService
                                 model: _modelDeploymentName,
                                 name: def.Name,
                                 instructions: def.Instructions,
-                                tools: new List<ToolDefinition> { new CodeInterpreterToolDefinition() });
+                                tools: [new HostedCodeInterpreterTool() { Inputs = [] }]);
                         }
 
                         created.Add((def.Name, agent.Id));

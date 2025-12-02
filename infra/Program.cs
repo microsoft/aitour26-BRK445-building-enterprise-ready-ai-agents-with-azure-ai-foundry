@@ -1,5 +1,4 @@
-﻿using Azure.AI.Agents.Persistent;
-using Azure.AI.Projects;
+﻿using Azure.AI.Projects;
 using Azure.Identity;
 using Infra.AgentDeployment;
 using Microsoft.Extensions.Configuration;
@@ -62,8 +61,6 @@ if (string.IsNullOrWhiteSpace(projectEndpoint) || string.IsNullOrWhiteSpace(mode
 
 AnsiConsole.WriteLine();
 AnsiConsole.WriteLine();
-
-//PersistentAgentsClient client = null;
 
 AIProjectClient client = null;
 

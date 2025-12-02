@@ -1,5 +1,9 @@
-using Azure.AI.Agents.Persistent;
+#pragma warning disable IDE0017, OPENAI001
+
 using Azure.AI.Projects;
+using OpenAI;
+using OpenAI.Files;
+using OpenAI.VectorStores;
 using System.IO;
 using Spectre.Console;
 
@@ -24,13 +28,16 @@ internal sealed class AgentDeletionService : IAgentDeletionService
                 {
                     var namesToDelete = new HashSet<string>(definitions.Select(d => d.Name), StringComparer.OrdinalIgnoreCase);
                     int deletedAgents = 0;
-                    foreach (var existing in _client.Administration.GetAgents())
+
+                    // Get all agents and delete matching ones
+                    var agents = _client.Agents.GetAgents();
+                    foreach (var existing in agents)
                     {
                         if (namesToDelete.Contains(existing.Name))
                         {
                             try
                             {
-                                _client.Administration.DeleteAgent(existing.Id);
+                                _client.Agents.DeleteAgent(existing.Name);
                                 AnsiConsole.MarkupLine($"[red]✓[/] Deleted agent: [grey]{existing.Name}[/] ({existing.Id})");
                                 deletedAgents++;
                             }
@@ -69,14 +76,18 @@ internal sealed class AgentDeletionService : IAgentDeletionService
             }
             AnsiConsole.MarkupLine($"[grey]Deleting {fileNames.Count} referenced file(s)...[/]");
             int deletedFiles = 0;
-            var filesResponse = _client.Files.GetFiles();
+
+            OpenAIClient openAIClient = _client.GetProjectOpenAIClient();
+            OpenAIFileClient fileClient = openAIClient.GetOpenAIFileClient();
+            var filesResponse = fileClient.GetFiles();
+
             foreach (var existingFile in filesResponse.Value)
             {
                 try
                 {
                     if (fileNames.Contains(existingFile.Filename))
                     {
-                        _client.Files.DeleteFile(existingFile.Id);
+                        fileClient.DeleteFile(existingFile.Id);
                         AnsiConsole.MarkupLine($"[red]✓[/] Deleted file: [grey]{existingFile.Filename}[/] ({existingFile.Id})");
                         deletedFiles++;
                     }
@@ -108,14 +119,18 @@ internal sealed class AgentDeletionService : IAgentDeletionService
             }
             AnsiConsole.MarkupLine($"[grey]Deleting {vectorStoreNames.Count} vector store(s)...[/]");
             int deletedVs = 0;
-            var vsPageable = _client.VectorStores.GetVectorStores();
+
+            OpenAIClient openAIClient = _client.GetProjectOpenAIClient();
+            VectorStoreClient vectorStoreClient = openAIClient.GetVectorStoreClient();
+            var vsPageable = vectorStoreClient.GetVectorStores();
+
             foreach (var vs in vsPageable)
             {
                 try
                 {
                     if (vectorStoreNames.Contains(vs.Name))
                     {
-                        _client.VectorStores.DeleteVectorStore(vs.Id);
+                        vectorStoreClient.DeleteVectorStore(vs.Id);
                         AnsiConsole.MarkupLine($"[red]✓[/] Deleted vector store: [grey]{vs.Name}[/] ({vs.Id})");
                         deletedVs++;
                     }
