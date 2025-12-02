@@ -232,7 +232,7 @@ public class TaskTracker
         var table = new Table()
             .Border(TableBorder.Double)
             .BorderColor(Color.Blue)
-            .Title("[bold blue]BRK445 - INFRA[/]")
+            .Title("[bold blue]BRK445 :rocket: - INFRA[/]")
             .Expand()
             .HideHeaders();
 
@@ -240,27 +240,33 @@ public class TaskTracker
 
         // Progress Bar
         var progressBar = BuildProgressBar();
-        table.AddRow($"[bold yellow]Progress[/]\n{progressBar}");
+        table.AddRow(new Rows(new Markup("[bold yellow]Progress :bar_chart:[/]"), new Markup(progressBar)));
 
         // Configuration
         var tenantDisplay = string.IsNullOrWhiteSpace(_tenantId) ? "[italic grey]none[/]" : _tenantId;
-        table.AddRow(
-            $"[bold yellow]Configuration[/]\n" +
-            $"[grey]Project:[/] {TruncateUrl(_projectEndpoint)}\n" +
-            $"[grey]Model:[/] {_modelName}\n" +
-            $"[grey]Tenant:[/] {tenantDisplay}");
+        var configGrid = new Grid().AddColumn().AddColumn();
+        var projectPath = new TextPath(_projectEndpoint)
+            .RootColor(Color.CadetBlue)
+            .SeparatorColor(Color.Grey)
+            .StemColor(Color.White)
+            .LeafColor(Color.Yellow);
+        configGrid.AddRow(new Markup("[bold yellow]Configuration :gear:[/]"));
+        configGrid.AddRow(new Markup("[grey]Project:[/]"), projectPath);
+        configGrid.AddRow(new Markup("[grey]Model:[/]"), new Markup($"{_modelName}"));
+        configGrid.AddRow(new Markup("[grey]Tenant:[/]"), new Markup($"{tenantDisplay}"));
+        table.AddRow(configGrid);
 
         // Tasks
         var tasksText = BuildTasksText();
-        table.AddRow($"[bold yellow]Tasks[/]\n{tasksText}");
+        table.AddRow(new Rows(new Markup("[bold yellow]Tasks :check_mark_button:[/]"), new Markup(tasksText)));
 
         // Activity Log (last 8 lines)
         var logText = BuildLogText();
-        table.AddRow($"[bold yellow]Activity Log[/]\n{logText}");
+        table.AddRow(new Rows(new Markup("[bold yellow]Activity Log :memo:[/]"), new Markup(logText)));
 
         // Always show input cell at bottom separated by a line
-        var inputContent = "[grey]" + new string('─', 60) + "[/]\n[bold yellow]> Input[/]\n[yellow on blue]" + (_currentInteraction ?? "") + "[/]";
-        table.AddRow(inputContent);
+        var inputContent = "[grey]" + new string('─', 60) + "[/]\n[bold yellow]> Input :keyboard:[/]\n[yellow on blue]" + (_currentInteraction ?? "") + "[/]";
+        table.AddRow(new Markup(inputContent));
 
         return table;
     }
@@ -286,7 +292,7 @@ public class TaskTracker
 
         foreach (var task in _tasks)
         {
-            var checkMark = task.Value ? "[green]✅[/]" : "[grey]⬜[/]";
+            var checkMark = task.Value ? ":check_mark_button:" : ":white_large_square:";
             lines.Add($"{checkMark} [cyan]{task.Key}[/]");
         }
 
@@ -296,7 +302,7 @@ public class TaskTracker
 
             foreach (var subTask in parentTask.Value)
             {
-                var checkMark = subTask.Value ? "[green]✅[/]" : "[grey]⬜[/]";
+                var checkMark = subTask.Value ? ":check_mark_button:" : ":white_large_square:";
                 lines.Add($"  {checkMark} {subTask.Key}");
             }
         }
