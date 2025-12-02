@@ -24,8 +24,9 @@
                         @{
                             string frameworkLabel = currentFramework switch
                             {
-                                "SK" => "(Semantic Kernel)",
-                                "llm" => "(LLM Framework)",
+                                "sk" => "(Semantic Kernel)",
+                                "llm" => "(LLM Direct Call)",
+                                "maf" => "(Microsoft Agent Framework)",
                                 _ => "(Microsoft Agent Framework)"
                             };
                         }

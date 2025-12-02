@@ -74,18 +74,6 @@ public class AgentCatalogController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("testmaffoundry")]
-    public async Task<ActionResult<AgentTesterResponse>> TestMAFFoundryAsync([FromBody] AgentTesterRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[MAFFoundry] Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
-
-        return await TestAgentAsync(
-            request,
-            InvokeAgentFrameworkAsync,
-            "[MAFFoundry]",
-            cancellationToken);
-    }
-
     private async Task<ActionResult<AgentTesterResponse>> TestAgentAsync(
         AgentTesterRequest request,
         Func<string, string, CancellationToken, Task<string>> invokeAgentAsync,

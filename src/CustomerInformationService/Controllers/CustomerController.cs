@@ -79,18 +79,6 @@ public class CustomerController : ControllerBase
             cancellationToken);
     }
 
-    [HttpGet("{customerId}/maffoundry")]
-    public async Task<ActionResult<CustomerInformation>> GetCustomerMAFFoundryAsync(string customerId, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[MAFFoundry] Getting customer information for ID: {CustomerId}", customerId);
-
-        return await GetCustomerAsync(
-            customerId,
-            async (prompt, token) => await InvokeAgentFrameworkAsync(prompt, token),
-            "[MAFFoundry]",
-            cancellationToken);
-    }
-
     [HttpPost("match-tools/llm")]
     public ActionResult<ToolMatchResult> MatchToolsLlm([FromBody] ToolMatchRequest request)
     {
@@ -109,13 +97,6 @@ public class CustomerController : ControllerBase
     public ActionResult<ToolMatchResult> MatchToolsMAF([FromBody] ToolMatchRequest request)
     {
         _logger.LogInformation("[MAF] Matching tools for customer {CustomerId}", request.CustomerId);
-        return MatchToolsInternal(request);
-    }
-
-    [HttpPost("match-tools/maffoundry")]
-    public ActionResult<ToolMatchResult> MatchToolsMAFFoundry([FromBody] ToolMatchRequest request)
-    {
-        _logger.LogInformation("[MAFFoundry] Matching tools for customer {CustomerId}", request.CustomerId);
         return MatchToolsInternal(request);
     }
 

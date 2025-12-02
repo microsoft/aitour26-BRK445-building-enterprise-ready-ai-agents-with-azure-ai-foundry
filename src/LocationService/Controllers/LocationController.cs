@@ -69,18 +69,6 @@ public class LocationController : ControllerBase
             cancellationToken);
     }
 
-    [HttpGet("find/maffoundry")]
-    public async Task<ActionResult<LocationResult>> FindProductLocationMAFFoundryAsync([FromQuery] string product, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[MAFFoundry] Finding location for product: {Product}", product);
-
-        return await FindProductLocationAsync(
-            product,
-            InvokeAgentFrameworkAsync,
-            "[MAFFoundry]",
-            cancellationToken);
-    }
-
     private async Task<ActionResult<LocationResult>> FindProductLocationAsync(
         string product,
         Func<string, CancellationToken, Task<string>> invokeAgentAsync,

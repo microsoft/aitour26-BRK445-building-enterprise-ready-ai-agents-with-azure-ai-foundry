@@ -32,7 +32,6 @@
   <Folder Name="/6 Support/">
     <Project Path="ZavaMAFAgentsProvider/ZavaMAFAgentsProvider.csproj" Id="cedf7ed7-47e5-4733-a184-fe36eeb23aeb" />
     <Project Path="ZavaAIFoundrySKAgentsProvider/ZavaAIFoundrySKAgentsProvider.csproj" />
-    <Project Path="ZavaMAFFoundryAgentsProvider/ZavaMAFFoundryAgentsProvider.csproj" />
     <Project Path="ZavaSemanticKernelProvider/ZavaSemanticKernelProvider.csproj" Id="d61cff59-07e4-4184-bc7d-98c294c39149" />
   </Folder>
   <Folder Name="/9 Tests/">

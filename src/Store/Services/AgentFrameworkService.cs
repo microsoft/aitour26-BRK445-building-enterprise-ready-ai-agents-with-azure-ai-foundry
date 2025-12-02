@@ -22,13 +22,13 @@ public class AgentFrameworkService
         try
         {
             var framework = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "agentFramework");
-            _cachedFramework = string.IsNullOrEmpty(framework) ? "maffoundry" : framework.ToLowerInvariant();
+            _cachedFramework = string.IsNullOrEmpty(framework) ? "maf" : framework.ToLowerInvariant();
             return _cachedFramework;
         }
         catch
         {
-            // Default to maffoundry if localStorage is not available
-            _cachedFramework = "maffoundry";
+            // Default to maf if localStorage is not available
+            _cachedFramework = "maf";
             return _cachedFramework;
         }
     }
