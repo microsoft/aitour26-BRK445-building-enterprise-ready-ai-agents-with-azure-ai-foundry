@@ -67,21 +67,40 @@ public class PhotoAnalysisController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("analyzeagentfx")]
-    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeAgentFxAsync([FromForm] IFormFile image, [FromForm] string prompt, CancellationToken cancellationToken = default)
+    [HttpPost("analyzemaf")]
+    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeMAFAsync([FromForm] IFormFile image, [FromForm] string prompt, CancellationToken cancellationToken = default)
     {
         if (image is null)
         {
             return BadRequest("No image file was provided.");
         }
 
-        _logger.LogInformation("[AgentFx] Analyzing photo. Prompt: {Prompt}", prompt);
+        _logger.LogInformation("[MAF] Analyzing photo. Prompt: {Prompt}", prompt);
 
         return await AnalyzeWithAgentAsync(
             prompt,
             image.FileName,
             async (analysisPrompt) => await GetAgentFxResponseAsync(analysisPrompt),
-            "[AgentFx]",
+            "[MAF]",
+            cancellationToken);
+    }
+
+    [HttpPost("analyzemaffoundry")]
+    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeMAFFoundryAsync([FromForm] IFormFile image, [FromForm] string prompt, CancellationToken cancellationToken = default)
+    {
+        if (image is null)
+        {
+            return BadRequest("No image file was provided.");
+        }
+
+        _logger.LogInformation("[MAFFoundry] Analyzing photo. Prompt: {Prompt}", prompt);
+
+        // For MAF Foundry, use the same agent implementation (can be enhanced with Foundry-specific agents later)
+        return await AnalyzeWithAgentAsync(
+            prompt,
+            image.FileName,
+            async (analysisPrompt) => await GetAgentFxResponseAsync(analysisPrompt),
+            "[MAFFoundry]",
             cancellationToken);
     }
 

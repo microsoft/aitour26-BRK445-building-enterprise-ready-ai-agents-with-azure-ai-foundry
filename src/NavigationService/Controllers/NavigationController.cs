@@ -57,15 +57,27 @@ public class NavigationController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("directions/agentfx")]
-    public async Task<ActionResult<NavigationInstructions>> GenerateDirectionsAgentFxAsync([FromBody] DirectionsRequest request, CancellationToken cancellationToken)
+    [HttpPost("directions/maf")]
+    public async Task<ActionResult<NavigationInstructions>> GenerateDirectionsMAFAsync([FromBody] DirectionsRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[AgentFx] Generating directions from {From} to {To}", FormatLocation(request.From), FormatLocation(request.To));
+        _logger.LogInformation("[MAF] Generating directions from {From} to {To}", FormatLocation(request.From), FormatLocation(request.To));
 
         return await GenerateDirectionsAsync(
             request,
             InvokeAgentFrameworkAsync,
-            "[AgentFx]",
+            "[MAF]",
+            cancellationToken);
+    }
+
+    [HttpPost("directions/maffoundry")]
+    public async Task<ActionResult<NavigationInstructions>> GenerateDirectionsMAFFoundryAsync([FromBody] DirectionsRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[MAFFoundry] Generating directions from {From} to {To}", FormatLocation(request.From), FormatLocation(request.To));
+
+        return await GenerateDirectionsAsync(
+            request,
+            InvokeAgentFrameworkAsync,
+            "[MAFFoundry]",
             cancellationToken);
     }
 

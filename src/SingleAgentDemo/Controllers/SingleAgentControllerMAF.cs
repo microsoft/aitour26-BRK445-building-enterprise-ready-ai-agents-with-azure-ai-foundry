@@ -7,10 +7,10 @@ using ZavaAgentFxAgentsProvider;
 namespace SingleAgentDemo.Controllers;
 
 [ApiController]
-[Route("api/singleagent/agentfx")]
-public class SingleAgentControllerAgentFx : ControllerBase
+[Route("api/singleagent/maf")]
+public class SingleAgentControllerMAF : ControllerBase
 {
-    private readonly ILogger<SingleAgentControllerAgentFx> _logger;
+    private readonly ILogger<SingleAgentControllerMAF> _logger;
     private readonly AnalyzePhotoService _analyzePhotoService;
     private readonly CustomerInformationService _customerInformationService;
     private readonly ToolReasoningService _toolReasoningService;
@@ -18,8 +18,8 @@ public class SingleAgentControllerAgentFx : ControllerBase
     private readonly AgentFxAgentProvider _agentFxAgentProvider;
     private readonly IConfiguration _configuration;
 
-    public SingleAgentControllerAgentFx(
-        ILogger<SingleAgentControllerAgentFx> logger,        
+    public SingleAgentControllerMAF(
+        ILogger<SingleAgentControllerMAF> logger,        
         AnalyzePhotoService analyzePhotoService,
         CustomerInformationService customerInformationService,
         ToolReasoningService toolReasoningService,
@@ -35,11 +35,11 @@ public class SingleAgentControllerAgentFx : ControllerBase
         _agentFxAgentProvider = agentFxAgentProvider;
         _configuration = configuration;
 
-        // Set framework to AgentFx for all agent services
-        _analyzePhotoService.SetFramework("agentfx");
-        _customerInformationService.SetFramework("agentfx");
-        _toolReasoningService.SetFramework("agentfx");
-        _inventoryService.SetFramework("agentfx");
+        // Set framework to MAF for all agent services
+        _analyzePhotoService.SetFramework("maf");
+        _customerInformationService.SetFramework("maf");
+        _toolReasoningService.SetFramework("maf");
+        _inventoryService.SetFramework("maf");
     }
 
     [HttpPost("analyze")]
@@ -82,7 +82,7 @@ public class SingleAgentControllerAgentFx : ControllerBase
                 "Apply AI reasoning to determine tool requirements based on analysis and customer context",
                 async () =>
                 {
-                    return await GenerateToolReasoningWithAgentFxAsync(photoAnalysisStep, customerInfoStep, prompt);
+                    return await GenerateToolReasoningWithMAFAsync(photoAnalysisStep, customerInfoStep, prompt);
                 });
             
             // Workflow Step 4: Tool Matching (depends on all previous steps)
@@ -158,7 +158,7 @@ public class SingleAgentControllerAgentFx : ControllerBase
     /// Generate tool reasoning using Agent Framework patterns
     /// Demonstrates request/response pattern and context passing between workflow steps
     /// </summary>
-    private async Task<string> GenerateToolReasoningWithAgentFxAsync(PhotoAnalysisResult photoAnalysis, CustomerInformation customer, string prompt)
+    private async Task<string> GenerateToolReasoningWithMAFAsync(PhotoAnalysisResult photoAnalysis, CustomerInformation customer, string prompt)
     {
         try
         {

@@ -57,15 +57,27 @@ public class LocationController : ControllerBase
             cancellationToken);
     }
 
-    [HttpGet("find/agentfx")]
-    public async Task<ActionResult<LocationResult>> FindProductLocationAgentFxAsync([FromQuery] string product, CancellationToken cancellationToken)
+    [HttpGet("find/maf")]
+    public async Task<ActionResult<LocationResult>> FindProductLocationMAFAsync([FromQuery] string product, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[AgentFx] Finding location for product: {Product}", product);
+        _logger.LogInformation("[MAF] Finding location for product: {Product}", product);
 
         return await FindProductLocationAsync(
             product,
             InvokeAgentFrameworkAsync,
-            "[AgentFx]",
+            "[MAF]",
+            cancellationToken);
+    }
+
+    [HttpGet("find/maffoundry")]
+    public async Task<ActionResult<LocationResult>> FindProductLocationMAFFoundryAsync([FromQuery] string product, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[MAFFoundry] Finding location for product: {Product}", product);
+
+        return await FindProductLocationAsync(
+            product,
+            InvokeAgentFrameworkAsync,
+            "[MAFFoundry]",
             cancellationToken);
     }
 

@@ -59,15 +59,27 @@ public class MatchmakingController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("alternatives/agentfx")]
-    public async Task<ActionResult<MatchmakingResult>> FindAlternativesAgentFxAsync([FromBody] AlternativesRequest request, CancellationToken cancellationToken)
+    [HttpPost("alternatives/maf")]
+    public async Task<ActionResult<MatchmakingResult>> FindAlternativesMAFAsync([FromBody] AlternativesRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[AgentFx] Finding alternatives for product: {ProductQuery}, User: {UserId}", request.ProductQuery, request.UserId);
+        _logger.LogInformation("[MAF] Finding alternatives for product: {ProductQuery}, User: {UserId}", request.ProductQuery, request.UserId);
 
         return await FindAlternativesAsync(
             request,
             InvokeAgentFrameworkAsync,
-            "[AgentFx]",
+            "[MAF]",
+            cancellationToken);
+    }
+
+    [HttpPost("alternatives/maffoundry")]
+    public async Task<ActionResult<MatchmakingResult>> FindAlternativesMAFFoundryAsync([FromBody] AlternativesRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[MAFFoundry] Finding alternatives for product: {ProductQuery}, User: {UserId}", request.ProductQuery, request.UserId);
+
+        return await FindAlternativesAsync(
+            request,
+            InvokeAgentFrameworkAsync,
+            "[MAFFoundry]",
             cancellationToken);
     }
 

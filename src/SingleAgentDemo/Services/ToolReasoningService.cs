@@ -17,7 +17,7 @@ public class ToolReasoningService
     /// <summary>
     /// Sets the agent framework to use for service calls
     /// </summary>
-    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    /// <param name="framework">"sk" for Semantic Kernel, "maf" for Microsoft Agent Framework (App Services), or "maffoundry" for Microsoft Foundry Agents</param>
     public void SetFramework(string framework)
     {
         _framework = framework?.ToLowerInvariant() ?? "sk";
