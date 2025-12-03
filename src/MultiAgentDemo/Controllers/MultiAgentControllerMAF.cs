@@ -208,7 +208,7 @@ public class MultiAgentControllerMAF : ControllerBase
 
         return StatusCode(501, 
             "The MagenticOne workflow is not yet implemented in the MAF framework. " +
-            "Please use another orchestration type or the LLM implementation.");
+            "Please use another orchestration type or the LLM direct call mode.");
     }
 
     /// <summary>

@@ -193,21 +193,19 @@ public class MagenticOrchestrationService : IAgentOrchestrationService
         }
     }
 
-    private async Task<AgentStep> ExecuteAdaptiveRefinementAsync(MagenticContext context)
+    private Task<AgentStep> ExecuteAdaptiveRefinementAsync(MagenticContext context)
     {
-        await Task.Delay(50); // Simulate processing time for refinement
-
         var refinementSummary = string.Join("; ", context.SharedKnowledge.Take(3));
         var response = $"MagenticOne Adaptive Refinement: Synthesizing insights from {context.SharedKnowledge.Count} specialist inputs. " +
                       $"Key findings: {refinementSummary}. Applying iterative improvement algorithms.";
 
-        return new AgentStep
+        return Task.FromResult(new AgentStep
         {
             Agent = "Adaptive Refiner",
             Action = "Multi-agent synthesis and refinement",
             Result = response,
             Timestamp = DateTime.UtcNow
-        };
+        });
     }
 
     private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location location, string productQuery)
