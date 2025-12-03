@@ -43,9 +43,16 @@ public class AIFoundryAgentProvider
             agentId = _agentId;
         }
 
-        PersistentAgent definition = _agentsClient.Administration.GetAgent(
-    agentId);
-        AzureAIAgent agent = new(definition, _agentsClient);
+        AzureAIAgent agent = null;
+        try
+        {
+            PersistentAgent definition = _agentsClient.Administration.GetAgent(
+        agentId);
+            agent = new(definition, _agentsClient);
+        }
+        catch (Exception exp)
+        {
+        }
         return agent;
     }
 }
