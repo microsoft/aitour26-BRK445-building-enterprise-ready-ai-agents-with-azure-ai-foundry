@@ -29,6 +29,7 @@ public class ConcurrentOrchestrationService : IAgentOrchestrationService
         _navigationAgentService = navigationAgentService;
     }
 
+    /// <inheritdoc />
     public async Task<MultiAgentResponse> ExecuteAsync(MultiAgentRequest request)
     {
         var orchestrationId = Guid.NewGuid().ToString();
@@ -36,122 +37,130 @@ public class ConcurrentOrchestrationService : IAgentOrchestrationService
 
         var startTime = DateTime.UtcNow;
 
-        // Execute all agents concurrently using Task.WhenAll
+        // Build list of concurrent agent tasks
         var tasks = new List<Task<AgentStep>>
         {
-            RunInventoryAgentAsync(request.ProductQuery, startTime),
-            RunMatchmakingAgentAsync(request.ProductQuery, request.UserId, startTime),
-            RunLocationAgentAsync(request.ProductQuery, startTime)
+            ExecuteInventoryAgentAsync(request.ProductQuery, startTime),
+            ExecuteMatchmakingAgentAsync(request.ProductQuery, request.UserId, startTime),
+            ExecuteLocationAgentAsync(request.ProductQuery, startTime)
         };
 
-        // Add navigation task if location is provided
         if (request.Location != null)
         {
-            tasks.Add(RunNavigationAgentAsync(request.Location, request.ProductQuery, startTime));
+            tasks.Add(ExecuteNavigationAgentAsync(request.Location, request.ProductQuery, startTime));
         }
 
-        // Wait for all agents to complete
+        // Execute all agents concurrently
         var agentResults = await Task.WhenAll(tasks);
         var steps = agentResults.ToList();
 
-        // Generate navigation instructions if location provided
         NavigationInstructions? navigation = null;
         if (request.Location != null)
         {
             navigation = await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery);
         }
-        var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
-
 
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
             OrchestationType = OrchestrationType.Concurrent,
-            OrchestrationDescription = "All agents executed concurrently in parallel, providing independent analysis without dependencies on each other's results.",
+            OrchestrationDescription = "All agents executed concurrently in parallel, providing independent analysis without dependencies.",
             Steps = steps.ToArray(),
-            Alternatives = alternatives,
+            Alternatives = StepsProcessor.GenerateDefaultProductAlternatives(),
             NavigationInstructions = navigation
         };
     }
 
-    private async Task<AgentStep> RunInventoryAgentAsync(string productQuery, DateTime baseTime)
+    private async Task<AgentStep> ExecuteInventoryAgentAsync(string productQuery, DateTime baseTime)
     {
         try
         {
             var result = await _inventoryAgentService.SearchProductsAsync(productQuery);
-            var names = result?.ProductsFound?.Select(p => p.Name) ?? Enumerable.Empty<string>();
-            var desc = $"Concurrent search found {result?.TotalCount ?? 0} products: {string.Join(", ", names)}";
-            return new AgentStep { Agent = "InventoryAgent", Action = $"Concurrent search {productQuery}", Result = desc, Timestamp = baseTime };
+            var productNames = result?.ProductsFound?.Select(p => p.Name) ?? [];
+            var description = $"Concurrent search found {result?.TotalCount ?? 0} products: {string.Join(", ", productNames)}";
+            
+            return CreateStep("InventoryAgent", $"Concurrent search {productQuery}", description, baseTime);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Inventory agent failed in concurrent execution");
-            return new AgentStep { Agent = "InventoryAgent", Action = $"Concurrent search {productQuery}", Result = "Concurrent fallback inventory result", Timestamp = baseTime };
+            return CreateStep("InventoryAgent", $"Concurrent search {productQuery}", "Concurrent fallback inventory result", baseTime);
         }
     }
 
-    private async Task<AgentStep> RunMatchmakingAgentAsync(string productQuery, string userId, DateTime baseTime)
+    private async Task<AgentStep> ExecuteMatchmakingAgentAsync(string productQuery, string userId, DateTime baseTime)
     {
         try
         {
             var result = await _matchmakingAgentService.FindAlternativesAsync(productQuery, userId);
             var count = result?.Alternatives?.Length ?? 0;
-            var desc = $"Concurrent analysis found {count} independent alternatives";
-            return new AgentStep { Agent = "MatchmakingAgent", Action = $"Concurrent alternatives {productQuery}", Result = desc, Timestamp = baseTime.AddMilliseconds(100) };
+            var description = $"Concurrent analysis found {count} independent alternatives";
+            
+            return CreateStep("MatchmakingAgent", $"Concurrent alternatives {productQuery}", description, baseTime.AddMilliseconds(100));
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Matchmaking agent failed in concurrent execution");
-            return new AgentStep { Agent = "MatchmakingAgent", Action = $"Concurrent alternatives {productQuery}", Result = "Concurrent fallback alternatives", Timestamp = baseTime.AddMilliseconds(100) };
+            return CreateStep("MatchmakingAgent", $"Concurrent alternatives {productQuery}", "Concurrent fallback alternatives", baseTime.AddMilliseconds(100));
         }
     }
 
-    private async Task<AgentStep> RunLocationAgentAsync(string productQuery, DateTime baseTime)
+    private async Task<AgentStep> ExecuteLocationAgentAsync(string productQuery, DateTime baseTime)
     {
         try
         {
             var result = await _locationAgentService.FindProductLocationAsync(productQuery);
-            var loc = result?.StoreLocations?.FirstOrDefault();
-            var desc = loc != null ? $"Concurrent location search: {loc.Section} Aisle {loc.Aisle}" : "Concurrent location not found";
-            return new AgentStep { Agent = "LocationAgent", Action = $"Concurrent locate {productQuery}", Result = desc, Timestamp = baseTime.AddMilliseconds(200) };
+            var location = result?.StoreLocations?.FirstOrDefault();
+            var description = location != null 
+                ? $"Concurrent location search: {location.Section} Aisle {location.Aisle}" 
+                : "Concurrent location not found";
+            
+            return CreateStep("LocationAgent", $"Concurrent locate {productQuery}", description, baseTime.AddMilliseconds(200));
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Location agent failed in concurrent execution");
-            return new AgentStep { Agent = "LocationAgent", Action = $"Concurrent locate {productQuery}", Result = "Concurrent fallback location", Timestamp = baseTime.AddMilliseconds(200) };
+            return CreateStep("LocationAgent", $"Concurrent locate {productQuery}", "Concurrent fallback location", baseTime.AddMilliseconds(200));
         }
     }
 
-    private async Task<AgentStep> RunNavigationAgentAsync(Location? location, string productQuery, DateTime baseTime)
+    private async Task<AgentStep> ExecuteNavigationAgentAsync(Location location, string productQuery, DateTime baseTime)
     {
         try
         {
-            if (location == null) return new AgentStep { Agent = "NavigationAgent", Action = "Concurrent navigate", Result = "No start location", Timestamp = baseTime.AddMilliseconds(300) };
-            var dest = new Location { Lat = 0, Lon = 0 };
-            var nav = await _navigationAgentService.GenerateDirectionsAsync(location, dest);
-            var steps = nav?.Steps?.Length ?? 0;
-            var desc = $"Concurrent navigation: {steps} independent route steps";
-            return new AgentStep { Agent = "NavigationAgent", Action = "Concurrent navigate to product", Result = desc, Timestamp = baseTime.AddMilliseconds(300) };
+            var destination = new Location { Lat = 0, Lon = 0 };
+            var nav = await _navigationAgentService.GenerateDirectionsAsync(location, destination);
+            var stepCount = nav?.Steps?.Length ?? 0;
+            var description = $"Concurrent navigation: {stepCount} independent route steps";
+            
+            return CreateStep("NavigationAgent", "Concurrent navigate to product", description, baseTime.AddMilliseconds(300));
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Navigation agent failed in concurrent execution");
-            return new AgentStep { Agent = "NavigationAgent", Action = "Concurrent navigate", Result = "Concurrent fallback navigation", Timestamp = baseTime.AddMilliseconds(300) };
+            return CreateStep("NavigationAgent", "Concurrent navigate", "Concurrent fallback navigation", baseTime.AddMilliseconds(300));
         }
     }
 
-    private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location? location, string productQuery)
+    private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location location, string productQuery)
     {
-        if (location == null) return new NavigationInstructions { Steps = Array.Empty<NavigationStep>(), StartLocation = string.Empty, EstimatedTime = string.Empty };
-        var dest = new Location { Lat = 0, Lon = 0 };
         try
         {
-            return await _navigationAgentService.GenerateDirectionsAsync(location, dest);
+            var destination = new Location { Lat = 0, Lon = 0 };
+            return await _navigationAgentService.GenerateDirectionsAsync(location, destination);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "GenerateNavigationInstructions failed");
-            return new NavigationInstructions { Steps = new[] { new NavigationStep { Direction = "General", Description = $"Head to the area where {productQuery} is typically located", Landmark = new NavigationLandmark { Description = "General area" } } }, StartLocation = string.Empty, EstimatedTime = string.Empty };
+            return StepsProcessor.CreateDefaultNavigationInstructions(location, productQuery);
         }
     }
+
+    private static AgentStep CreateStep(string agent, string action, string result, DateTime timestamp) => new()
+    {
+        Agent = agent,
+        Action = action,
+        Result = result,
+        Timestamp = timestamp
+    };
 }

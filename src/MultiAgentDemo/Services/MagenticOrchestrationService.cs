@@ -4,8 +4,8 @@ using SharedEntities;
 namespace MultiAgentDemo.Services;
 
 /// <summary>
-/// Magentic orchestration - group chat-like orchestration inspired by MagenticOne.
-/// Use Case: Complex, generalist multi-agent collaboration.
+/// Magentic orchestration - complex multi-agent collaboration inspired by MagenticOne.
+/// Use Case: Complex, generalist multi-agent collaboration with adaptive planning.
 /// </summary>
 public class MagenticOrchestrationService : IAgentOrchestrationService
 {
@@ -29,65 +29,62 @@ public class MagenticOrchestrationService : IAgentOrchestrationService
         _navigationAgentService = navigationAgentService;
     }
 
+    /// <inheritdoc />
     public async Task<MultiAgentResponse> ExecuteAsync(MultiAgentRequest request)
     {
         var orchestrationId = Guid.NewGuid().ToString();
         _logger.LogInformation("Starting MagenticOne-inspired orchestration {OrchestrationId}", orchestrationId);
 
         var steps = new List<AgentStep>();
-        var magenticContext = new MagenticContext 
-        { 
-            ProductQuery = request.ProductQuery, 
-            UserId = request.UserId, 
+        var context = new MagenticContext
+        {
+            ProductQuery = request.ProductQuery,
+            UserId = request.UserId,
             Location = request.Location,
-            SharedKnowledge = new List<string>()
+            SharedKnowledge = []
         };
 
-        // Phase 1: Orchestrator initiates complex multi-agent collaboration
-        var orchestratorStep = CreateOrchestratorStep("Orchestrator", "Initialize MagenticOne collaboration", 
-            $"Beginning complex multi-agent analysis for '{request.ProductQuery}' using MagenticOne-inspired approach with adaptive planning.", DateTime.UtcNow);
-        steps.Add(orchestratorStep);
-        magenticContext.SharedKnowledge.Add($"Orchestrator initialized complex collaboration for: {request.ProductQuery}");
+        // Phase 1: Initialize complex collaboration
+        steps.Add(CreateOrchestratorStep("Initialize MagenticOne collaboration",
+            $"Beginning complex multi-agent analysis for '{request.ProductQuery}' using MagenticOne-inspired approach with adaptive planning."));
+        context.SharedKnowledge.Add($"Orchestrator initialized complex collaboration for: {request.ProductQuery}");
 
         // Phase 2: Specialist agents perform deep analysis
-        var specialistInventory = await RunSpecialistInventoryAsync(magenticContext);
-        steps.Add(specialistInventory);
-        magenticContext.SharedKnowledge.Add($"Inventory Specialist: {specialistInventory.Result}");
+        var inventoryStep = await ExecuteSpecialistInventoryAsync(context);
+        steps.Add(inventoryStep);
+        context.SharedKnowledge.Add($"Inventory Specialist: {inventoryStep.Result}");
 
-        var specialistMatchmaking = await RunSpecialistMatchmakingAsync(magenticContext);
-        steps.Add(specialistMatchmaking);
-        magenticContext.SharedKnowledge.Add($"Matchmaking Specialist: {specialistMatchmaking.Result}");
+        var matchmakingStep = await ExecuteSpecialistMatchmakingAsync(context);
+        steps.Add(matchmakingStep);
+        context.SharedKnowledge.Add($"Matchmaking Specialist: {matchmakingStep.Result}");
 
         // Phase 3: Orchestrator synthesizes and plans next phase
-        var synthesisStep = CreateOrchestratorStep("Orchestrator", "Synthesize specialist findings", 
-            "Analyzing specialist inputs to determine optimal collaboration strategy. Adapting plan based on initial findings.", DateTime.UtcNow);
-        steps.Add(synthesisStep);
+        steps.Add(CreateOrchestratorStep("Synthesize specialist findings",
+            "Analyzing specialist inputs to determine optimal collaboration strategy. Adapting plan based on initial findings."));
 
         // Phase 4: Location and navigation coordination
-        var coordinatedLocation = await RunCoordinatedLocationAsync(magenticContext);
-        steps.Add(coordinatedLocation);
-        magenticContext.SharedKnowledge.Add($"Location Coordinator: {coordinatedLocation.Result}");
+        var locationStep = await ExecuteCoordinatedLocationAsync(context);
+        steps.Add(locationStep);
+        context.SharedKnowledge.Add($"Location Coordinator: {locationStep.Result}");
 
         if (request.Location != null)
         {
-            var coordinatedNavigation = await RunCoordinatedNavigationAsync(magenticContext);
-            steps.Add(coordinatedNavigation);
-            magenticContext.SharedKnowledge.Add($"Navigation Coordinator: {coordinatedNavigation.Result}");
+            var navigationStep = await ExecuteCoordinatedNavigationAsync(context);
+            steps.Add(navigationStep);
+            context.SharedKnowledge.Add($"Navigation Coordinator: {navigationStep.Result}");
         }
 
         // Phase 5: Multi-agent consensus building
-        var consensusRound1 = CreateOrchestratorStep("Orchestrator", "Build multi-agent consensus", 
-            "Facilitating consensus among specialists. Evaluating conflicting recommendations and building unified solution.", DateTime.UtcNow);
-        steps.Add(consensusRound1);
+        steps.Add(CreateOrchestratorStep("Build multi-agent consensus",
+            "Facilitating consensus among specialists. Evaluating conflicting recommendations and building unified solution."));
 
-        // Phase 6: Adaptive refinement based on all inputs
-        var refinementStep = await RunAdaptiveRefinementAsync(magenticContext);
+        // Phase 6: Adaptive refinement
+        var refinementStep = await ExecuteAdaptiveRefinementAsync(context);
         steps.Add(refinementStep);
 
-        // Phase 7: Final orchestrator synthesis
-        var finalSynthesis = CreateOrchestratorStep("Orchestrator", "Finalize MagenticOne solution", 
-            "Completed complex multi-agent collaboration with adaptive refinement. Delivering comprehensive solution based on specialist consensus.", DateTime.UtcNow);
-        steps.Add(finalSynthesis);
+        // Phase 7: Final synthesis
+        steps.Add(CreateOrchestratorStep("Finalize MagenticOne solution",
+            "Completed complex multi-agent collaboration with adaptive refinement. Delivering comprehensive solution based on specialist consensus."));
 
         NavigationInstructions? navigation = null;
         if (request.Location != null)
@@ -95,140 +92,152 @@ public class MagenticOrchestrationService : IAgentOrchestrationService
             navigation = await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery);
         }
 
-        // Generate mock alternatives for UI compatibility
-        var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
-
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
             OrchestationType = OrchestrationType.Magentic,
-            OrchestrationDescription = "Complex generalist multi-agent collaboration inspired by MagenticOne, featuring adaptive orchestration, specialist coordination, consensus building, and iterative refinement.",
+            OrchestrationDescription = "Complex generalist multi-agent collaboration inspired by MagenticOne, featuring adaptive orchestration, specialist coordination, and iterative refinement.",
             Steps = steps.ToArray(),
-            Alternatives = alternatives,
+            Alternatives = StepsProcessor.GenerateDefaultProductAlternatives(),
             NavigationInstructions = navigation
         };
     }
 
-    private AgentStep CreateOrchestratorStep(string agent, string action, string result, DateTime timestamp)
+    private static AgentStep CreateOrchestratorStep(string action, string result) => new()
     {
-        return new AgentStep
-        {
-            Agent = agent,
-            Action = action,
-            Result = result,
-            Timestamp = timestamp
-        };
-    }
+        Agent = "Orchestrator",
+        Action = action,
+        Result = result,
+        Timestamp = DateTime.UtcNow
+    };
 
-    private async Task<AgentStep> RunSpecialistInventoryAsync(MagenticContext context)
+    private async Task<AgentStep> ExecuteSpecialistInventoryAsync(MagenticContext context)
     {
         try
         {
             var result = await _inventoryAgentService.SearchProductsAsync(context.ProductQuery);
-            var names = result?.ProductsFound?.Select(p => p.Name) ?? Enumerable.Empty<string>();
-            var response = $"MagenticOne Inventory Specialist: Deep analysis reveals {result?.TotalCount ?? 0} products. Cross-referencing with supply chain data and predictive availability models: {string.Join(", ", names)}";
-            
-            return new AgentStep { Agent = "Inventory Specialist", Action = "Complex inventory analysis", Result = response, Timestamp = DateTime.UtcNow };
+            var productNames = result?.ProductsFound?.Select(p => p.Name) ?? [];
+            var response = $"MagenticOne Inventory Specialist: Deep analysis reveals {result?.TotalCount ?? 0} products. " +
+                          $"Cross-referencing with supply chain data: {string.Join(", ", productNames)}";
+
+            return CreateStep("Inventory Specialist", "Complex inventory analysis", response);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Inventory specialist failed in MagenticOne");
-            return new AgentStep { Agent = "Inventory Specialist", Action = "Complex inventory analysis", Result = "MagenticOne adaptive fallback: Inventory specialist adapting to constraints", Timestamp = DateTime.UtcNow };
+            return CreateStep("Inventory Specialist", "Complex inventory analysis", 
+                "MagenticOne adaptive fallback: Inventory specialist adapting to constraints");
         }
     }
 
-    private async Task<AgentStep> RunSpecialistMatchmakingAsync(MagenticContext context)
+    private async Task<AgentStep> ExecuteSpecialistMatchmakingAsync(MagenticContext context)
     {
         try
         {
             var result = await _matchmakingAgentService.FindAlternativesAsync(context.ProductQuery, context.UserId);
             var count = result?.Alternatives?.Length ?? 0;
-            var response = $"MagenticOne Matchmaking Specialist: Advanced customer profiling and preference analysis identified {count} personalized alternatives with behavioral prediction modeling";
-            
-            return new AgentStep { Agent = "Matchmaking Specialist", Action = "Advanced customer analysis", Result = response, Timestamp = DateTime.UtcNow };
+            var response = $"MagenticOne Matchmaking Specialist: Advanced customer profiling identified {count} personalized alternatives with behavioral prediction modeling";
+
+            return CreateStep("Matchmaking Specialist", "Advanced customer analysis", response);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Matchmaking specialist failed in MagenticOne");
-            return new AgentStep { Agent = "Matchmaking Specialist", Action = "Advanced customer analysis", Result = "MagenticOne recovery: Specialist adapting algorithm parameters", Timestamp = DateTime.UtcNow };
+            return CreateStep("Matchmaking Specialist", "Advanced customer analysis", 
+                "MagenticOne recovery: Specialist adapting algorithm parameters");
         }
     }
 
-    private async Task<AgentStep> RunCoordinatedLocationAsync(MagenticContext context)
+    private async Task<AgentStep> ExecuteCoordinatedLocationAsync(MagenticContext context)
     {
         try
         {
             var result = await _locationAgentService.FindProductLocationAsync(context.ProductQuery);
-            var loc = result?.StoreLocations?.FirstOrDefault();
-            var response = loc != null ? 
-                $"MagenticOne Location Coordinator: Integrated spatial analysis with inventory data confirms optimal location: {loc.Section} Aisle {loc.Aisle}. Coordinating with navigation systems." : 
-                "MagenticOne Location Coordinator: Spatial analysis complete. Coordinating alternative location strategies with team.";
-            
-            return new AgentStep { Agent = "Location Coordinator", Action = "Integrated spatial analysis", Result = response, Timestamp = DateTime.UtcNow };
+            var location = result?.StoreLocations?.FirstOrDefault();
+            var response = location != null
+                ? $"MagenticOne Location Coordinator: Integrated spatial analysis confirms optimal location: {location.Section} Aisle {location.Aisle}. Coordinating with navigation systems."
+                : "MagenticOne Location Coordinator: Spatial analysis complete. Coordinating alternative location strategies with team.";
+
+            return CreateStep("Location Coordinator", "Integrated spatial analysis", response);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Location coordinator failed in MagenticOne");
-            return new AgentStep { Agent = "Location Coordinator", Action = "Integrated spatial analysis", Result = "MagenticOne resilience: Coordinator switching to backup location algorithms", Timestamp = DateTime.UtcNow };
+            return CreateStep("Location Coordinator", "Integrated spatial analysis", 
+                "MagenticOne resilience: Coordinator switching to backup location algorithms");
         }
     }
 
-    private async Task<AgentStep> RunCoordinatedNavigationAsync(MagenticContext context)
+    private async Task<AgentStep> ExecuteCoordinatedNavigationAsync(MagenticContext context)
     {
+        if (context.Location == null)
+        {
+            return CreateStep("Navigation Coordinator", "Route optimization", 
+                "MagenticOne Navigation: Awaiting customer location for route synthesis");
+        }
+
         try
         {
-            if (context.Location == null) return new AgentStep { Agent = "Navigation Coordinator", Action = "Route optimization", Result = "MagenticOne Navigation: Awaiting customer location for route synthesis", Timestamp = DateTime.UtcNow };
-            
-            var dest = new Location { Lat = 0, Lon = 0 };
-            var nav = await _navigationAgentService.GenerateDirectionsAsync(context.Location, dest);
-            var steps = nav?.Steps?.Length ?? 0;
-            var response = $"MagenticOne Navigation Coordinator: Multi-modal route optimization complete. Generated {steps} steps with real-time adaptation capabilities and crowd-flow analysis.";
-            
-            return new AgentStep { Agent = "Navigation Coordinator", Action = "Multi-modal route optimization", Result = response, Timestamp = DateTime.UtcNow };
+            var destination = new Location { Lat = 0, Lon = 0 };
+            var nav = await _navigationAgentService.GenerateDirectionsAsync(context.Location, destination);
+            var stepCount = nav?.Steps?.Length ?? 0;
+            var response = $"MagenticOne Navigation Coordinator: Multi-modal route optimization complete. Generated {stepCount} steps with real-time adaptation capabilities.";
+
+            return CreateStep("Navigation Coordinator", "Multi-modal route optimization", response);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Navigation coordinator failed in MagenticOne");
-            return new AgentStep { Agent = "Navigation Coordinator", Action = "Multi-modal route optimization", Result = "MagenticOne adaptability: Navigation coordinator implementing alternative routing strategies", Timestamp = DateTime.UtcNow };
+            return CreateStep("Navigation Coordinator", "Multi-modal route optimization", 
+                "MagenticOne adaptability: Navigation coordinator implementing alternative routing strategies");
         }
     }
 
-    private async Task<AgentStep> RunAdaptiveRefinementAsync(MagenticContext context)
+    private Task<AgentStep> ExecuteAdaptiveRefinementAsync(MagenticContext context)
     {
-        await Task.Delay(100); // Simulate processing time for refinement
-        
         var refinementSummary = string.Join("; ", context.SharedKnowledge.Take(3));
-        var response = $"MagenticOne Adaptive Refinement: Synthesizing insights from {context.SharedKnowledge.Count} specialist inputs. Key findings: {refinementSummary}. Applying iterative improvement algorithms.";
-        
-        return new AgentStep 
-        { 
-            Agent = "Adaptive Refiner", 
-            Action = "Multi-agent synthesis and refinement", 
-            Result = response, 
-            Timestamp = DateTime.UtcNow 
-        };
+        var response = $"MagenticOne Adaptive Refinement: Synthesizing insights from {context.SharedKnowledge.Count} specialist inputs. " +
+                      $"Key findings: {refinementSummary}. Applying iterative improvement algorithms.";
+
+        return Task.FromResult(new AgentStep
+        {
+            Agent = "Adaptive Refiner",
+            Action = "Multi-agent synthesis and refinement",
+            Result = response,
+            Timestamp = DateTime.UtcNow
+        });
     }
 
-    private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location? location, string productQuery)
+    private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location location, string productQuery)
     {
-        if (location == null) return new NavigationInstructions { Steps = Array.Empty<NavigationStep>(), StartLocation = string.Empty, EstimatedTime = string.Empty };
-        var dest = new Location { Lat = 0, Lon = 0 };
         try
         {
-            return await _navigationAgentService.GenerateDirectionsAsync(location, dest);
+            var destination = new Location { Lat = 0, Lon = 0 };
+            return await _navigationAgentService.GenerateDirectionsAsync(location, destination);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "GenerateNavigationInstructions failed");
-            return new NavigationInstructions { Steps = new[] { new NavigationStep { Direction = "General", Description = $"Head to the area where {productQuery} is typically located", Landmark = new NavigationLandmark { Description = "General area" } } }, StartLocation = string.Empty, EstimatedTime = string.Empty };
+            return StepsProcessor.CreateDefaultNavigationInstructions(location, productQuery);
         }
     }
 
-    private class MagenticContext
+    private static AgentStep CreateStep(string agent, string action, string result) => new()
     {
-        public string ProductQuery { get; set; } = string.Empty;
-        public string UserId { get; set; } = string.Empty;
-        public Location? Location { get; set; }
-        public List<string> SharedKnowledge { get; set; } = new();
+        Agent = agent,
+        Action = action,
+        Result = result,
+        Timestamp = DateTime.UtcNow
+    };
+
+    /// <summary>
+    /// Context for MagenticOne-style orchestration with shared knowledge.
+    /// </summary>
+    private sealed class MagenticContext
+    {
+        public string ProductQuery { get; init; } = string.Empty;
+        public string UserId { get; init; } = string.Empty;
+        public Location? Location { get; init; }
+        public List<string> SharedKnowledge { get; init; } = [];
     }
 }

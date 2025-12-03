@@ -29,217 +29,208 @@ public class HandoffOrchestrationService : IAgentOrchestrationService
         _navigationAgentService = navigationAgentService;
     }
 
+    /// <inheritdoc />
     public async Task<MultiAgentResponse> ExecuteAsync(MultiAgentRequest request)
     {
         var orchestrationId = Guid.NewGuid().ToString();
         _logger.LogInformation("Starting handoff orchestration {OrchestrationId}", orchestrationId);
 
         var steps = new List<AgentStep>();
-        var currentContext = new HandoffContext { ProductQuery = request.ProductQuery, UserId = request.UserId, Location = request.Location };
+        var context = new HandoffContext
+        {
+            ProductQuery = request.ProductQuery,
+            UserId = request.UserId,
+            Location = request.Location
+        };
 
         // Start with inventory agent
-        var inventoryStep = await RunInventoryAgentAsync(currentContext);
+        var inventoryStep = await ExecuteInventoryAgentAsync(context);
         steps.Add(inventoryStep);
-        currentContext.InventoryResult = inventoryStep.Result;
+        context.InventoryResult = inventoryStep.Result;
 
-        // Decide next agent based on inventory result
-        var nextAgent = DetermineNextAgent(inventoryStep, currentContext);
+        // Process dynamic handoffs
+        var nextAgent = DetermineNextAgent(inventoryStep, context);
         _logger.LogInformation("Handoff decision: Next agent is {NextAgent}", nextAgent);
 
-        while (nextAgent != "Complete" && steps.Count < 10) // Safety limit
+        const int maxSteps = 10; // Safety limit
+        while (nextAgent != "Complete" && steps.Count < maxSteps)
         {
-            switch (nextAgent)
-            {
-                case "MatchmakingAgent":
-                    var matchmakingStep = await RunMatchmakingAgentAsync(currentContext);
-                    steps.Add(matchmakingStep);
-                    currentContext.MatchmakingResult = matchmakingStep.Result;
-                    nextAgent = DetermineNextAgent(matchmakingStep, currentContext);
-                    break;
-
-                case "LocationAgent":
-                    var locationStep = await RunLocationAgentAsync(currentContext);
-                    steps.Add(locationStep);
-                    currentContext.LocationResult = locationStep.Result;
-                    nextAgent = DetermineNextAgent(locationStep, currentContext);
-                    break;
-
-                case "NavigationAgent":
-                    if (request.Location != null)
-                    {
-                        var navigationStep = await RunNavigationAgentAsync(currentContext);
-                        steps.Add(navigationStep);
-                        currentContext.NavigationResult = navigationStep.Result;
-                    }
-                    nextAgent = "Complete";
-                    break;
-
-                default:
-                    nextAgent = "Complete";
-                    break;
-            }
+            nextAgent = await ProcessHandoffAsync(nextAgent, context, steps, request);
         }
 
         NavigationInstructions? navigation = null;
-        if (request.Location != null && !string.IsNullOrEmpty(currentContext.NavigationResult))
+        if (request.Location != null && !string.IsNullOrEmpty(context.NavigationResult))
         {
             navigation = await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery);
         }
-
-        var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
 
         return new MultiAgentResponse
         {
             OrchestrationId = orchestrationId,
             OrchestationType = OrchestrationType.Handoff,
-            OrchestrationDescription = "Agents executed using dynamic handoff logic, with each agent determining the next agent based on analysis results and business rules.",
+            OrchestrationDescription = "Agents executed using dynamic handoff logic, with each agent determining the next agent based on analysis results.",
             Steps = steps.ToArray(),
-            Alternatives = alternatives,
+            Alternatives = StepsProcessor.GenerateDefaultProductAlternatives(),
             NavigationInstructions = navigation
         };
     }
 
-    private string DetermineNextAgent(AgentStep lastStep, HandoffContext context)
+    private async Task<string> ProcessHandoffAsync(string agentName, HandoffContext context, List<AgentStep> steps, MultiAgentRequest request)
     {
-        // Dynamic routing logic based on step results and context
-        switch (lastStep.Agent)
+        switch (agentName)
         {
-            case "InventoryAgent":
-                if (lastStep.Result.Contains("0 products") || lastStep.Result.Contains("not found"))
-                {
-                    // No inventory found, try alternatives first
-                    return "MatchmakingAgent";
-                }
-                else
-                {
-                    // Products found, get location next
-                    return "LocationAgent";
-                }
-
             case "MatchmakingAgent":
-                if (string.IsNullOrEmpty(context.LocationResult))
-                {
-                    // Need location information
-                    return "LocationAgent";
-                }
-                else if (context.Location != null)
-                {
-                    // Have location info and user location, provide navigation
-                    return "NavigationAgent";
-                }
-                else
-                {
-                    return "Complete";
-                }
+                var matchmakingStep = await ExecuteMatchmakingAgentAsync(context);
+                steps.Add(matchmakingStep);
+                context.MatchmakingResult = matchmakingStep.Result;
+                return DetermineNextAgent(matchmakingStep, context);
 
             case "LocationAgent":
-                if (lastStep.Result.Contains("not found") && string.IsNullOrEmpty(context.MatchmakingResult))
-                {
-                    // Location not found, try alternatives
-                    return "MatchmakingAgent";
-                }
-                else if (context.Location != null)
-                {
-                    // Have location info and user location, provide navigation
-                    return "NavigationAgent";
-                }
-                else
-                {
-                    return "Complete";
-                }
+                var locationStep = await ExecuteLocationAgentAsync(context);
+                steps.Add(locationStep);
+                context.LocationResult = locationStep.Result;
+                return DetermineNextAgent(locationStep, context);
 
             case "NavigationAgent":
+                if (request.Location != null)
+                {
+                    var navigationStep = await ExecuteNavigationAgentAsync(context);
+                    steps.Add(navigationStep);
+                    context.NavigationResult = navigationStep.Result;
+                }
+                return "Complete";
+
             default:
                 return "Complete";
         }
     }
 
-    private async Task<AgentStep> RunInventoryAgentAsync(HandoffContext context)
+    private string DetermineNextAgent(AgentStep lastStep, HandoffContext context)
+    {
+        return lastStep.Agent switch
+        {
+            "InventoryAgent" => lastStep.Result.Contains("0 products") || lastStep.Result.Contains("not found")
+                ? "MatchmakingAgent"
+                : "LocationAgent",
+
+            "MatchmakingAgent" => string.IsNullOrEmpty(context.LocationResult)
+                ? "LocationAgent"
+                : context.Location != null ? "NavigationAgent" : "Complete",
+
+            "LocationAgent" => lastStep.Result.Contains("not found") && string.IsNullOrEmpty(context.MatchmakingResult)
+                ? "MatchmakingAgent"
+                : context.Location != null ? "NavigationAgent" : "Complete",
+
+            _ => "Complete"
+        };
+    }
+
+    private async Task<AgentStep> ExecuteInventoryAgentAsync(HandoffContext context)
     {
         try
         {
             var result = await _inventoryAgentService.SearchProductsAsync(context.ProductQuery);
-            var names = result?.ProductsFound?.Select(p => p.Name) ?? Enumerable.Empty<string>();
-            var desc = $"Handoff inventory check: {result?.TotalCount ?? 0} products found: {string.Join(", ", names)}";
-            return new AgentStep { Agent = "InventoryAgent", Action = $"Handoff search {context.ProductQuery}", Result = desc, Timestamp = DateTime.UtcNow };
+            var productNames = result?.ProductsFound?.Select(p => p.Name) ?? [];
+            var description = $"Handoff inventory check: {result?.TotalCount ?? 0} products found: {string.Join(", ", productNames)}";
+            
+            return CreateStep("InventoryAgent", $"Handoff search {context.ProductQuery}", description);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Inventory agent failed in handoff");
-            return new AgentStep { Agent = "InventoryAgent", Action = $"Handoff search {context.ProductQuery}", Result = "Handoff inventory failed - escalating", Timestamp = DateTime.UtcNow };
+            return CreateStep("InventoryAgent", $"Handoff search {context.ProductQuery}", "Handoff inventory failed - escalating");
         }
     }
 
-    private async Task<AgentStep> RunMatchmakingAgentAsync(HandoffContext context)
+    private async Task<AgentStep> ExecuteMatchmakingAgentAsync(HandoffContext context)
     {
         try
         {
             var result = await _matchmakingAgentService.FindAlternativesAsync(context.ProductQuery, context.UserId);
             var count = result?.Alternatives?.Length ?? 0;
-            var desc = $"Handoff alternatives: {count} options found after inventory analysis";
-            return new AgentStep { Agent = "MatchmakingAgent", Action = $"Handoff alternatives {context.ProductQuery}", Result = desc, Timestamp = DateTime.UtcNow };
+            var description = $"Handoff alternatives: {count} options found after inventory analysis";
+            
+            return CreateStep("MatchmakingAgent", $"Handoff alternatives {context.ProductQuery}", description);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Matchmaking agent failed in handoff");
-            return new AgentStep { Agent = "MatchmakingAgent", Action = $"Handoff alternatives {context.ProductQuery}", Result = "Handoff alternatives failed", Timestamp = DateTime.UtcNow };
+            return CreateStep("MatchmakingAgent", $"Handoff alternatives {context.ProductQuery}", "Handoff alternatives failed");
         }
     }
 
-    private async Task<AgentStep> RunLocationAgentAsync(HandoffContext context)
+    private async Task<AgentStep> ExecuteLocationAgentAsync(HandoffContext context)
     {
         try
         {
             var result = await _locationAgentService.FindProductLocationAsync(context.ProductQuery);
-            var loc = result?.StoreLocations?.FirstOrDefault();
-            var desc = loc != null ? $"Handoff location: {loc.Section} Aisle {loc.Aisle}" : "Handoff location not found - may need alternatives";
-            return new AgentStep { Agent = "LocationAgent", Action = $"Handoff locate {context.ProductQuery}", Result = desc, Timestamp = DateTime.UtcNow };
+            var location = result?.StoreLocations?.FirstOrDefault();
+            var description = location != null
+                ? $"Handoff location: {location.Section} Aisle {location.Aisle}"
+                : "Handoff location not found - may need alternatives";
+            
+            return CreateStep("LocationAgent", $"Handoff locate {context.ProductQuery}", description);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Location agent failed in handoff");
-            return new AgentStep { Agent = "LocationAgent", Action = $"Handoff locate {context.ProductQuery}", Result = "Handoff location failed", Timestamp = DateTime.UtcNow };
+            return CreateStep("LocationAgent", $"Handoff locate {context.ProductQuery}", "Handoff location failed");
         }
     }
 
-    private async Task<AgentStep> RunNavigationAgentAsync(HandoffContext context)
+    private async Task<AgentStep> ExecuteNavigationAgentAsync(HandoffContext context)
     {
         try
         {
-            if (context.Location == null) return new AgentStep { Agent = "NavigationAgent", Action = "Handoff navigate", Result = "No start location for handoff", Timestamp = DateTime.UtcNow };
-            var dest = new Location { Lat = 0, Lon = 0 };
-            var nav = await _navigationAgentService.GenerateDirectionsAsync(context.Location, dest);
-            var steps = nav?.Steps?.Length ?? 0;
-            var desc = $"Handoff navigation: {steps} steps based on context analysis";
-            return new AgentStep { Agent = "NavigationAgent", Action = "Handoff navigate to product", Result = desc, Timestamp = DateTime.UtcNow };
+            if (context.Location == null)
+            {
+                return CreateStep("NavigationAgent", "Handoff navigate", "No start location for handoff");
+            }
+
+            var destination = new Location { Lat = 0, Lon = 0 };
+            var nav = await _navigationAgentService.GenerateDirectionsAsync(context.Location, destination);
+            var stepCount = nav?.Steps?.Length ?? 0;
+            var description = $"Handoff navigation: {stepCount} steps based on context analysis";
+            
+            return CreateStep("NavigationAgent", "Handoff navigate to product", description);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Navigation agent failed in handoff");
-            return new AgentStep { Agent = "NavigationAgent", Action = "Handoff navigate", Result = "Handoff navigation failed", Timestamp = DateTime.UtcNow };
+            return CreateStep("NavigationAgent", "Handoff navigate", "Handoff navigation failed");
         }
     }
 
-    private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location? location, string productQuery)
+    private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location location, string productQuery)
     {
-        if (location == null) return new NavigationInstructions { Steps = Array.Empty<NavigationStep>(), StartLocation = string.Empty, EstimatedTime = string.Empty };
-        var dest = new Location { Lat = 0, Lon = 0 };
         try
         {
-            return await _navigationAgentService.GenerateDirectionsAsync(location, dest);
+            var destination = new Location { Lat = 0, Lon = 0 };
+            return await _navigationAgentService.GenerateDirectionsAsync(location, destination);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "GenerateNavigationInstructions failed");
-            return new NavigationInstructions { Steps = new[] { new NavigationStep { Direction = "General", Description = $"Head to the area where {productQuery} is typically located", Landmark = new NavigationLandmark { Description = "General area" } } }, StartLocation = string.Empty, EstimatedTime = string.Empty };
+            return StepsProcessor.CreateDefaultNavigationInstructions(location, productQuery);
         }
     }
 
-    private class HandoffContext
+    private static AgentStep CreateStep(string agent, string action, string result) => new()
     {
-        public string ProductQuery { get; set; } = string.Empty;
-        public string UserId { get; set; } = string.Empty;
-        public Location? Location { get; set; }
+        Agent = agent,
+        Action = action,
+        Result = result,
+        Timestamp = DateTime.UtcNow
+    };
+
+    /// <summary>
+    /// Context for tracking handoff state between agents.
+    /// </summary>
+    private sealed class HandoffContext
+    {
+        public string ProductQuery { get; init; } = string.Empty;
+        public string UserId { get; init; } = string.Empty;
+        public Location? Location { get; init; }
         public string? InventoryResult { get; set; }
         public string? MatchmakingResult { get; set; }
         public string? LocationResult { get; set; }

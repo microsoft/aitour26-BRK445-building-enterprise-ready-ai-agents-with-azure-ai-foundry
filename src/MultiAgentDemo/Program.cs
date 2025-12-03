@@ -1,62 +1,34 @@
 using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.Workflows;
 using MultiAgentDemo.Services;
 using ZavaFoundryAgentsProvider;
 using ZavaMAFAgentsProvider;
-
-// KernelAzureOpenAIConfigurator moved to its own file under Services to avoid mixing
-// type declarations with top-level statements in Program.cs.
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Add services to the container.
+// Add services to the container
 builder.Services.AddControllers();
-
-// Add Swagger for API documentation
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-/********************************************************/
-// The following code registers the agent providers for the Microsoft Foundry project.  
+// Register MAFAgentProvider for Microsoft Foundry integration
 var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
-builder.Services.AddSingleton(sp =>
-{
-    return new MAFAgentProvider(microsoftFoundryProjectConnection!);
-});
-/********************************************************/
+builder.Services.AddSingleton(_ => new MAFAgentProvider(microsoftFoundryProjectConnection!));
 
-builder.Services.AddSingleton(sp => builder.Configuration);
+// Register HTTP clients for external services (used by LLM direct call mode)
+RegisterHttpClients(builder);
 
-// Register service layer implementations for multi-agent external services
-builder.Services.AddHttpClient<InventoryAgentService>(
-    client => client.BaseAddress = new("https+http://inventoryservice"));
+// Register orchestration services for LLM mode
+RegisterOrchestrationServices(builder);
 
-builder.Services.AddHttpClient<MatchmakingAgentService>(
-    client => client.BaseAddress = new Uri("https+http://matchmakingservice"));
-
-builder.Services.AddHttpClient<LocationAgentService>(
-    client => client.BaseAddress = new Uri("https+http://locationservice"));
-
-builder.Services.AddHttpClient<NavigationAgentService>(
-    client => client.BaseAddress = new Uri("https+http://navigationservice"));
-
-// Register orchestration services
-builder.Services.AddScoped<SequentialOrchestrationService>();
-builder.Services.AddScoped<ConcurrentOrchestrationService>();
-builder.Services.AddScoped<HandoffOrchestrationService>();
-builder.Services.AddScoped<GroupChatOrchestrationService>();
-builder.Services.AddScoped<MagenticOrchestrationService>();
-
-// Register agents in the DI using the Microsoft Agent Framework
-AddAgentsInAgentFx(builder);
+// Register AI agents from Microsoft Foundry (used by MAF mode)
+RegisterFoundryAgents(builder);
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -64,25 +36,55 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
 
-// Local function to register agents using the Microsoft Agent Framework
-static void AddAgentsInAgentFx(WebApplicationBuilder builder)
+/// <summary>
+/// Registers HTTP clients for external service communication (LLM direct call mode).
+/// </summary>
+static void RegisterHttpClients(WebApplicationBuilder builder)
 {
-    // iterate through the enum values of AgentNamesProvider.AgentName
-    foreach (AgentNamesProvider.AgentName agentName in Enum.GetValues(typeof(AgentNamesProvider.AgentName)))
+    builder.Services.AddHttpClient<InventoryAgentService>(
+        client => client.BaseAddress = new Uri("https+http://inventoryservice"));
+
+    builder.Services.AddHttpClient<MatchmakingAgentService>(
+        client => client.BaseAddress = new Uri("https+http://matchmakingservice"));
+
+    builder.Services.AddHttpClient<LocationAgentService>(
+        client => client.BaseAddress = new Uri("https+http://locationservice"));
+
+    builder.Services.AddHttpClient<NavigationAgentService>(
+        client => client.BaseAddress = new Uri("https+http://navigationservice"));
+}
+
+/// <summary>
+/// Registers orchestration services for different multi-agent patterns (LLM mode).
+/// </summary>
+static void RegisterOrchestrationServices(WebApplicationBuilder builder)
+{
+    builder.Services.AddScoped<SequentialOrchestrationService>();
+    builder.Services.AddScoped<ConcurrentOrchestrationService>();
+    builder.Services.AddScoped<HandoffOrchestrationService>();
+    builder.Services.AddScoped<GroupChatOrchestrationService>();
+    builder.Services.AddScoped<MagenticOrchestrationService>();
+}
+
+/// <summary>
+/// Registers AI agents from Microsoft Foundry for MAF mode.
+/// Each agent is registered as a keyed singleton for dependency injection.
+/// </summary>
+static void RegisterFoundryAgents(WebApplicationBuilder builder)
+{
+    foreach (AgentNamesProvider.AgentName agentName in Enum.GetValues<AgentNamesProvider.AgentName>())
     {
         var agentId = AgentNamesProvider.GetAgentName(agentName);
 
-        builder.Services.AddKeyedSingleton<AIAgent>(agentId, (sp, key) =>
+        builder.Services.AddKeyedSingleton<AIAgent>(agentId, (sp, _) =>
         {
-            var agentFxProvider = sp.GetRequiredService<MAFAgentProvider>();
-            return agentFxProvider.GetAIAgent(agentId);
+            var provider = sp.GetRequiredService<MAFAgentProvider>();
+            return provider.GetAIAgent(agentId);
         });
     }
 }
