@@ -6,6 +6,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using ZavaAIFoundrySKAgentsProvider;
+using ZavaFoundryAgentsProvider;
 using ZavaMAFAgentsProvider;
 using ZavaSemanticKernelProvider;
 
@@ -18,55 +19,43 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+/********************************************************/
+// The following code registers the agent providers for Semantic Kernel
+var microsoftFoundryCnnString = builder.Configuration.GetValue<string>("ConnectionStrings:microsoftfoundrycnnstring");
+var chatDeploymentName = builder.Configuration["AI_ChatDeploymentName"] ?? "gpt-5-mini";
+builder.Services.AddSingleton(sp =>
+    new SemanticKernelProvider(microsoftFoundryCnnString, chatDeploymentName));
+/********************************************************/
+
+/********************************************************/
+// The following code registers the agent providers for the Microsoft Foundry project.  
+var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
 builder.Services.AddSingleton(sp =>
 {
-    var config = sp.GetService<IConfiguration>();
-    var aiFoundryConnection = config.GetConnectionString("aifoundry");
-    var chatDeploymentName = config["AI_ChatDeploymentName"] ?? "gpt-5-mini";
-    return new SemanticKernelProvider(aiFoundryConnection, chatDeploymentName);
+    return new AIFoundryAgentProvider(microsoftFoundryProjectConnection, "");
 });
 
-builder.Services.AddSingleton<IChatClient>(sp =>
+builder.Services.AddSingleton(sp =>
 {
-    var skProvider = sp.GetService<SemanticKernelProvider>();
-    var kernel = skProvider.GetKernel();
-    return kernel.GetRequiredService<IChatCompletionService>().AsChatClient();
+    return new MAFAgentProvider(microsoftFoundryProjectConnection!);
 });
+/********************************************************/
 
-builder.Services.AddSingleton<AIFoundryAgentProvider>(sp =>
-{
-    var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config.GetConnectionString("foundryproject");
-    var agentId = config.GetConnectionString("photoanalyzeragentid");
-    return new AIFoundryAgentProvider(aiFoundryProjectConnection, agentId);
-});
-
-builder.Services.AddSingleton<MAFAgentProvider>(sp =>
-{
-    var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config.GetConnectionString("foundryproject");
-    return new MAFAgentProvider(aiFoundryProjectConnection);
-});
-
-
+/********************************************************/
+// get the agentId and register the AzureAIAgent and AIAgent services for the PhotoAnalyzerAgent
+var agentId = AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.PhotoAnalyzerAgent);
 builder.Services.AddSingleton<AzureAIAgent>(sp =>
 {
-    // return the photo analyzer agent using Semantic Kernel
-    var config = sp.GetService<IConfiguration>();
-    var agentId = config.GetConnectionString("photoanalyzeragentid");
     var _aIFoundryAgentProvider = sp.GetService<AIFoundryAgentProvider>();
     return _aIFoundryAgentProvider.CreateAzureAIAgent(agentId);
 });
 
 builder.Services.AddSingleton<AIAgent>(sp =>
 {
-    // return the photo analyzer agent using Microsoft Agent Framework
-    var config = sp.GetService<IConfiguration>();
-    var agentId = config.GetConnectionString("photoanalyzeragentid");
     var agentFxProvider = sp.GetService<MAFAgentProvider>();
     return agentFxProvider.GetAIAgent(agentId);
 });
-
+/********************************************************/
 
 var app = builder.Build();
 
