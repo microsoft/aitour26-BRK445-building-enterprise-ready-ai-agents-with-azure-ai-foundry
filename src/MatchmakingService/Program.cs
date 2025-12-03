@@ -1,40 +1,32 @@
 using Microsoft.Agents.AI;
-using ZavaMAFAgentsProvider;
 using ZavaFoundryAgentsProvider;
+using ZavaMAFAgentsProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Add services to the container.
+// Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-/********************************************************/
-// The following code registers the agent providers for the Microsoft Foundry project.  
+// Register MAFAgentProvider for Microsoft Foundry integration
 var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
-builder.Services.AddSingleton(sp =>
-{
-    return new MAFAgentProvider(microsoftFoundryProjectConnection!);
-});
-/********************************************************/
+builder.Services.AddSingleton(_ => new MAFAgentProvider(microsoftFoundryProjectConnection!));
 
-/********************************************************/
-// get the agentId and register the AIAgent services for the ProductMatchmakingAgent
+// Register the ProductMatchmakingAgent from Microsoft Foundry
 builder.Services.AddSingleton<AIAgent>(sp =>
 {
     var agentId = AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.ProductMatchmakingAgent);
-    var agentFxProvider = sp.GetService<MAFAgentProvider>();
-    return agentFxProvider.GetAIAgent(agentId);
+    var provider = sp.GetRequiredService<MAFAgentProvider>();
+    return provider.GetAIAgent(agentId);
 });
-/********************************************************/
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

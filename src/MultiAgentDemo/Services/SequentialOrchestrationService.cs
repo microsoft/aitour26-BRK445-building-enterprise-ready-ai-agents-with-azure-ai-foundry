@@ -29,6 +29,7 @@ public class SequentialOrchestrationService : IAgentOrchestrationService
         _navigationAgentService = navigationAgentService;
     }
 
+    /// <inheritdoc />
     public async Task<MultiAgentResponse> ExecuteAsync(MultiAgentRequest request)
     {
         var orchestrationId = Guid.NewGuid().ToString();
@@ -36,26 +37,23 @@ public class SequentialOrchestrationService : IAgentOrchestrationService
 
         var steps = new List<AgentStep>();
 
-        // Execute agents sequentially, each potentially using results from previous ones
-        var inventoryStep = await RunInventoryAgentAsync(request.ProductQuery);
+        // Execute agents sequentially, each using results from previous ones
+        var inventoryStep = await ExecuteInventoryAgentAsync(request.ProductQuery);
         steps.Add(inventoryStep);
 
-        var matchmakingStep = await RunMatchmakingAgentAsync(request.ProductQuery, request.UserId, inventoryStep);
+        var matchmakingStep = await ExecuteMatchmakingAgentAsync(request.ProductQuery, request.UserId, inventoryStep);
         steps.Add(matchmakingStep);
 
-        var locationStep = await RunLocationAgentAsync(request.ProductQuery, inventoryStep);
+        var locationStep = await ExecuteLocationAgentAsync(request.ProductQuery, inventoryStep);
         steps.Add(locationStep);
 
         NavigationInstructions? navigation = null;
         if (request.Location != null)
         {
-            var navigationStep = await RunNavigationAgentAsync(request.Location, request.ProductQuery, locationStep);
+            var navigationStep = await ExecuteNavigationAgentAsync(request.Location, request.ProductQuery, locationStep);
             steps.Add(navigationStep);
             navigation = await GenerateNavigationInstructionsAsync(request.Location, request.ProductQuery);
         }
-
-        // Generate mock alternatives for UI compatibility
-        var alternatives = StepsProcessor.GenerateDefaultProductAlternatives();
 
         return new MultiAgentResponse
         {
@@ -63,89 +61,101 @@ public class SequentialOrchestrationService : IAgentOrchestrationService
             OrchestationType = OrchestrationType.Sequential,
             OrchestrationDescription = "Agents executed sequentially, with each agent building upon the results of the previous agent's work.",
             Steps = steps.ToArray(),
-            Alternatives = alternatives,
+            Alternatives = StepsProcessor.GenerateDefaultProductAlternatives(),
             NavigationInstructions = navigation
         };
     }
 
-    private async Task<AgentStep> RunInventoryAgentAsync(string productQuery)
+    private async Task<AgentStep> ExecuteInventoryAgentAsync(string productQuery)
     {
         try
         {
             var result = await _inventoryAgentService.SearchProductsAsync(productQuery);
-            var names = result?.ProductsFound?.Select(p => p.Name) ?? Enumerable.Empty<string>();
-            var desc = $"Found {result?.TotalCount ?? 0} products: {string.Join(", ", names)}";
-            return new AgentStep { Agent = "InventoryAgent", Action = $"Search {productQuery}", Result = desc, Timestamp = DateTime.UtcNow };
+            var productNames = result?.ProductsFound?.Select(p => p.Name) ?? [];
+            var description = $"Found {result?.TotalCount ?? 0} products: {string.Join(", ", productNames)}";
+            
+            return CreateStep("InventoryAgent", $"Search {productQuery}", description);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Inventory agent failed");
-            return new AgentStep { Agent = "InventoryAgent", Action = $"Search {productQuery}", Result = "Fallback inventory result", Timestamp = DateTime.UtcNow };
+            return CreateStep("InventoryAgent", $"Search {productQuery}", "Fallback inventory result");
         }
     }
 
-    private async Task<AgentStep> RunMatchmakingAgentAsync(string productQuery, string userId, AgentStep previousStep)
+    private async Task<AgentStep> ExecuteMatchmakingAgentAsync(string productQuery, string userId, AgentStep previousStep)
     {
         try
         {
             var result = await _matchmakingAgentService.FindAlternativesAsync(productQuery, userId);
             var count = result?.Alternatives?.Length ?? 0;
-            var desc = $"{count} alternatives found based on inventory results: {previousStep.Result}";
-            return new AgentStep { Agent = "MatchmakingAgent", Action = $"Find alternatives {productQuery}", Result = desc, Timestamp = DateTime.UtcNow };
+            var description = $"{count} alternatives found based on inventory results: {previousStep.Result}";
+            
+            return CreateStep("MatchmakingAgent", $"Find alternatives {productQuery}", description);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Matchmaking agent failed");
-            return new AgentStep { Agent = "MatchmakingAgent", Action = $"Find alternatives {productQuery}", Result = "Fallback alternatives", Timestamp = DateTime.UtcNow };
+            return CreateStep("MatchmakingAgent", $"Find alternatives {productQuery}", "Fallback alternatives");
         }
     }
 
-    private async Task<AgentStep> RunLocationAgentAsync(string productQuery, AgentStep inventoryStep)
+    private async Task<AgentStep> ExecuteLocationAgentAsync(string productQuery, AgentStep inventoryStep)
     {
         try
         {
             var result = await _locationAgentService.FindProductLocationAsync(productQuery);
-            var loc = result?.StoreLocations?.FirstOrDefault();
-            var desc = loc != null ? $"Located in {loc.Section} Aisle {loc.Aisle} (verified against inventory: {inventoryStep.Result})" : "Location not found";
-            return new AgentStep { Agent = "LocationAgent", Action = $"Locate {productQuery}", Result = desc, Timestamp = DateTime.UtcNow };
+            var location = result?.StoreLocations?.FirstOrDefault();
+            var description = location != null 
+                ? $"Located in {location.Section} Aisle {location.Aisle} (verified against inventory: {inventoryStep.Result})" 
+                : "Location not found";
+            
+            return CreateStep("LocationAgent", $"Locate {productQuery}", description);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Location agent failed");
-            return new AgentStep { Agent = "LocationAgent", Action = $"Locate {productQuery}", Result = "Fallback location", Timestamp = DateTime.UtcNow };
+            return CreateStep("LocationAgent", $"Locate {productQuery}", "Fallback location");
         }
     }
 
-    private async Task<AgentStep> RunNavigationAgentAsync(Location? location, string productQuery, AgentStep locationStep)
+    private async Task<AgentStep> ExecuteNavigationAgentAsync(Location location, string productQuery, AgentStep locationStep)
     {
         try
         {
-            if (location == null) return new AgentStep { Agent = "NavigationAgent", Action = "Navigate", Result = "No start location", Timestamp = DateTime.UtcNow };
-            var dest = new Location { Lat = 0, Lon = 0 };
-            var nav = await _navigationAgentService.GenerateDirectionsAsync(location, dest);
-            var steps = nav?.Steps?.Length ?? 0;
-            var desc = $"{steps} navigation steps based on location: {locationStep.Result}";
-            return new AgentStep { Agent = "NavigationAgent", Action = "Navigate to product", Result = desc, Timestamp = DateTime.UtcNow };
+            var destination = new Location { Lat = 0, Lon = 0 };
+            var nav = await _navigationAgentService.GenerateDirectionsAsync(location, destination);
+            var stepCount = nav?.Steps?.Length ?? 0;
+            var description = $"{stepCount} navigation steps based on location: {locationStep.Result}";
+            
+            return CreateStep("NavigationAgent", "Navigate to product", description);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Navigation agent failed");
-            return new AgentStep { Agent = "NavigationAgent", Action = "Navigate", Result = "Fallback navigation", Timestamp = DateTime.UtcNow };
+            return CreateStep("NavigationAgent", "Navigate", "Fallback navigation");
         }
     }
 
-    private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location? location, string productQuery)
+    private async Task<NavigationInstructions> GenerateNavigationInstructionsAsync(Location location, string productQuery)
     {
-        if (location == null) return new NavigationInstructions { Steps = Array.Empty<NavigationStep>(), StartLocation = string.Empty, EstimatedTime = string.Empty };
-        var dest = new Location { Lat = 0, Lon = 0 };
         try
         {
-            return await _navigationAgentService.GenerateDirectionsAsync(location, dest);
+            var destination = new Location { Lat = 0, Lon = 0 };
+            return await _navigationAgentService.GenerateDirectionsAsync(location, destination);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "GenerateNavigationInstructions failed");
-            return new NavigationInstructions { Steps = new[] { new NavigationStep { Direction = "General", Description = $"Head to the area where {productQuery} is typically located", Landmark = new NavigationLandmark { Description = "General area" } } }, StartLocation = string.Empty, EstimatedTime = string.Empty };
+            return StepsProcessor.CreateDefaultNavigationInstructions(location, productQuery);
         }
     }
+
+    private static AgentStep CreateStep(string agent, string action, string result) => new()
+    {
+        Agent = agent,
+        Action = action,
+        Result = result,
+        Timestamp = DateTime.UtcNow
+    };
 }
