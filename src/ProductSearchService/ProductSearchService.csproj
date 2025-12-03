@@ -18,9 +18,5 @@
 		<ProjectReference Include="..\ZavaFoundryAgentsProvider\ZavaFoundryAgentsProvider.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<Compile Include="..\Shared\Models\AnalysisModels.cs" Link="Models\AnalysisModels.cs" />
-	</ItemGroup>
-
 
 </Project>
