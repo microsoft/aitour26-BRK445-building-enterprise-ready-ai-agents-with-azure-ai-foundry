@@ -11,14 +11,14 @@ namespace SingleAgentDemo.Controllers;
 /// Demonstrates direct agent invocation using RunStreamingAsync without workflow orchestration.
 /// </summary>
 [ApiController]
-[Route("api/singleagent/maf")]
-public class SingleAgentControllerMAF : ControllerBase
+[Route("api/singleagent/maf_foundry")]
+public class SingleAgentControllerMAFFoundry : ControllerBase
 {
-    private readonly ILogger<SingleAgentControllerMAF> _logger;
+    private readonly ILogger<SingleAgentControllerMAFFoundry> _logger;
     private readonly IServiceProvider _serviceProvider;
 
-    public SingleAgentControllerMAF(
-        ILogger<SingleAgentControllerMAF> logger,
+    public SingleAgentControllerMAFFoundry(
+        ILogger<SingleAgentControllerMAFFoundry> logger,
         IServiceProvider serviceProvider)
     {
         _logger = logger;

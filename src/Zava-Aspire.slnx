@@ -32,6 +32,8 @@
   <Folder Name="/6 Support/">
     <Project Path="ZavaFoundryAgentsProvider/ZavaFoundryAgentsProvider.csproj" Id="b38e6609-eff4-4d79-96d6-11b20a972ace" />
     <Project Path="ZavaMAFAgentsProvider/ZavaMAFAgentsProvider.csproj" Id="cedf7ed7-47e5-4733-a184-fe36eeb23aeb" />
+    <Project Path="ZavaMAFLocalAgentsProvider/ZavaMAFLocalAgentsProvider.csproj" />
+    <Project Path="ZavaWorkingModes/ZavaWorkingModes.csproj" />
   </Folder>
   <Folder Name="/9 Tests/">
     <Project Path="Products.Tests/Products.Tests.csproj" />

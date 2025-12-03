@@ -2,6 +2,7 @@ using Microsoft.Agents.AI;
 using SingleAgentDemo.Services;
 using ZavaFoundryAgentsProvider;
 using ZavaMAFAgentsProvider;
+using ZavaMAFLocalAgentsProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,10 +17,18 @@ builder.Services.AddSwaggerGen();
 var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
 builder.Services.AddSingleton(_ => new MAFAgentProvider(microsoftFoundryProjectConnection!));
 
-// Register HTTP clients for external services (used by LLM direct call mode)
+// Register MAFLocalAgentProvider for local agent creation
+var microsoftFoundryCnnString = builder.Configuration.GetConnectionString("microsoftfoundrycnnstring");
+var chatDeploymentName = builder.Configuration["AI_ChatDeploymentName"] ?? "gpt-5-mini";
+if (!string.IsNullOrEmpty(microsoftFoundryCnnString))
+{
+    builder.Services.AddSingleton(_ => new MAFLocalAgentProvider(microsoftFoundryCnnString, chatDeploymentName));
+}
+
+// Register HTTP clients for external services (used by LLM direct call and DirectCall modes)
 RegisterHttpClients(builder);
 
-// Register AI agents from Microsoft Foundry (used by MAF mode)
+// Register AI agents from Microsoft Foundry (used by MAF Foundry mode)
 RegisterFoundryAgents(builder);
 
 var app = builder.Build();
@@ -39,7 +48,7 @@ app.MapControllers();
 app.Run();
 
 /// <summary>
-/// Registers HTTP clients for external service communication (LLM direct call mode).
+/// Registers HTTP clients for external service communication (LLM direct call and DirectCall modes).
 /// </summary>
 static void RegisterHttpClients(WebApplicationBuilder builder)
 {
@@ -60,7 +69,7 @@ static void RegisterHttpClients(WebApplicationBuilder builder)
 }
 
 /// <summary>
-/// Registers AI agents from Microsoft Foundry for MAF mode.
+/// Registers AI agents from Microsoft Foundry for MAF Foundry mode.
 /// Each agent is registered as a keyed singleton for dependency injection.
 /// </summary>
 static void RegisterFoundryAgents(WebApplicationBuilder builder)

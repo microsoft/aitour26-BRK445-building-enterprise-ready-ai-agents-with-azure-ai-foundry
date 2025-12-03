@@ -16,5 +16,6 @@
     <ProjectReference Include="..\SearchEntities\SearchEntities.csproj" />
     <ProjectReference Include="..\CartEntities\CartEntities.csproj" />
     <ProjectReference Include="..\SharedEntities\SharedEntities.csproj" />
+    <ProjectReference Include="..\ZavaWorkingModes\ZavaWorkingModes.csproj" />
   </ItemGroup>
 </Project>
