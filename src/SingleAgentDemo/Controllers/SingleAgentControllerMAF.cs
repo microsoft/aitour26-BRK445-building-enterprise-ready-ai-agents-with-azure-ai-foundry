@@ -59,18 +59,6 @@ public class SingleAgentControllerMAF : ControllerBase
             // Implement sequential workflow pattern using Agent Framework with Foundry Agents
             // This demonstrates a practical sequential workflow where each step builds on previous results
 
-            // Build the sequential workflow with foundry agents
-            var agents = new List<AIAgent>
-            {
-                _photoAnalyzerAgent,
-                _customerInformationAgent,
-                _toolReasoningAgent,
-                _inventoryAgent
-            };
-
-            // Create workflow prompt that includes the context
-            var workflowPrompt = BuildWorkflowPrompt(prompt, customerId, image.FileName);
-
             // Workflow Step 1: Photo Analysis using Foundry Agent
             _logger.LogInformation("MAF Workflow: Step 1 - Photo Analysis using Foundry Agent");
             var photoAnalysisResult = await ExecuteAgentStepAsync(
@@ -172,33 +160,18 @@ public class SingleAgentControllerMAF : ControllerBase
     }
 
     /// <summary>
-    /// Build the workflow prompt with all context
-    /// </summary>
-    private string BuildWorkflowPrompt(string prompt, string customerId, string fileName)
-    {
-        return $@"
-Task: {prompt}
-Customer ID: {customerId}
-Image: {fileName}
-
-Please analyze the project requirements, check customer information, 
-determine needed tools, and verify inventory availability.
-";
-    }
-
-    /// <summary>
     /// Extract reusable tools from customer information result
     /// </summary>
     private string[] ExtractReusableTools(string customerInfoResult)
     {
         // Parse the agent response to extract tools the customer already has
         // This is a simplified extraction - in production, you'd use structured output
-        var defaultTools = new[] { "measuring tape", "screwdriver", "hammer" };
+        var defaultTools = new[] { "tape measure", "screwdriver", "hammer" };
 
         if (string.IsNullOrEmpty(customerInfoResult))
             return defaultTools;
 
-        // Look for common tool keywords in the response
+        // Look for common tool keywords in the response (includes synonyms like "tape measure" and "measuring tape")
         var tools = new List<string>();
         var toolKeywords = new[] { "hammer", "screwdriver", "drill", "saw", "wrench", "pliers", "tape measure", "measuring tape", "level" };
 
