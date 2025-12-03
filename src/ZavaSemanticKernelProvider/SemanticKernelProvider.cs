@@ -1,3 +1,4 @@
+using Azure.Identity;
 using Microsoft.SemanticKernel;
 
 namespace ZavaSemanticKernelProvider;
@@ -10,7 +11,7 @@ public class SemanticKernelProvider
     private readonly Kernel _kernel;
 
     public SemanticKernelProvider(
-        string openAIConnection = "ConnectionStrings:microsoftfoundrycnnstring", 
+        string openAIConnection = "ConnectionStrings:microsoftfoundrycnnstring",
         string chatDeploymentName = "gpt-5-mini")
     {
         // Parse the connection string into endpoint + apiKey.
@@ -20,11 +21,23 @@ public class SemanticKernelProvider
 
         // Add Azure OpenAI Chat Completion service using parsed connection data.
         // Removed hard-coded placeholder values and now using provided configuration. (Change)
-        kernelBuilder.AddAzureOpenAIChatCompletion(
-            deploymentName: chatDeploymentName,
-            endpoint: endpoint,
-            apiKey: apiKey
-        );
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            kernelBuilder.AddAzureOpenAIChatCompletion(
+                deploymentName: chatDeploymentName,
+                endpoint: endpoint,
+                credentials: new DefaultAzureCredential()
+            );
+        }
+        else
+        {
+            kernelBuilder.AddAzureOpenAIChatCompletion(
+                deploymentName: chatDeploymentName,
+                endpoint: endpoint,
+                apiKey: apiKey
+            );
+        }
 
         _kernel = kernelBuilder.Build();
     }
@@ -45,8 +58,35 @@ public class SemanticKernelProvider
         if (string.IsNullOrWhiteSpace(connection))
             throw new ArgumentException("Azure OpenAI connection string is null or empty.", nameof(connection));
 
-        // Normalize any accidental surrounding whitespace/newlines.
         connection = connection.Trim();
+
+        // Support endpoint-only connection string: "Endpoint=https://resource.openai.azure.com/;"
+        if (connection.StartsWith("Endpoint=", StringComparison.OrdinalIgnoreCase) &&
+            !connection.Contains("Key=", StringComparison.OrdinalIgnoreCase) &&
+            !connection.Contains("ApiKey=", StringComparison.OrdinalIgnoreCase) &&
+            !connection.Contains("Api-Key=", StringComparison.OrdinalIgnoreCase))
+        {
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var segment in connection.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                int eq = segment.IndexOf('=');
+                if (eq < 1) continue;
+                string key = segment[..eq].Trim();
+                string value = segment[(eq + 1)..].Trim();
+                if (key.Length == 0) continue;
+                dict[key] = value;
+            }
+
+            if (!dict.TryGetValue("Endpoint", out var endpointValue) || string.IsNullOrWhiteSpace(endpointValue))
+            {
+                dict.TryGetValue("Url", out endpointValue);
+            }
+
+            if (string.IsNullOrWhiteSpace(endpointValue))
+                throw new InvalidOperationException("Endpoint not found in Azure OpenAI connection string. Expected 'Endpoint=...'.");
+
+            return (NormalizeEndpoint(endpointValue), string.Empty);
+        }
 
         // Back-compat: support legacy minimal form: "https://...;Key=...;" (will be removed later).
         if (connection.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
@@ -62,42 +102,40 @@ public class SemanticKernelProvider
                 string legacyKey = keyPart[4..].Trim(); // after "Key="
                 return (NormalizeEndpoint(ep), legacyKey);
             }
-            // If the minimal parsing failed we continue to general parsing below for better error messages.
         }
 
         // General key=value parsing (preferred path).
-        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var dictGeneral = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var segment in connection.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             int eq = segment.IndexOf('=');
-            if (eq < 1) // need at least one char key
-                continue; // ignore malformed pieces silently
+            if (eq < 1) continue;
             string key = segment[..eq].Trim();
             string value = segment[(eq + 1)..].Trim();
             if (key.Length == 0) continue;
-            dict[key] = value; // last one wins
+            dictGeneral[key] = value;
         }
 
-        if (!dict.TryGetValue("Endpoint", out var endpointValue) || string.IsNullOrWhiteSpace(endpointValue))
+        if (!dictGeneral.TryGetValue("Endpoint", out var endpointGeneralValue) || string.IsNullOrWhiteSpace(endpointGeneralValue))
         {
-            // Fallback legacy alias "Url"
-            dict.TryGetValue("Url", out endpointValue);
+            dictGeneral.TryGetValue("Url", out endpointGeneralValue);
         }
 
-        if (string.IsNullOrWhiteSpace(endpointValue))
+        if (string.IsNullOrWhiteSpace(endpointGeneralValue))
             throw new InvalidOperationException("Endpoint not found in Azure OpenAI connection string. Expected 'Endpoint=...'.");
 
-        if (!dict.TryGetValue("Key", out var apiKey) &&
-            !dict.TryGetValue("ApiKey", out apiKey) &&
-            !dict.TryGetValue("Api-Key", out apiKey))
-        {
-            throw new InvalidOperationException("API Key not found in Azure OpenAI connection string. Expected 'Key=' (or ApiKey/Api-Key). Example: Endpoint=https://resource.openai.azure.com/;Key=YOUR_KEY;");
-        }
-
+        string? apiKey = null;
+        dictGeneral.TryGetValue("Key", out apiKey);
         if (string.IsNullOrWhiteSpace(apiKey))
-            throw new InvalidOperationException("API Key value is empty in Azure OpenAI connection string.");
+            dictGeneral.TryGetValue("ApiKey", out apiKey);
+        if (string.IsNullOrWhiteSpace(apiKey))
+            dictGeneral.TryGetValue("Api-Key", out apiKey);
 
-        return (NormalizeEndpoint(endpointValue), apiKey.Trim());
+        // If no key is present, return empty string for key.
+        if (string.IsNullOrWhiteSpace(apiKey))
+            return (NormalizeEndpoint(endpointGeneralValue), string.Empty);
+
+        return (NormalizeEndpoint(endpointGeneralValue), apiKey.Trim());
     }
 
     private static string NormalizeEndpoint(string endpoint)

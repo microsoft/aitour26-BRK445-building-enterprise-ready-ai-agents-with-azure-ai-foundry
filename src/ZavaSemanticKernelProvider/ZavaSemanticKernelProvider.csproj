@@ -9,6 +9,7 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SemanticKernel" Version="1.67.1" />
 		<PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.67.1" />
+		<PackageReference Include="Azure.Identity" Version="1.17.1" />
 	</ItemGroup>
 
 </Project>
