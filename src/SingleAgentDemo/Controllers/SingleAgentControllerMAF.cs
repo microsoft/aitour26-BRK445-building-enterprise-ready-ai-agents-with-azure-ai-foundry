@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Mvc;    
-using SingleAgentDemo.Models;
+using Microsoft.AspNetCore.Mvc;
+using SharedEntities;
 using SingleAgentDemo.Services;
 using ZavaMAFAgentsProvider;
 
@@ -55,7 +55,7 @@ public class SingleAgentControllerMAF : ControllerBase
             // This demonstrates a practical sequential workflow where each step builds on previous results
             
             // Workflow Step 1: Photo Analysis
-            _logger.LogInformation("Agent Framework Workflow: Step 1 - Photo Analysis");
+            _logger.LogInformation("MAF Workflow: Step 1 - Photo Analysis");
             var photoAnalysisStep = await ExecuteWorkflowStepAsync(
                 "PhotoAnalyzer",
                 "Analyze uploaded image to detect materials and project requirements",
@@ -65,7 +65,7 @@ public class SingleAgentControllerMAF : ControllerBase
                 });
             
             // Workflow Step 2: Customer Context Retrieval (concurrent with photo analysis possible, but sequential here)
-            _logger.LogInformation("Agent Framework Workflow: Step 2 - Customer Information Retrieval");
+            _logger.LogInformation("MAF Workflow: Step 2 - Customer Information Retrieval");
             var customerInfoStep = await ExecuteWorkflowStepAsync(
                 "CustomerInfoAgent",
                 "Retrieve customer tools, skills, and project history",
@@ -75,7 +75,7 @@ public class SingleAgentControllerMAF : ControllerBase
                 });
             
             // Workflow Step 3: AI Reasoning (depends on steps 1 & 2)
-            _logger.LogInformation("Agent Framework Workflow: Step 3 - AI-Powered Tool Reasoning");
+            _logger.LogInformation("MAF Workflow: Step 3 - AI-Powered Tool Reasoning");
             var reasoningStep = await ExecuteWorkflowStepAsync(
                 "ReasoningAgent",
                 "Apply AI reasoning to determine tool requirements based on analysis and customer context",
@@ -85,7 +85,7 @@ public class SingleAgentControllerMAF : ControllerBase
                 });
             
             // Workflow Step 4: Tool Matching (depends on all previous steps)
-            _logger.LogInformation("Agent Framework Workflow: Step 4 - Tool Matching");
+            _logger.LogInformation("MAF Workflow: Step 4 - Tool Matching");
             var toolMatchStep = await ExecuteWorkflowStepAsync(
                 "ToolMatchingAgent",
                 "Match required tools against customer's existing tools",
@@ -95,7 +95,7 @@ public class SingleAgentControllerMAF : ControllerBase
                 });
             
             // Workflow Step 5: Inventory Enrichment (final step, depends on step 4)
-            _logger.LogInformation("Agent Framework Workflow: Step 5 - Inventory Enrichment");
+            _logger.LogInformation("MAF Workflow: Step 5 - Inventory Enrichment");
             var inventoryStep = await ExecuteWorkflowStepAsync(
                 "InventoryAgent",
                 "Enrich recommendations with real-time inventory data",
@@ -105,7 +105,7 @@ public class SingleAgentControllerMAF : ControllerBase
                 });
 
             // Workflow Complete: Synthesize results
-            _logger.LogInformation("Agent Framework Workflow: Complete - Synthesizing results");
+            _logger.LogInformation("MAF Workflow: Complete - Synthesizing results");
             var response = new SharedEntities.SingleAgentAnalysisResponse
             {
                 Analysis = photoAnalysisStep.Description,

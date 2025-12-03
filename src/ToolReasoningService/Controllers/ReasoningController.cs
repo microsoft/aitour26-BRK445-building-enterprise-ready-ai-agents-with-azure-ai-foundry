@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
-using Shared.Models;
 using System.Text;
+using SharedEntities;
 
 namespace ToolReasoningService.Controllers;
 

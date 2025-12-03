@@ -1,4 +1,4 @@
-using SingleAgentDemo.Models;
+using SharedEntities;
 
 namespace SingleAgentDemo.Services;
 
@@ -63,7 +63,7 @@ public class AnalyzePhotoService
         return new PhotoAnalysisResult 
         { 
             Description = $"Room analysis for prompt: {prompt}. Detected painted walls with preparation needed.",
-            DetectedMaterials = new[] { "paint", "wall", "surface preparation" }
+            DetectedMaterials = ["paint", "wall", "surface preparation"]
         };
     }
 }

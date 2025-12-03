@@ -1,4 +1,4 @@
-using SingleAgentDemo.Models;
+using SharedEntities;
 
 namespace SingleAgentDemo.Services;
 

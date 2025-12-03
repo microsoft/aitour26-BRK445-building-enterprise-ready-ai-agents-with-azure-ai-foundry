@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using SingleAgentDemo.Models;
+using SharedEntities;
 using SingleAgentDemo.Services;
 
 namespace SingleAgentDemo.Controllers;

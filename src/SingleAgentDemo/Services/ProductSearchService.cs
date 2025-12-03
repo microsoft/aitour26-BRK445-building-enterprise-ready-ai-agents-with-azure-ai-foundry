@@ -1,4 +1,4 @@
-using SingleAgentDemo.Models;
+using SharedEntities;
 
 namespace SingleAgentDemo.Services;
 
@@ -24,12 +24,16 @@ public class ProductSearchService
         _logger.LogInformation($"[ProductSearchService] Framework set to: {_framework}");
     }
 
-    public async Task<InternalToolRecommendation[]> EnrichWithInventoryAsync(InternalToolRecommendation[] tools)
+    public async Task<ToolRecommendation[]> EnrichWithInventoryAsync(ToolRecommendation[] tools)
     {
         try
         {
             var skus = tools.Select(t => t.Sku).ToArray();
-            var searchRequest = new InventorySearchRequest { Skus = skus };
+
+            // create a prompt to search on the inventory service for the given SKUs
+            var searchQuery = $"Search for the following SKUs: {string.Join(", ", skus)}";
+
+            var searchRequest = new InventorySearchRequest { SearchQuery = searchQuery };
             
             var endpoint = $"/api/search/{_framework}";
             _logger.LogInformation($"[ProductSearchService] Calling endpoint: {endpoint}");
@@ -39,7 +43,7 @@ public class ProductSearchService
             
             if (response.IsSuccessStatusCode)
             {
-                var inventoryResults = await response.Content.ReadFromJsonAsync<InternalToolRecommendation[]>();
+                var inventoryResults = await response.Content.ReadFromJsonAsync<ToolRecommendation[]>();
                 return inventoryResults ?? tools;
             }
             

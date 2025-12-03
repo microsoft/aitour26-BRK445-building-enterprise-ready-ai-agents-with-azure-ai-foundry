@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
-using Shared.Models;
 using SharedEntities;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ProductSearchService.Controllers;
 

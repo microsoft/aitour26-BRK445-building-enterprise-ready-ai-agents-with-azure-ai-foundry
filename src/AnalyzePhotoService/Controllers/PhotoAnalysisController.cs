@@ -1,7 +1,6 @@
 using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Mvc;
-using Shared.Models;
-using System.Text;
+using SharedEntities;
 using System.Text.Json;
 
 namespace AnalyzePhotoService.Controllers;

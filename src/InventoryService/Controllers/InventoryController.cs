@@ -1,14 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
-using Shared.Models;
 using SharedEntities;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace InventoryService.Controllers;
 
 [ApiController]
-[Route("api")]
+[Route("api/[controller]")]
 public class InventoryController : ControllerBase
 {
     private readonly ILogger<InventoryController> _logger;
@@ -22,7 +19,7 @@ public class InventoryController : ControllerBase
         _agentFxAgent = agentFxAgent;
     }
 
-    [HttpPost("search/llm")]
+    [HttpPost("searchllm")]
     public async Task<ActionResult<ToolRecommendation[]>> SearchInventoryLlmAsync([FromBody] InventorySearchRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("[LLM] Searching inventory for query: {SearchQuery}", request.SearchQuery);
@@ -35,7 +32,7 @@ public class InventoryController : ControllerBase
             cancellationToken);
     }
 
-    [HttpPost("search/maf")]
+    [HttpPost("searchmaf")]
     public async Task<ActionResult<ToolRecommendation[]>> SearchInventoryMAFAsync([FromBody] InventorySearchRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("[MAF] Searching inventory for query: {SearchQuery}", request.SearchQuery);
