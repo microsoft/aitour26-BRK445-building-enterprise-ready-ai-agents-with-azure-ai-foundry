@@ -10,7 +10,7 @@ public class SemanticKernelProvider
     private readonly Kernel _kernel;
 
     public SemanticKernelProvider(
-        string openAIConnection = "ConnectionStrings:aifoundry", 
+        string openAIConnection = "ConnectionStrings:microsoftfoundrycnnstring", 
         string chatDeploymentName = "gpt-5-mini")
     {
         // Parse the connection string into endpoint + apiKey.

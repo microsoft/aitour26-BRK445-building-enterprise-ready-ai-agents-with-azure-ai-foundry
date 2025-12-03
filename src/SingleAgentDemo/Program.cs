@@ -14,12 +14,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register both agent providers - they will be available for their respective controllers
+/********************************************************/
+// The following code registers the agent providers for Semantic Kernel
 var microsoftFoundryCnnString = builder.Configuration.GetValue<string>("ConnectionStrings:microsoftfoundrycnnstring");
 var chatDeploymentName = builder.Configuration["AI_ChatDeploymentName"] ?? "gpt-5-mini";
 builder.Services.AddSingleton(sp =>
     new SemanticKernelProvider(microsoftFoundryCnnString, chatDeploymentName));
+/********************************************************/
 
+/********************************************************/
+// The following code registers the agent providers for the Microsoft Foundry project.  
 var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
 builder.Services.AddSingleton(sp =>
 {
@@ -30,6 +34,7 @@ builder.Services.AddSingleton(sp =>
 {
     return new MAFAgentProvider(microsoftFoundryProjectConnection!);
 });
+/********************************************************/
 
 builder.Services.AddSingleton(sp => builder.Configuration);
 
