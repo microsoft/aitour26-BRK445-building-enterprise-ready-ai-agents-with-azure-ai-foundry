@@ -59,8 +59,7 @@ public class MultiAgentService
         var frameworkPath = framework switch
         {
             "maf" => "maf",
-            "llm" => "llm",
-            _ => "sk"
+            _ => "llm"
         };
         var baseRoute = $"/api/multiagent/{frameworkPath}";
         

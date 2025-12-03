@@ -1,16 +1,9 @@
-#pragma warning disable SKEXP0110
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 using Shared.Models;
 using SharedEntities;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace InventoryService.Controllers;
 
@@ -19,20 +12,14 @@ namespace InventoryService.Controllers;
 public class InventoryController : ControllerBase
 {
     private readonly ILogger<InventoryController> _logger;
-    private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
-    private readonly IChatClient _chatClient;
 
     public InventoryController(
         ILogger<InventoryController> logger,
-        AzureAIAgent skAgent,
-        AIAgent agentFxAgent,
-        IChatClient chatClient)
+        AIAgent agentFxAgent)
     {
         _logger = logger;
-        _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
-        _chatClient = chatClient;
     }
 
     [HttpPost("search/llm")]
@@ -40,22 +27,11 @@ public class InventoryController : ControllerBase
     {
         _logger.LogInformation("[LLM] Searching inventory for query: {SearchQuery}", request.SearchQuery);
 
+        // LLM endpoint uses MAF under the hood since we removed SK
         return await SearchInventoryAsync(
             request,
-            InvokeLlmAsync,
+            InvokeAgentFrameworkAsync,
             "[LLM]",
-            cancellationToken);
-    }
-
-    [HttpPost("search/sk")]
-    public async Task<ActionResult<ToolRecommendation[]>> SearchInventorySkAsync([FromBody] InventorySearchRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[SK] Searching inventory for query: {SearchQuery}", request.SearchQuery);
-
-        return await SearchInventoryAsync(
-            request,
-            InvokeSemanticKernelAsync,
-            "[SK]",
             cancellationToken);
     }
 
@@ -158,25 +134,6 @@ public class InventoryController : ControllerBase
         }
 
         return Ok(BuildFallbackRecommendations(request.SearchQuery));
-    }
-
-    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
-        return response.Text ?? string.Empty;
-    }
-
-    private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var sb = new StringBuilder();
-        AzureAIAgentThread agentThread = new(_skAgent.Client);
-
-        await foreach (ChatMessageContent response in _skAgent.InvokeAsync(prompt, agentThread).WithCancellation(cancellationToken))
-        {
-            sb.Append(response.Content);
-        }
-
-        return sb.ToString();
     }
 
     private async Task<string> InvokeAgentFrameworkAsync(string prompt, CancellationToken cancellationToken)

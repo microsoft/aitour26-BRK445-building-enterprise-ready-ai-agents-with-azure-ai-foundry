@@ -32,7 +32,6 @@
                         <label class="form-label"><strong>Select Framework:</strong></label>
                         <select class="form-select" @bind="selectedFramework" @bind:after="OnFrameworkChanged">
                             <option value="maf">Microsoft Agent Framework (MAF) - Default</option>
-                            <option value="sk">Semantic Kernel (SK)</option>
                             <option value="llm">LLM Direct Call</option>
                         </select>
                         <small class="text-muted mt-2 d-block">
@@ -79,20 +78,6 @@
                                         }
                                     </td>
                                     <td>Microsoft Agent Framework (Default)</td>
-                                </tr>
-                                <tr class="@(selectedFramework == "sk" ? "table-primary" : "")">
-                                    <td><strong>Semantic Kernel</strong></td>
-                                    <td>
-                                        @if (selectedFramework == "sk")
-                                        {
-                                            <span class="badge bg-success">Active</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Inactive</span>
-                                        }
-                                    </td>
-                                    <td>Framework using Microsoft.SemanticKernel</td>
                                 </tr>
                                 <tr class="@(selectedFramework == "llm" ? "table-primary" : "")">
                                     <td><strong>LLM Direct Call</strong></td>
@@ -156,7 +141,6 @@
         return selectedFramework switch
         {
             "maf" => "Microsoft Agent Framework (MAF)",
-            "sk" => "Semantic Kernel (SK)",
             "llm" => "LLM Direct Call",
             _ => "Unknown"
         };
@@ -167,7 +151,6 @@
         return selectedFramework switch
         {
             "maf" => "Using Microsoft Agent Framework - Self-hosted agents with Microsoft.Agents.AI",
-            "sk" => "Using Semantic Kernel - Framework for AI orchestration with Microsoft.SemanticKernel",
             "llm" => "Using direct LLM calls - Direct interaction with language models using Microsoft.Extensions.AI IChatClient",
             _ => "Unknown framework"
         };

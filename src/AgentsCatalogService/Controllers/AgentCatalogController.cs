@@ -1,12 +1,5 @@
-#pragma warning disable SKEXP0110
-
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 using SharedEntities;
-using System.Text;
-using ZavaAIFoundrySKAgentsProvider;
 using ZavaMAFAgentsProvider;
 
 namespace AgentsCatalogService.Controllers;
@@ -16,16 +9,13 @@ namespace AgentsCatalogService.Controllers;
 public class AgentCatalogController : ControllerBase
 {
     private readonly ILogger<AgentCatalogController> _logger;
-    private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
     private readonly MAFAgentProvider _MAFAgentProvider;
 
     public AgentCatalogController(
         ILogger<AgentCatalogController> logger,
-        AIFoundryAgentProvider aIFoundryAgentProvider,
         MAFAgentProvider MAFAgentProvider)
     {
         _logger = logger;
-        _aIFoundryAgentProvider = aIFoundryAgentProvider;
         _MAFAgentProvider = MAFAgentProvider;
     }
 
@@ -48,18 +38,6 @@ public class AgentCatalogController : ControllerBase
             _logger.LogError(ex, "Error fetching available agents");
             return StatusCode(500, "Error fetching available agents");
         }
-    }
-
-    [HttpPost("testsk")]
-    public async Task<ActionResult<AgentTesterResponse>> TestAgentSkAsync([FromBody] AgentTesterRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[SK] Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
-
-        return await TestAgentAsync(
-            request,
-            InvokeSemanticKernelAsync,
-            "[SK]",
-            cancellationToken);
     }
 
     [HttpPost("testmaf")]
@@ -128,21 +106,6 @@ public class AgentCatalogController : ControllerBase
                 ErrorMessage = ex.Message
             });
         }
-    }
-
-    private async Task<string> InvokeSemanticKernelAsync(string agentId, string prompt, CancellationToken cancellationToken)
-    {
-        var agent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync(agentId);
-        AzureAIAgentThread agentThread = new(agent.Client);
-
-        var sb = new StringBuilder();
-        ChatMessageContent message = new(AuthorRole.User, prompt);
-        await foreach (ChatMessageContent response in agent.InvokeAsync(message, agentThread).WithCancellation(cancellationToken))
-        {
-            sb.Append(response.Content);
-        }
-
-        return sb.ToString();
     }
 
     private async Task<string> InvokeAgentFrameworkAsync(string agentId, string prompt, CancellationToken cancellationToken)

@@ -13,7 +13,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\SharedEntities\SharedEntities.csproj" />
-		<ProjectReference Include="..\ZavaAIFoundrySKAgentsProvider\ZavaAIFoundrySKAgentsProvider.csproj" />
 		<ProjectReference Include="..\ZavaFoundryAgentsProvider\ZavaFoundryAgentsProvider.csproj" />
 		<ProjectReference Include="..\ZavaMAFAgentsProvider\ZavaMAFAgentsProvider.csproj" />
 		<ProjectReference Include="..\ZavaServiceDefaults\ZavaServiceDefaults.csproj" />

@@ -1,7 +1,5 @@
 using SingleAgentDemo.Services;
-using ZavaAIFoundrySKAgentsProvider;
 using ZavaMAFAgentsProvider;
-using ZavaSemanticKernelProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,21 +13,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 /********************************************************/
-// The following code registers the agent providers for Semantic Kernel
-var microsoftFoundryCnnString = builder.Configuration.GetValue<string>("ConnectionStrings:microsoftfoundrycnnstring");
-var chatDeploymentName = builder.Configuration["AI_ChatDeploymentName"] ?? "gpt-5-mini";
-builder.Services.AddSingleton(sp =>
-    new SemanticKernelProvider(microsoftFoundryCnnString, chatDeploymentName));
-/********************************************************/
-
-/********************************************************/
 // The following code registers the agent providers for the Microsoft Foundry project.  
 var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
-builder.Services.AddSingleton(sp =>
-{
-    return new AIFoundryAgentProvider(microsoftFoundryProjectConnection, "");
-});
-
 builder.Services.AddSingleton(sp =>
 {
     return new MAFAgentProvider(microsoftFoundryProjectConnection!);

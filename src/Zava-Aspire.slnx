@@ -30,10 +30,8 @@
     <Project Path="ToolReasoningService/ToolReasoningService.csproj" />
   </Folder>
   <Folder Name="/6 Support/">
-    <Project Path="ZavaAIFoundrySKAgentsProvider/ZavaAIFoundrySKAgentsProvider.csproj" />
     <Project Path="ZavaFoundryAgentsProvider/ZavaFoundryAgentsProvider.csproj" Id="b38e6609-eff4-4d79-96d6-11b20a972ace" />
     <Project Path="ZavaMAFAgentsProvider/ZavaMAFAgentsProvider.csproj" Id="cedf7ed7-47e5-4733-a184-fe36eeb23aeb" />
-    <Project Path="ZavaSemanticKernelProvider/ZavaSemanticKernelProvider.csproj" Id="d61cff59-07e4-4184-bc7d-98c294c39149" />
   </Folder>
   <Folder Name="/9 Tests/">
     <Project Path="Products.Tests/Products.Tests.csproj" />

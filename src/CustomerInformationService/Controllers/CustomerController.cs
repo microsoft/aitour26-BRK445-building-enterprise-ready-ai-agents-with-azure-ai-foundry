@@ -1,16 +1,9 @@
-#pragma warning disable SKEXP0110
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 using Shared.Models;
 using SharedEntities;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 
 namespace CustomerInformationService.Controllers;
@@ -20,9 +13,7 @@ namespace CustomerInformationService.Controllers;
 public class CustomerController : ControllerBase
 {
     private readonly ILogger<CustomerController> _logger;
-    private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
-    private readonly IChatClient _chatClient;
 
     private static readonly Dictionary<string, CustomerInformation> _customers = new()
     {
@@ -33,14 +24,10 @@ public class CustomerController : ControllerBase
 
     public CustomerController(
         ILogger<CustomerController> logger,
-        AzureAIAgent skAgent,
-        AIAgent agentFxAgent,
-        IChatClient chatClient)
+        AIAgent agentFxAgent)
     {
         _logger = logger;
-        _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
-        _chatClient = chatClient;
     }
 
     [HttpGet("{customerId}/llm")]
@@ -48,22 +35,11 @@ public class CustomerController : ControllerBase
     {
         _logger.LogInformation("[LLM] Getting customer information for ID: {CustomerId}", customerId);
 
+        // LLM endpoint uses MAF under the hood since we removed SK
         return await GetCustomerAsync(
             customerId,
-            async (prompt, token) => await InvokeLlmAsync(prompt, token),
+            async (prompt, token) => await InvokeAgentFrameworkAsync(prompt, token),
             "[LLM]",
-            cancellationToken);
-    }
-
-    [HttpGet("{customerId}/sk")]
-    public async Task<ActionResult<CustomerInformation>> GetCustomerSkAsync(string customerId, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[SK] Getting customer information for ID: {CustomerId}", customerId);
-
-        return await GetCustomerAsync(
-            customerId,
-            async (prompt, token) => await InvokeSemanticKernelAsync(prompt, token),
-            "[SK]",
             cancellationToken);
     }
 
@@ -83,13 +59,6 @@ public class CustomerController : ControllerBase
     public ActionResult<ToolMatchResult> MatchToolsLlm([FromBody] ToolMatchRequest request)
     {
         _logger.LogInformation("[LLM] Matching tools for customer {CustomerId}", request.CustomerId);
-        return MatchToolsInternal(request);
-    }
-
-    [HttpPost("match-tools/sk")]
-    public ActionResult<ToolMatchResult> MatchToolsSk([FromBody] ToolMatchRequest request)
-    {
-        _logger.LogInformation("[SK] Matching tools for customer {CustomerId}", request.CustomerId);
         return MatchToolsInternal(request);
     }
 
@@ -148,24 +117,6 @@ public class CustomerController : ControllerBase
             _logger.LogError(ex, "Error matching tools for customer {CustomerId}", request.CustomerId);
             return StatusCode(500, "An error occurred while matching tools");
         }
-    }
-
-    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
-        return response.Text ?? string.Empty;
-    }
-
-    private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var sb = new StringBuilder();
-        AzureAIAgentThread agentThread = new(_skAgent.Client);
-        await foreach (ChatMessageContent response in _skAgent.InvokeAsync(prompt, agentThread).WithCancellation(cancellationToken))
-        {
-            sb.Append(response.Content);
-        }
-
-        return sb.ToString();
     }
 
     private async Task<string> InvokeAgentFrameworkAsync(string prompt, CancellationToken cancellationToken)
