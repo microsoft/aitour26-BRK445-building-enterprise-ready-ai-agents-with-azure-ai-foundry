@@ -1,260 +1,244 @@
 using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.Workflows;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.AI;
 using SharedEntities;
 using System.Text;
 using ZavaFoundryAgentsProvider;
-using ZavaMAFAgentsProvider;
 
 namespace SingleAgentDemo.Controllers;
 
+/// <summary>
+/// Controller for single agent analysis using Microsoft Agent Framework with Foundry Agents.
+/// Demonstrates direct agent invocation using RunStreamingAsync without workflow orchestration.
+/// </summary>
 [ApiController]
 [Route("api/singleagent/maf")]
 public class SingleAgentControllerMAF : ControllerBase
 {
     private readonly ILogger<SingleAgentControllerMAF> _logger;
-    private readonly MAFAgentProvider _MAFAgentProvider;
-    private readonly IConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
-
-    // Agents from Microsoft Foundry
-    private readonly AIAgent _photoAnalyzerAgent;
-    private readonly AIAgent _customerInformationAgent;
-    private readonly AIAgent _toolReasoningAgent;
-    private readonly AIAgent _inventoryAgent;
 
     public SingleAgentControllerMAF(
         ILogger<SingleAgentControllerMAF> logger,
-        MAFAgentProvider MAFAgentProvider,
-        IConfiguration configuration,
         IServiceProvider serviceProvider)
     {
         _logger = logger;
-        _MAFAgentProvider = MAFAgentProvider;
-        _configuration = configuration;
         _serviceProvider = serviceProvider;
-
-        // Get agents from DI using the Microsoft Agent Framework
-        _photoAnalyzerAgent = _serviceProvider.GetRequiredKeyedService<AIAgent>(
-            AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.PhotoAnalyzerAgent));
-        _customerInformationAgent = _serviceProvider.GetRequiredKeyedService<AIAgent>(
-            AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.CustomerInformationAgent));
-        _toolReasoningAgent = _serviceProvider.GetRequiredKeyedService<AIAgent>(
-            AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.ToolReasoningAgent));
-        _inventoryAgent = _serviceProvider.GetRequiredKeyedService<AIAgent>(
-            AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.InventoryAgent));
     }
 
+    /// <summary>
+    /// Analyze an image using a sequential multi-agent approach with Foundry Agents.
+    /// </summary>
+    /// <param name="image">The image to analyze.</param>
+    /// <param name="prompt">The task description for the analysis.</param>
+    /// <param name="customerId">The customer identifier.</param>
+    /// <param name="useSharedThread">When true, uses a single thread for all agent executions (maintains context). When false, creates a new thread per agent.</param>
     [HttpPost("analyze")]
-    public async Task<ActionResult<SharedEntities.SingleAgentAnalysisResponse>> AnalyzeAsync(
+    public async Task<ActionResult<SingleAgentAnalysisResponse>> AnalyzeAsync(
         [FromForm] IFormFile image,
         [FromForm] string prompt,
-        [FromForm] string customerId)
+        [FromForm] string customerId,
+        [FromForm] bool useSharedThread = true)
     {
         try
         {
-            _logger.LogInformation("Starting analysis workflow for customer {CustomerId} using Microsoft Agent Framework with Foundry Agents", customerId);
+            _logger.LogInformation(
+                "Starting analysis for customer {CustomerId} using MAF Foundry Agents (SharedThread: {UseSharedThread})",
+                customerId, useSharedThread);
 
-            // Implement sequential workflow pattern using Agent Framework with Foundry Agents
-            // This demonstrates a practical sequential workflow where each step builds on previous results
+            var agents = GetAgents();
+            AgentThread? sharedThread = useSharedThread ? agents.PhotoAnalyzer.GetNewThread() : null;
 
-            // Workflow Step 1: Photo Analysis using Foundry Agent
-            _logger.LogInformation("MAF Workflow: Step 1 - Photo Analysis using Foundry Agent");
-            var photoAnalysisResult = await ExecuteAgentStepAsync(
-                _photoAnalyzerAgent,
-                "PhotoAnalyzerAgent",
-                $"Analyze the uploaded image '{image.FileName}' for the following task: {prompt}. Identify materials, surfaces, and project requirements.");
+            // Step 1: Photo Analysis
+            var photoAnalysisResult = await ExecuteAgentStreamingAsync(
+                agents.PhotoAnalyzer,
+                "PhotoAnalyzer",
+                $"Analyze the uploaded image '{image.FileName}' for the following task: {prompt}. Identify materials, surfaces, and project requirements.",
+                useSharedThread ? sharedThread : null);
 
-            // Workflow Step 2: Customer Information using Foundry Agent  
-            _logger.LogInformation("MAF Workflow: Step 2 - Customer Information Retrieval using Foundry Agent");
-            var customerInfoResult = await ExecuteAgentStepAsync(
-                _customerInformationAgent,
-                "CustomerInformationAgent",
-                $"Retrieve customer information for customer ID: {customerId}. Include their owned tools, skills, and project history.");
+            // Step 2: Customer Information
+            var customerInfoResult = await ExecuteAgentStreamingAsync(
+                agents.CustomerInformation,
+                "CustomerInformation",
+                $"Retrieve customer information for customer ID: {customerId}. Include their owned tools, skills, and project history.",
+                useSharedThread ? sharedThread : null);
 
-            // Workflow Step 3: Tool Reasoning using Foundry Agent (depends on steps 1 & 2)
-            _logger.LogInformation("MAF Workflow: Step 3 - AI-Powered Tool Reasoning using Foundry Agent");
-            var reasoningPrompt = $"Based on the photo analysis: {photoAnalysisResult} and customer info: {customerInfoResult}, " +
-                $"determine what tools are needed for the project: {prompt}. Consider the customer's existing tools and skills.";
-            var reasoningResult = await ExecuteAgentStepAsync(
-                _toolReasoningAgent,
-                "ToolReasoningAgent",
-                reasoningPrompt);
+            // Step 3: Tool Reasoning (depends on steps 1 & 2)
+            var reasoningPrompt = BuildReasoningPrompt(photoAnalysisResult, customerInfoResult, prompt);
+            var reasoningResult = await ExecuteAgentStreamingAsync(
+                agents.ToolReasoning,
+                "ToolReasoning",
+                reasoningPrompt,
+                useSharedThread ? sharedThread : null);
 
-            // Workflow Step 4: Inventory Check using Foundry Agent (depends on step 3)
-            _logger.LogInformation("MAF Workflow: Step 4 - Inventory Check using Foundry Agent");
+            // Step 4: Inventory Check (depends on step 3)
             var inventoryPrompt = $"Based on the tool reasoning: {reasoningResult}, check inventory availability and pricing for the recommended tools.";
-            var inventoryResult = await ExecuteAgentStepAsync(
-                _inventoryAgent,
-                "InventoryAgent",
-                inventoryPrompt);
+            var inventoryResult = await ExecuteAgentStreamingAsync(
+                agents.Inventory,
+                "Inventory",
+                inventoryPrompt,
+                useSharedThread ? sharedThread : null);
 
-            // Workflow Complete: Synthesize results from all agents
-            _logger.LogInformation("MAF Workflow: Complete - Synthesizing results from Foundry Agents");
+            _logger.LogInformation("Analysis complete for customer {CustomerId}", customerId);
 
-            var response = new SharedEntities.SingleAgentAnalysisResponse
-            {
-                Analysis = photoAnalysisResult,
-                ReusableTools = ExtractReusableTools(customerInfoResult),
-                RecommendedTools = ExtractToolRecommendations(inventoryResult),
-                Reasoning = GenerateEnhancedReasoning(photoAnalysisResult, customerInfoResult, reasoningResult, inventoryResult, prompt)
-            };
-
-            return Ok(response);
+            return Ok(BuildResponse(photoAnalysisResult, customerInfoResult, reasoningResult, inventoryResult, prompt, useSharedThread));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in analysis workflow for customer {CustomerId} using Microsoft Agent Framework with Foundry Agents", customerId);
+            _logger.LogError(ex, "Error in analysis for customer {CustomerId}", customerId);
             return StatusCode(500, "An error occurred while processing your request");
         }
     }
 
     /// <summary>
-    /// Execute a single agent step using the Microsoft Agent Framework
+    /// Executes an agent using RunStreamingAsync (direct invocation without workflows).
     /// </summary>
-    private async Task<string> ExecuteAgentStepAsync(AIAgent agent, string agentName, string prompt)
+    private async Task<string> ExecuteAgentStreamingAsync(
+        AIAgent agent,
+        string agentName,
+        string prompt,
+        AgentThread? thread)
     {
         var startTime = DateTime.UtcNow;
-        _logger.LogInformation("Executing Foundry Agent step: {AgentName}", agentName);
+        _logger.LogInformation("Executing agent: {AgentName}", agentName);
 
         try
         {
-            // Build a simple workflow for a single agent
-            var workflow = AgentWorkflowBuilder.BuildSequential(new List<AIAgent> { agent });
+            var resultBuilder = new StringBuilder();
+            var agentThread = thread ?? agent.GetNewThread();
 
-            var result = new StringBuilder();
-
-            // Run the workflow
-            StreamingRun run = await InProcessExecution.StreamAsync(workflow, prompt);
-            await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
-
-            await foreach (WorkflowEvent evt in run.WatchStreamAsync().ConfigureAwait(false))
+            await foreach (var update in agent.RunStreamingAsync(prompt, agentThread))
             {
-                switch (evt)
+                var text = update.Text;
+                if (!string.IsNullOrEmpty(text))
                 {
-                    case WorkflowOutputEvent outputEvent:
-                        _logger.LogInformation($"Agent {agentName} output: {outputEvent.Data}");
-                        var messages = outputEvent.As<List<ChatMessage>>() ?? new List<ChatMessage>();
-                        foreach (var message in messages)
-                        {
-                            if (!string.IsNullOrEmpty(message.Text))
-                            {
-                                result.Append(message.Text);
-                            }
-                        }
-                        break;
+                    resultBuilder.Append(text);
+                    _logger.LogDebug("Agent {AgentName} streaming: {Text}", agentName, text);
                 }
             }
 
+            var result = resultBuilder.ToString();
             var duration = DateTime.UtcNow - startTime;
-            _logger.LogInformation("Completed Foundry Agent step: {AgentName} in {Duration}ms", agentName, duration.TotalMilliseconds);
+            
+            _logger.LogInformation(
+                "Agent {AgentName} completed in {Duration:F0}ms, result length: {Length}",
+                agentName, duration.TotalMilliseconds, result.Length);
 
-            return result.Length > 0 ? result.ToString() : GetFallbackResponse(agentName, prompt);
+            return string.IsNullOrWhiteSpace(result) ? GetFallbackResponse(agentName, prompt) : result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed Foundry Agent step: {AgentName}", agentName);
+            _logger.LogError(ex, "Agent {AgentName} failed", agentName);
             return GetFallbackResponse(agentName, prompt);
         }
     }
 
     /// <summary>
-    /// Extract reusable tools from customer information result
+    /// Retrieves all required agents from dependency injection.
     /// </summary>
-    private string[] ExtractReusableTools(string customerInfoResult)
+    private (AIAgent PhotoAnalyzer, AIAgent CustomerInformation, AIAgent ToolReasoning, AIAgent Inventory) GetAgents()
     {
-        // Parse the agent response to extract tools the customer already has
-        // This is a simplified extraction - in production, you'd use structured output
-        var defaultTools = new[] { "tape measure", "screwdriver", "hammer" };
+        return (
+            PhotoAnalyzer: _serviceProvider.GetRequiredKeyedService<AIAgent>(
+                AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.PhotoAnalyzerAgent)),
+            CustomerInformation: _serviceProvider.GetRequiredKeyedService<AIAgent>(
+                AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.CustomerInformationAgent)),
+            ToolReasoning: _serviceProvider.GetRequiredKeyedService<AIAgent>(
+                AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.ToolReasoningAgent)),
+            Inventory: _serviceProvider.GetRequiredKeyedService<AIAgent>(
+                AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.InventoryAgent))
+        );
+    }
 
+    private static string BuildReasoningPrompt(string photoAnalysis, string customerInfo, string prompt)
+    {
+        return $"Based on the photo analysis: {photoAnalysis} and customer info: {customerInfo}, " +
+               $"determine what tools are needed for the project: {prompt}. Consider the customer's existing tools and skills.";
+    }
+
+    private SingleAgentAnalysisResponse BuildResponse(
+        string photoAnalysis,
+        string customerInfo,
+        string toolReasoning,
+        string inventoryInfo,
+        string prompt,
+        bool usedSharedThread)
+    {
+        return new SingleAgentAnalysisResponse
+        {
+            Analysis = photoAnalysis,
+            ReusableTools = ExtractReusableTools(customerInfo),
+            RecommendedTools = ExtractToolRecommendations(inventoryInfo),
+            Reasoning = GenerateSummary(photoAnalysis, customerInfo, toolReasoning, inventoryInfo, prompt, usedSharedThread)
+        };
+    }
+
+    private static string[] ExtractReusableTools(string customerInfoResult)
+    {
         if (string.IsNullOrEmpty(customerInfoResult))
-            return defaultTools;
+            return ["tape measure", "screwdriver", "hammer"];
 
-        // Look for common tool keywords in the response (includes synonyms like "tape measure" and "measuring tape")
-        var tools = new List<string>();
         var toolKeywords = new[] { "hammer", "screwdriver", "drill", "saw", "wrench", "pliers", "tape measure", "measuring tape", "level" };
+        var tools = toolKeywords
+            .Where(keyword => customerInfoResult.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
-        foreach (var keyword in toolKeywords)
-        {
-            if (customerInfoResult.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-            {
-                tools.Add(keyword);
-            }
-        }
-
-        return tools.Count > 0 ? tools.ToArray() : defaultTools;
+        return tools.Count > 0 ? tools.ToArray() : ["tape measure", "screwdriver", "hammer"];
     }
 
-    /// <summary>
-    /// Extract tool recommendations from inventory result
-    /// </summary>
-    private SharedEntities.ToolRecommendation[] ExtractToolRecommendations(string inventoryResult)
+    private static ToolRecommendation[] ExtractToolRecommendations(string inventoryResult)
     {
-        // Default recommendations if we can't parse the agent response
-        var defaultRecommendations = new[]
-        {
-            new SharedEntities.ToolRecommendation { Name = "Paint Roller", Sku = "PAINT-ROLLER-9IN", IsAvailable = true, Price = 12.99m, Description = "9-inch paint roller for smooth walls" },
-            new SharedEntities.ToolRecommendation { Name = "Paint Brush Set", Sku = "BRUSH-SET-3PC", IsAvailable = true, Price = 24.99m, Description = "3-piece brush set for detail work" },
-            new SharedEntities.ToolRecommendation { Name = "Drop Cloth", Sku = "DROP-CLOTH-9X12", IsAvailable = true, Price = 8.99m, Description = "Plastic drop cloth protection" }
-        };
-
-        // In a production scenario, you'd parse the structured agent response
-        // For now, return the defaults enriched with any context from the inventory result
-        return defaultRecommendations;
+        // Production: parse structured agent response
+        return
+        [
+            new() { Name = "Paint Roller", Sku = "PAINT-ROLLER-9IN", IsAvailable = true, Price = 12.99m, Description = "9-inch paint roller for smooth walls" },
+            new() { Name = "Paint Brush Set", Sku = "BRUSH-SET-3PC", IsAvailable = true, Price = 24.99m, Description = "3-piece brush set for detail work" },
+            new() { Name = "Drop Cloth", Sku = "DROP-CLOTH-9X12", IsAvailable = true, Price = 8.99m, Description = "Plastic drop cloth protection" }
+        ];
     }
 
-    /// <summary>
-    /// Generate enhanced reasoning output that summarizes the agent workflow
-    /// </summary>
-    private string GenerateEnhancedReasoning(string photoAnalysis, string customerInfo, string toolReasoning, string inventoryInfo, string prompt)
+    private static string GenerateSummary(
+        string photoAnalysis,
+        string customerInfo,
+        string toolReasoning,
+        string inventoryInfo,
+        string prompt,
+        bool usedSharedThread)
     {
-        return $@"
-=== Microsoft Agent Framework Analysis (Foundry Agents) ===
-
-Workflow Context:
-- Sequential workflow pattern applied using Microsoft Foundry Agents
-- Each agent built upon previous agent outputs
-- Context passed through 4 workflow steps
-
-Project Analysis:
-Task: {prompt}
-
-Step 1 - Photo Analysis (PhotoAnalyzerAgent):
-{photoAnalysis}
-
-Step 2 - Customer Profile (CustomerInformationAgent):
-{customerInfo}
-
-Step 3 - Tool Reasoning (ToolReasoningAgent):
-{toolReasoning}
-
-Step 4 - Inventory Check (InventoryAgent):
-{inventoryInfo}
-
-Workflow Summary:
-This recommendation was generated using a coordinated multi-step workflow where:
-1. PhotoAnalyzerAgent extracted visual requirements from the uploaded image
-2. CustomerInformationAgent retrieved your profile and existing tools
-3. ToolReasoningAgent applied AI-powered analysis to determine needed tools
-4. InventoryAgent checked real-time availability and pricing
-
-The Microsoft Agent Framework with Foundry Agents ensures all agents work in harmony, 
-with full context awareness at each step, providing personalized recommendations.";
+        var threadMode = usedSharedThread 
+            ? "Shared thread (context preserved between agents)" 
+            : "Separate threads (independent agent executions)";
+        
+        return string.Join(Environment.NewLine,
+            "=== Microsoft Agent Framework Analysis (Foundry Agents) ===",
+            "",
+            $"Execution Mode: RunStreamingAsync (direct invocation, no workflow orchestration)",
+            $"Thread Mode: {threadMode}",
+            "",
+            $"Project Task: {prompt}",
+            "",
+            "Step 1 - Photo Analysis:",
+            photoAnalysis,
+            "",
+            "Step 2 - Customer Profile:",
+            customerInfo,
+            "",
+            "Step 3 - Tool Reasoning:",
+            toolReasoning,
+            "",
+            "Step 4 - Inventory Check:",
+            inventoryInfo,
+            "",
+            "Summary:",
+            "This analysis used direct agent invocation via RunStreamingAsync for real-time streaming responses.",
+            "Each agent processed its task sequentially, with results passed to subsequent agents for context.");
     }
 
-    /// <summary>
-    /// Get fallback response when agent execution fails
-    /// </summary>
-    private string GetFallbackResponse(string agentName, string prompt)
+    private static string GetFallbackResponse(string agentName, string prompt) => agentName switch
     {
-        return agentName switch
-        {
-            "PhotoAnalyzerAgent" => $"Image analysis completed for task: {prompt}. Detected typical DIY project requirements including surface preparation and finishing work.",
-            "CustomerInformationAgent" => "Customer profile retrieved. Customer has basic DIY tools including hammer, screwdriver, and measuring tape.",
-            "ToolReasoningAgent" => $"Based on the project requirements for '{prompt}', recommended tools include appropriate brushes, rollers, and preparation materials.",
-            "InventoryAgent" => "Inventory check completed. Recommended tools are available in stock with current pricing.",
-            _ => $"Agent {agentName} completed processing for: {prompt}"
-        };
-    }
+        "PhotoAnalyzer" => $"Image analysis completed for task: {prompt}. Detected typical DIY project requirements including surface preparation and finishing work.",
+        "CustomerInformation" => "Customer profile retrieved. Customer has basic DIY tools including hammer, screwdriver, and measuring tape.",
+        "ToolReasoning" => $"Based on the project requirements for '{prompt}', recommended tools include appropriate brushes, rollers, and preparation materials.",
+        "Inventory" => "Inventory check completed. Recommended tools are available in stock with current pricing.",
+        _ => $"Agent {agentName} completed processing for: {prompt}"
+    };
 }
