@@ -7,51 +7,25 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Add services to the container.
+// Add services to the container
 builder.Services.AddControllers();
-
-// Add Swagger for API documentation
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-/********************************************************/
-// The following code registers the agent providers for the Microsoft Foundry project.  
+// Register MAFAgentProvider for Microsoft Foundry integration
 var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
-builder.Services.AddSingleton(sp =>
-{
-    return new MAFAgentProvider(microsoftFoundryProjectConnection!);
-});
-/********************************************************/
+builder.Services.AddSingleton(_ => new MAFAgentProvider(microsoftFoundryProjectConnection!));
 
-builder.Services.AddSingleton(sp => builder.Configuration);
+// Register HTTP clients for external services (used by LLM direct call mode)
+RegisterHttpClients(builder);
 
-// Register service layer implementations for external services
-builder.Services.AddHttpClient<AnalyzePhotoService>(
-    client => client.BaseAddress = new Uri("https+http://analyzephotoservice"));
-
-builder.Services.AddHttpClient<CustomerInformationService>(
-    client => client.BaseAddress = new Uri("https+http://customerinformationservice"));
-
-builder.Services.AddHttpClient<ToolReasoningService>(
-    client => client.BaseAddress = new Uri("https+http://toolreasoningservice"));
-
-builder.Services.AddHttpClient<InventoryService>(
-    client => client.BaseAddress = new Uri("https+http://inventoryservice"));
-
-builder.Services.AddHttpClient<ProductSearchService>(
-    client => client.BaseAddress = new Uri("https+http://productsearchservice"));
-
-/********************************************************/
-// Register agents in the DI using the Microsoft Agent Framework
-// This allows the SingleAgentControllerMAF to use agents directly from Microsoft Foundry
-AddAgentsInAgentFx(builder);
-/********************************************************/
+// Register AI agents from Microsoft Foundry (used by MAF mode)
+RegisterFoundryAgents(builder);
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -59,25 +33,46 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
 
-// Local function to register agents using the Microsoft Agent Framework
-static void AddAgentsInAgentFx(WebApplicationBuilder builder)
+/// <summary>
+/// Registers HTTP clients for external service communication (LLM direct call mode).
+/// </summary>
+static void RegisterHttpClients(WebApplicationBuilder builder)
 {
-    // iterate through the enum values of AgentNamesProvider.AgentName
-    foreach (AgentNamesProvider.AgentName agentName in Enum.GetValues(typeof(AgentNamesProvider.AgentName)))
+    builder.Services.AddHttpClient<AnalyzePhotoService>(
+        client => client.BaseAddress = new Uri("https+http://analyzephotoservice"));
+
+    builder.Services.AddHttpClient<CustomerInformationService>(
+        client => client.BaseAddress = new Uri("https+http://customerinformationservice"));
+
+    builder.Services.AddHttpClient<ToolReasoningService>(
+        client => client.BaseAddress = new Uri("https+http://toolreasoningservice"));
+
+    builder.Services.AddHttpClient<InventoryService>(
+        client => client.BaseAddress = new Uri("https+http://inventoryservice"));
+
+    builder.Services.AddHttpClient<ProductSearchService>(
+        client => client.BaseAddress = new Uri("https+http://productsearchservice"));
+}
+
+/// <summary>
+/// Registers AI agents from Microsoft Foundry for MAF mode.
+/// Each agent is registered as a keyed singleton for dependency injection.
+/// </summary>
+static void RegisterFoundryAgents(WebApplicationBuilder builder)
+{
+    foreach (AgentNamesProvider.AgentName agentName in Enum.GetValues<AgentNamesProvider.AgentName>())
     {
         var agentId = AgentNamesProvider.GetAgentName(agentName);
-
-        builder.Services.AddKeyedSingleton<AIAgent>(agentId, (sp, key) =>
+        
+        builder.Services.AddKeyedSingleton<AIAgent>(agentId, (sp, _) =>
         {
-            var agentFxProvider = sp.GetRequiredService<MAFAgentProvider>();
-            return agentFxProvider.GetAIAgent(agentId);
+            var provider = sp.GetRequiredService<MAFAgentProvider>();
+            return provider.GetAIAgent(agentId);
         });
     }
 }
