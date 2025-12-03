@@ -1,5 +1,6 @@
 using AgentsCatalogService;
 using ZavaMAFAgentsProvider;
+using ZavaFoundryAgentsProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 

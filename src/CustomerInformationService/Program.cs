@@ -1,5 +1,6 @@
 using Microsoft.Agents.AI;
 using ZavaMAFAgentsProvider;
+using ZavaFoundryAgentsProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,9 +22,9 @@ builder.Services.AddSingleton(sp =>
 
 /********************************************************/
 // get the agentId and register the AIAgent services for the CustomerInformationAgent
-var agentId = builder.Configuration.GetConnectionString("customerinformationagentid");
 builder.Services.AddSingleton<AIAgent>(sp =>
 {
+    var agentId = AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.CustomerInformationAgent);
     var agentFxProvider = sp.GetService<MAFAgentProvider>();
     return agentFxProvider.GetAIAgent(agentId);
 });

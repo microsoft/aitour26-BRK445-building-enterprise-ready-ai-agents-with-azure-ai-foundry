@@ -22,9 +22,9 @@ builder.Services.AddSingleton(sp =>
 
 /********************************************************/
 // get the agentId and register the AIAgent services for the PhotoAnalyzerAgent
-var agentId = AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.PhotoAnalyzerAgent);
 builder.Services.AddSingleton<AIAgent>(sp =>
 {
+    var agentId = AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.PhotoAnalyzerAgent);
     var agentFxProvider = sp.GetService<MAFAgentProvider>();
     return agentFxProvider.GetAIAgent(agentId);
 });
