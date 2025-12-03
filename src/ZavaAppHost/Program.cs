@@ -144,20 +144,6 @@ if (builder.ExecutionContext.IsPublishMode)
         modelVersion: "1");
     embeddingsDeployment.Resource.SkuName = "GlobalStandard";
 
-    // Add Application Insights to all services
-    products.WithReference(appInsights);
-    store.WithReference(appInsights).WithExternalHttpEndpoints();
-    analyzePhotoService.WithReference(appInsights).WithExternalHttpEndpoints();
-    customerInformationService.WithReference(appInsights).WithExternalHttpEndpoints();
-    toolReasoningService.WithReference(appInsights).WithExternalHttpEndpoints();
-    inventoryService.WithReference(appInsights).WithExternalHttpEndpoints();
-    matchmakingService.WithReference(appInsights).WithExternalHttpEndpoints();
-    locationService.WithReference(appInsights).WithExternalHttpEndpoints();
-    navigationService.WithReference(appInsights).WithExternalHttpEndpoints();
-    productSearchService.WithReference(appInsights).WithExternalHttpEndpoints();
-    singleAgentDemo.WithReference(appInsights).WithExternalHttpEndpoints();
-    multiAgentDemo.WithReference(appInsights).WithExternalHttpEndpoints();
-    agentscatalogservice.WithReference(appInsights).WithExternalHttpEndpoints();
 
     microsoftfoundrycnnstring = aoai;
 }
@@ -166,25 +152,30 @@ else
     // DEVELOPMENT: Use connection strings from configuration
     microsoftfoundrycnnstring = builder.AddConnectionString("microsoftfoundrycnnstring");
     appInsights = builder.AddConnectionString("appinsights", "APPLICATIONINSIGHTS_CONNECTION_STRING");
-
-    // Add Application Insights to all services
-    products.WithReference(appInsights);
-    store.WithReference(appInsights).WithExternalHttpEndpoints();
-    analyzePhotoService.WithReference(appInsights).WithExternalHttpEndpoints();
-    customerInformationService.WithReference(appInsights).WithExternalHttpEndpoints();
-    toolReasoningService.WithReference(appInsights).WithExternalHttpEndpoints();
-    inventoryService.WithReference(appInsights).WithExternalHttpEndpoints();
-    matchmakingService.WithReference(appInsights).WithExternalHttpEndpoints();
-    locationService.WithReference(appInsights).WithExternalHttpEndpoints();
-    navigationService.WithReference(appInsights).WithExternalHttpEndpoints();
-    productSearchService.WithReference(appInsights).WithExternalHttpEndpoints();
-    singleAgentDemo.WithReference(appInsights).WithExternalHttpEndpoints();
-    multiAgentDemo.WithReference(appInsights).WithExternalHttpEndpoints();
-    agentscatalogservice.WithReference(appInsights).WithExternalHttpEndpoints();
 }
 
 // ============================================================================
-// SECTION 7: MICROSOFT FOUNDRY CONFIGURATION
+// SECTION 7: APPLICATION INSIGHTS CONFIGURATION
+// ============================================================================
+
+// Add Application Insights to all services
+products.WithReference(appInsights).WithExternalHttpEndpoints();
+store.WithReference(appInsights).WithExternalHttpEndpoints();
+analyzePhotoService.WithReference(appInsights).WithExternalHttpEndpoints();
+customerInformationService.WithReference(appInsights).WithExternalHttpEndpoints();
+toolReasoningService.WithReference(appInsights).WithExternalHttpEndpoints();
+inventoryService.WithReference(appInsights).WithExternalHttpEndpoints();
+matchmakingService.WithReference(appInsights).WithExternalHttpEndpoints();
+locationService.WithReference(appInsights).WithExternalHttpEndpoints();
+navigationService.WithReference(appInsights).WithExternalHttpEndpoints();
+productSearchService.WithReference(appInsights).WithExternalHttpEndpoints();
+singleAgentDemo.WithReference(appInsights).WithExternalHttpEndpoints();
+multiAgentDemo.WithReference(appInsights).WithExternalHttpEndpoints();
+agentscatalogservice.WithReference(appInsights).WithExternalHttpEndpoints();
+
+
+// ============================================================================
+// SECTION 8: MICROSOFT FOUNDRY CONFIGURATION
 // ============================================================================
 
 // Configure Microsoft Foundry project connection for all agent services
