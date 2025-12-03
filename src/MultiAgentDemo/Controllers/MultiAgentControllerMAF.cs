@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
 using SharedEntities;
 using System.Text;
+using ZavaFoundryAgentsProvider;
 
 namespace MultiAgentDemo.Controllers
 {
@@ -16,19 +17,27 @@ namespace MultiAgentDemo.Controllers
         private readonly AIAgent _navigationAgent;
         private readonly AIAgent _productMatchmakingAgent;
         private readonly AIAgent _productSearchAgent;
+        private readonly IServiceProvider _serviceProvider;
 
         public MultiAgentControllerMAF(
             ILogger<MultiAgentControllerMAF> logger,
-            [FromKeyedServices("locationserviceagentid")] AIAgent locationServiceAgent,
-            [FromKeyedServices("navigationagentid")] AIAgent navigationAgent,
-            [FromKeyedServices("productmatchmakingagentid")] AIAgent productMatchmakingAgent,
-            [FromKeyedServices("productsearchagentid")] AIAgent productSearchAgent)
+            IServiceProvider serviceProvider)
+            //[FromKeyedServices("locationserviceagentid")] AIAgent locationServiceAgent,
+            //[FromKeyedServices("navigationagentid")] AIAgent navigationAgent,
+            //[FromKeyedServices("productmatchmakingagentid")] AIAgent productMatchmakingAgent,
+            //[FromKeyedServices("productsearchagentid")] AIAgent productSearchAgent)
         {
             _logger = logger;
-            _locationServiceAgent = locationServiceAgent;
-            _navigationAgent = navigationAgent;
-            _productMatchmakingAgent = productMatchmakingAgent;
-            _productSearchAgent = productSearchAgent;
+            _serviceProvider = serviceProvider;
+
+            _locationServiceAgent = _serviceProvider.GetRequiredKeyedService<AIAgent>
+                (AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.LocationServiceAgent));
+            _navigationAgent = _serviceProvider.GetRequiredKeyedService<AIAgent>
+                (AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.NavigationAgent));
+            _productMatchmakingAgent = _serviceProvider.GetRequiredKeyedService<AIAgent>
+                (AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.ProductMatchmakingAgent));
+            _productSearchAgent = _serviceProvider.GetRequiredKeyedService<AIAgent>
+                (AgentNamesProvider.GetAgentName(AgentNamesProvider.AgentName.ProductSearchAgent));
         }
 
         [HttpPost("assist")]

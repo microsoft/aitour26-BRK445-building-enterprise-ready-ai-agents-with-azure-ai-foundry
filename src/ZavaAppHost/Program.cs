@@ -12,20 +12,12 @@ var productsDb = sql
     .AddDatabase("productsDb");
 
 // openai connection string will be used for both products and agent services
-IResourceBuilder<IResourceWithConnectionString>? openai;
+IResourceBuilder<IResourceWithConnectionString>? microsoftfoundrycnnstring;
 var chatDeploymentName = "gpt-5-mini";
 var embeddingsDeploymentName = "text-embedding-3-small";
 
-// aifoundryproject is used for both products and agent services
-IResourceBuilder<IResourceWithConnectionString>? aifoundryproject;
-IResourceBuilder<IResourceWithConnectionString>? customerInformationAgentId;
-IResourceBuilder<IResourceWithConnectionString>? inventoryAgentId;
-IResourceBuilder<IResourceWithConnectionString>? locationServiceAgentId;
-IResourceBuilder<IResourceWithConnectionString>? navigationAgentId;
-IResourceBuilder<IResourceWithConnectionString>? photoAnalyzerAgentId;
-IResourceBuilder<IResourceWithConnectionString>? productMatchMakingAgentId;
-IResourceBuilder<IResourceWithConnectionString>? productSearchAgentId;
-IResourceBuilder<IResourceWithConnectionString>? toolReasoningAgentId;
+// microsoftfoundryproject is used for both products and agent services
+IResourceBuilder<IResourceWithConnectionString>? microsoftfoundryproject;
 
 // application insights connection string
 IResourceBuilder<IResourceWithConnectionString>? appInsights;
@@ -129,7 +121,7 @@ if (builder.ExecutionContext.IsPublishMode)
 {
     // production code uses Azure services, so we need to add them here
     appInsights = builder.AddAzureApplicationInsights("appInsights");
-    var aoai = builder.AddAzureOpenAI("aifoundry");
+    var aoai = builder.AddAzureOpenAI("microsoftfoundry");
 
     var gpt5mini = aoai.AddDeployment(name: chatDeploymentName,
             modelName: "gpt-5-mini",
@@ -184,11 +176,11 @@ if (builder.ExecutionContext.IsPublishMode)
         .WithReference(appInsights)
         .WithExternalHttpEndpoints();
 
-    openai = aoai;
+    microsoftfoundrycnnstring = aoai;
 }
 else
 {
-    openai = builder.AddConnectionString("aifoundry");
+    microsoftfoundrycnnstring = builder.AddConnectionString("microsoftfoundrycnnstring");
 
     appInsights = builder.AddConnectionString("appinsights", "APPLICATIONINSIGHTS_CONNECTION_STRING");
 
@@ -236,88 +228,56 @@ else
 }
 
 // aifoundry settings here
-aifoundryproject = builder.AddConnectionString("foundryproject");
-customerInformationAgentId = builder.AddConnectionString("customerinformationagentid");
-inventoryAgentId = builder.AddConnectionString("inventoryagentid");
-locationServiceAgentId = builder.AddConnectionString("locationserviceagentid");
-navigationAgentId = builder.AddConnectionString("navigationagentid");
-photoAnalyzerAgentId = builder.AddConnectionString("photoanalyzeragentid");
-productMatchMakingAgentId = builder.AddConnectionString("productmatchmakingagentid");
-productSearchAgentId = builder.AddConnectionString("productsearchagentid");
-toolReasoningAgentId = builder.AddConnectionString("toolreasoningagentid");
+microsoftfoundryproject = builder.AddConnectionString("foundryproject");
 
 products
-    .WithReference(openai)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName)
     .WithEnvironment("AI_embeddingsDeploymentName", embeddingsDeploymentName);
 analyzePhotoService
-    .WithReference(aifoundryproject)
-    .WithReference(photoAnalyzerAgentId)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 customerInformationService
-    .WithReference(aifoundryproject)
-    .WithReference(customerInformationAgentId)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 toolReasoningService
-    .WithReference(aifoundryproject)
-    .WithReference(toolReasoningAgentId)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 inventoryService
-    .WithReference(aifoundryproject)
-    .WithReference(inventoryAgentId)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 matchmakingService
-    .WithReference(productMatchMakingAgentId)
-    .WithReference(aifoundryproject)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 locationService
-    .WithReference(locationServiceAgentId)
-    .WithReference(aifoundryproject)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 navigationService
-    .WithReference(navigationAgentId)
-    .WithReference(aifoundryproject)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 productSearchService
-    .WithReference(aifoundryproject)
-    .WithReference(productSearchAgentId)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 singleAgentDemo
-    .WithReference(aifoundryproject)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 multiAgentDemo
-    .WithReference(aifoundryproject)
-    .WithReference(customerInformationAgentId)
-    .WithReference(inventoryAgentId)
-    .WithReference(locationServiceAgentId)
-    .WithReference(navigationAgentId)
-    .WithReference(photoAnalyzerAgentId)
-    .WithReference(productMatchMakingAgentId)
-    .WithReference(productSearchAgentId)
-    .WithReference(toolReasoningAgentId)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 
 agentscatalogservice
-    .WithReference(aifoundryproject)
-    .WithReference(customerInformationAgentId)
-    .WithReference(inventoryAgentId)
-    .WithReference(locationServiceAgentId)
-    .WithReference(navigationAgentId)
-    .WithReference(photoAnalyzerAgentId)
-    .WithReference(productMatchMakingAgentId)
-    .WithReference(productSearchAgentId)
-    .WithReference(toolReasoningAgentId)
-    .WithReference(openai)
+    .WithReference(microsoftfoundryproject)
+    .WithReference(microsoftfoundrycnnstring)
     .WithEnvironment("AI_ChatDeploymentName", chatDeploymentName);
 
 builder.Build().Run();

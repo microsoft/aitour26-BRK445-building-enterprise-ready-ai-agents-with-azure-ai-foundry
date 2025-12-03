@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ZavaAIFoundrySKAgentsProvider\ZavaAIFoundrySKAgentsProvider.csproj" />
-    <ProjectReference Include="..\ZavaAgentFxAgentsProvider\ZavaMAFAgentsProvider.csproj" />
     <ProjectReference Include="..\ZavaMAFAgentsProvider\ZavaMAFAgentsProvider.csproj" />
     <ProjectReference Include="..\ZavaSemanticKernelProvider\ZavaSemanticKernelProvider.csproj" />
     <ProjectReference Include="..\ZavaServiceDefaults\ZavaServiceDefaults.csproj" />

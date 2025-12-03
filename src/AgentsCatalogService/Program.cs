@@ -12,20 +12,19 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 
-// Add AI Foundry Agent Provider for agent testing
-builder.Services.AddSingleton<AIFoundryAgentProvider>(sp =>
+/********************************************************/
+// The following code registers the agent providers for the Microsoft Foundry project.  
+var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
+builder.Services.AddSingleton(sp =>
 {
-    var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config?.GetConnectionString("foundryproject") ?? "";
-    return new AIFoundryAgentProvider(aiFoundryProjectConnection, "");
+    return new AIFoundryAgentProvider(microsoftFoundryProjectConnection, "");
 });
 
-builder.Services.AddSingleton<MAFAgentProvider>(sp =>
+builder.Services.AddSingleton(sp =>
 {
-    var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config?.GetConnectionString("foundryproject") ?? "";
-    return new MAFAgentProvider(aiFoundryProjectConnection);
+    return new MAFAgentProvider(microsoftFoundryProjectConnection!);
 });
+/********************************************************/
 
 var app = builder.Build();
 
