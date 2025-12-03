@@ -1,13 +1,7 @@
-#pragma warning disable SKEXP0110
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 using SharedEntities;
 using System.Collections.Generic;
-using System.Text;
 using System.Text.Json;
 
 namespace NavigationService.Controllers;
@@ -17,20 +11,14 @@ namespace NavigationService.Controllers;
 public class NavigationController : ControllerBase
 {
     private readonly ILogger<NavigationController> _logger;
-    private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
-    private readonly IChatClient _chatClient;
 
     public NavigationController(
         ILogger<NavigationController> logger,
-        AzureAIAgent skAgent,
-        AIAgent agentFxAgent,
-        IChatClient chatClient)
+        AIAgent agentFxAgent)
     {
         _logger = logger;
-        _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
-        _chatClient = chatClient;
     }
 
     [HttpPost("directions/llm")]
@@ -38,22 +26,11 @@ public class NavigationController : ControllerBase
     {
         _logger.LogInformation("[LLM] Generating directions from {From} to {To}", FormatLocation(request.From), FormatLocation(request.To));
 
+        // LLM endpoint uses MAF under the hood since we removed SK
         return await GenerateDirectionsAsync(
             request,
-            InvokeLlmAsync,
+            InvokeAgentFrameworkAsync,
             "[LLM]",
-            cancellationToken);
-    }
-
-    [HttpPost("directions/sk")]
-    public async Task<ActionResult<NavigationInstructions>> GenerateDirectionsSkAsync([FromBody] DirectionsRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[SK] Generating directions from {From} to {To}", FormatLocation(request.From), FormatLocation(request.To));
-
-        return await GenerateDirectionsAsync(
-            request,
-            InvokeSemanticKernelAsync,
-            "[SK]",
             cancellationToken);
     }
 
@@ -111,26 +88,6 @@ public class NavigationController : ControllerBase
     public IActionResult Health()
     {
         return Ok(new { Status = "Healthy", Service = "NavigationService" });
-    }
-
-    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
-        return response.Text ?? string.Empty;
-    }
-
-    private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var sb = new StringBuilder();
-        AzureAIAgentThread agentThread = new(_skAgent.Client);
-
-        ChatMessageContent message = new(AuthorRole.User, prompt);
-        await foreach (ChatMessageContent response in _skAgent.InvokeAsync(message, agentThread).WithCancellation(cancellationToken))
-        {
-            sb.Append(response.Content);
-        }
-
-        return sb.ToString();
     }
 
     private async Task<string> InvokeAgentFrameworkAsync(string prompt, CancellationToken cancellationToken)

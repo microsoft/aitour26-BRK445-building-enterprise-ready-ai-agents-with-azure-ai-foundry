@@ -1,5 +1,4 @@
 using AgentsCatalogService;
-using ZavaAIFoundrySKAgentsProvider;
 using ZavaMAFAgentsProvider;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,11 +14,6 @@ builder.Services.AddSwaggerGen();
 /********************************************************/
 // The following code registers the agent providers for the Microsoft Foundry project.  
 var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
-builder.Services.AddSingleton(sp =>
-{
-    return new AIFoundryAgentProvider(microsoftFoundryProjectConnection, "");
-});
-
 builder.Services.AddSingleton(sp =>
 {
     return new MAFAgentProvider(microsoftFoundryProjectConnection!);

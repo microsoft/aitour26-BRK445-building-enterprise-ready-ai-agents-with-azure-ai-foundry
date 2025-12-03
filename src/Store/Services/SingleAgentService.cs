@@ -41,8 +41,7 @@ public class SingleAgentService
             var frameworkPath = framework switch
             {
                 "maf" => "maf",
-                "llm" => "llm",
-                _ => "sk"
+                _ => "llm"
             };
             var endpoint = $"/api/singleagent/{frameworkPath}/analyze";
 

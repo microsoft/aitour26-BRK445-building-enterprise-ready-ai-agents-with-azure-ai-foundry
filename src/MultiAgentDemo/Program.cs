@@ -1,13 +1,8 @@
-#pragma warning disable SKEXP0110
-
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
-using Microsoft.SemanticKernel.Agents.AzureAI;
 using MultiAgentDemo.Services;
-using ZavaAIFoundrySKAgentsProvider;
 using ZavaFoundryAgentsProvider;
 using ZavaMAFAgentsProvider;
-using ZavaSemanticKernelProvider;
 
 // KernelAzureOpenAIConfigurator moved to its own file under Services to avoid mixing
 // type declarations with top-level statements in Program.cs.
@@ -24,21 +19,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 /********************************************************/
-// The following code registers the agent providers for Semantic Kernel
-var microsoftFoundryCnnString = builder.Configuration.GetValue<string>("ConnectionStrings:microsoftfoundrycnnstring");
-var chatDeploymentName = builder.Configuration["AI_ChatDeploymentName"] ?? "gpt-5-mini";
-builder.Services.AddSingleton(sp =>
-    new SemanticKernelProvider(microsoftFoundryCnnString, chatDeploymentName));
-/********************************************************/
-
-/********************************************************/
 // The following code registers the agent providers for the Microsoft Foundry project.  
 var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
-builder.Services.AddSingleton(sp =>
-{
-    return new AIFoundryAgentProvider(microsoftFoundryProjectConnection, "");
-});
-
 builder.Services.AddSingleton(sp =>
 {
     return new MAFAgentProvider(microsoftFoundryProjectConnection!);
@@ -67,8 +49,8 @@ builder.Services.AddScoped<HandoffOrchestrationService>();
 builder.Services.AddScoped<GroupChatOrchestrationService>();
 builder.Services.AddScoped<MagenticOrchestrationService>();
 
-// Register agents in the DI using Semantic Kernel and the Microsoft Agent Framework
-AddAgentInSkAndAgentFx(builder);
+// Register agents in the DI using the Microsoft Agent Framework
+AddAgentsInAgentFx(builder);
 
 var app = builder.Build();
 
@@ -89,19 +71,14 @@ app.MapControllers();
 
 app.Run();
 
-// Local function to register agents using the SemanticKernel
-static void AddAgentInSkAndAgentFx(WebApplicationBuilder builder)
+// Local function to register agents using the Microsoft Agent Framework
+static void AddAgentsInAgentFx(WebApplicationBuilder builder)
 {
     // iterate through the enum values of AgentNamesProvider.AgentName
     foreach (AgentNamesProvider.AgentName agentName in Enum.GetValues(typeof(AgentNamesProvider.AgentName)))
     {
         var agentId = AgentNamesProvider.GetAgentName(agentName);
 
-        builder.Services.AddKeyedSingleton<AzureAIAgent>(agentId, (sp, key) =>
-        {
-            var agentSKProvider = sp.GetRequiredService<AIFoundryAgentProvider>();
-            return agentSKProvider.CreateAzureAIAgent(agentId);
-        });
         builder.Services.AddKeyedSingleton<AIAgent>(agentId, (sp, key) =>
         {
             var agentFxProvider = sp.GetRequiredService<MAFAgentProvider>();
