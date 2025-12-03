@@ -1,4 +1,6 @@
+using Microsoft.Agents.AI;
 using SingleAgentDemo.Services;
+using ZavaFoundryAgentsProvider;
 using ZavaMAFAgentsProvider;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +41,12 @@ builder.Services.AddHttpClient<InventoryService>(
 builder.Services.AddHttpClient<ProductSearchService>(
     client => client.BaseAddress = new Uri("https+http://productsearchservice"));
 
+/********************************************************/
+// Register agents in the DI using the Microsoft Agent Framework
+// This allows the SingleAgentControllerMAF to use agents directly from Microsoft Foundry
+AddAgentsInAgentFx(builder);
+/********************************************************/
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
@@ -57,3 +65,19 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Local function to register agents using the Microsoft Agent Framework
+static void AddAgentsInAgentFx(WebApplicationBuilder builder)
+{
+    // iterate through the enum values of AgentNamesProvider.AgentName
+    foreach (AgentNamesProvider.AgentName agentName in Enum.GetValues(typeof(AgentNamesProvider.AgentName)))
+    {
+        var agentId = AgentNamesProvider.GetAgentName(agentName);
+
+        builder.Services.AddKeyedSingleton<AIAgent>(agentId, (sp, key) =>
+        {
+            var agentFxProvider = sp.GetRequiredService<MAFAgentProvider>();
+            return agentFxProvider.GetAIAgent(agentId);
+        });
+    }
+}
