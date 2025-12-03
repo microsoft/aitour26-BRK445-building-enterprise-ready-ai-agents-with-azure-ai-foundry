@@ -1,5 +1,6 @@
 using SharedEntities;
 using System.Text.Json;
+using ZavaWorkingModes;
 
 namespace Store.Services;
 
@@ -20,13 +21,14 @@ public class MultiAgentService
     {
         try
         {
-            var framework = await _frameworkService.GetSelectedFrameworkAsync();
+            var mode = await _frameworkService.GetSelectedModeAsync();
+            var modeShortName = WorkingModeProvider.GetShortName(mode);
             
-            _logger.LogInformation("Calling multi-agent service for user {UserId} with query {ProductQuery} using {OrchestationType} orchestration and {Framework} framework",
-                request.UserId, request.ProductQuery, request.Orchestration, framework);
+            _logger.LogInformation("Calling multi-agent service for user {UserId} with query {ProductQuery} using {OrchestationType} orchestration and {Mode} mode",
+                request.UserId, request.ProductQuery, request.Orchestration, modeShortName);
 
             // Route to specific orchestration endpoint if specified, otherwise use default
-            var endpoint = GetOrchestrationEndpoint(request.Orchestration, framework);
+            var endpoint = GetOrchestrationEndpoint(request.Orchestration, mode);
             var response = await _httpClient.PostAsJsonAsync(endpoint, request);
             var responseText = await response.Content.ReadAsStringAsync();
 
@@ -44,24 +46,28 @@ public class MultiAgentService
             else
             {
                 _logger.LogWarning("Multi-agent service returned non-success status: {StatusCode}", response.StatusCode);
-                return CreateFallbackResponse(request);
+                return CreateFallbackResponse(request, mode);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calling multi-agent service for user {UserId}", request.UserId);
-            return CreateFallbackResponse(request);
+            return CreateFallbackResponse(request, WorkingModeProvider.DefaultMode);
         }
     }
 
-    private string GetOrchestrationEndpoint(OrchestrationType orchestrationType, string framework)
+    private string GetOrchestrationEndpoint(OrchestrationType orchestrationType, WorkingMode mode)
     {
-        var frameworkPath = framework switch
+        // Map working mode to API endpoint path
+        var modePath = mode switch
         {
-            "maf" => "maf",
-            _ => "llm"
+            WorkingMode.DirectCall => "directcall",
+            WorkingMode.Llm => "llm",
+            WorkingMode.MafFoundry => "maf_foundry",
+            WorkingMode.MafLocal => "maf_local",
+            _ => "maf_foundry"
         };
-        var baseRoute = $"/api/multiagent/{frameworkPath}";
+        var baseRoute = $"/api/multiagent/{modePath}";
         
         return orchestrationType switch
         {
@@ -75,7 +81,7 @@ public class MultiAgentService
         };
     }
 
-    private MultiAgentResponse CreateFallbackResponse(MultiAgentRequest request)
+    private MultiAgentResponse CreateFallbackResponse(MultiAgentRequest request, WorkingMode mode)
     {
         var orchestrationId = Guid.NewGuid().ToString("N")[..8];
         var baseTime = DateTime.UtcNow;

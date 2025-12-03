@@ -13,14 +13,14 @@ namespace MultiAgentDemo.Controllers;
 /// Supports multiple orchestration patterns: Sequential, Concurrent, Handoff, GroupChat, and Magentic.
 /// </summary>
 [ApiController]
-[Route("api/multiagent/maf")]
-public class MultiAgentControllerMAF : ControllerBase
+[Route("api/multiagent/maf_foundry")]
+public class MultiAgentControllerMAFFoundry : ControllerBase
 {
-    private readonly ILogger<MultiAgentControllerMAF> _logger;
+    private readonly ILogger<MultiAgentControllerMAFFoundry> _logger;
     private readonly IServiceProvider _serviceProvider;
 
-    public MultiAgentControllerMAF(
-        ILogger<MultiAgentControllerMAF> logger,
+    public MultiAgentControllerMAFFoundry(
+        ILogger<MultiAgentControllerMAFFoundry> logger,
         IServiceProvider serviceProvider)
     {
         _logger = logger;
@@ -39,7 +39,7 @@ public class MultiAgentControllerMAF : ControllerBase
         }
 
         _logger.LogInformation(
-            "Starting {OrchestrationTypeName} orchestration for query: {ProductQuery} using Microsoft Agent Framework",
+            "Starting {OrchestrationTypeName} orchestration for query: {ProductQuery} using Microsoft Agent Framework (Foundry)",
             request.Orchestration, request.ProductQuery);
 
         try
@@ -56,7 +56,7 @@ public class MultiAgentControllerMAF : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in {OrchestrationTypeName} orchestration using Microsoft Agent Framework", request.Orchestration);
+            _logger.LogError(ex, "Error in {OrchestrationTypeName} orchestration using Microsoft Agent Framework (Foundry)", request.Orchestration);
             return StatusCode(500, "An error occurred during orchestration processing.");
         }
     }
@@ -207,7 +207,7 @@ public class MultiAgentControllerMAF : ControllerBase
         _logger.LogInformation("MagenticOne workflow requested for query: {ProductQuery}", request?.ProductQuery);
 
         return StatusCode(501, 
-            "The MagenticOne workflow is not yet implemented in the MAF framework. " +
+            "The MagenticOne workflow is not yet implemented in the MAF Foundry framework. " +
             "Please use another orchestration type or the LLM direct call mode.");
     }
 
@@ -329,16 +329,16 @@ public class MultiAgentControllerMAF : ControllerBase
     private static string GetOrchestrationDescription(OrchestrationType orchestration) => orchestration switch
     {
         OrchestrationType.Sequential => 
-            "Sequential workflow using Microsoft Agent Framework. Each agent step executes in order, with output feeding into subsequent steps.",
+            "Sequential workflow using Microsoft Agent Framework (Foundry). Each agent step executes in order, with output feeding into subsequent steps.",
         OrchestrationType.Concurrent => 
-            "Concurrent workflow using Microsoft Agent Framework. All agents execute in parallel for independent analysis.",
+            "Concurrent workflow using Microsoft Agent Framework (Foundry). All agents execute in parallel for independent analysis.",
         OrchestrationType.Handoff => 
-            "Handoff workflow using Microsoft Agent Framework. Agents dynamically pass control based on context and branching logic.",
+            "Handoff workflow using Microsoft Agent Framework (Foundry). Agents dynamically pass control based on context and branching logic.",
         OrchestrationType.GroupChat => 
-            "Group chat workflow using Microsoft Agent Framework. Agents collaborate in a round-robin conversation pattern.",
+            "Group chat workflow using Microsoft Agent Framework (Foundry). Agents collaborate in a round-robin conversation pattern.",
         OrchestrationType.Magentic => 
             "MagenticOne-inspired workflow for complex multi-agent collaboration.",
         _ => 
-            "Multi-agent workflow using Microsoft Agent Framework."
+            "Multi-agent workflow using Microsoft Agent Framework (Foundry)."
     };
 }
