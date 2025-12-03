@@ -1,11 +1,5 @@
-#pragma warning disable SKEXP0110
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 using Shared.Models;
 using System.Text;
 
@@ -16,20 +10,14 @@ namespace ToolReasoningService.Controllers;
 public class ReasoningController : ControllerBase
 {
     private readonly ILogger<ReasoningController> _logger;
-    private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
-    private readonly IChatClient _chatClient;
 
     public ReasoningController(
         ILogger<ReasoningController> logger,
-        AzureAIAgent skAgent,
-        AIAgent agentFxAgent,
-        IChatClient chatClient)
+        AIAgent agentFxAgent)
     {
         _logger = logger;
-        _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
-        _chatClient = chatClient;
     }
 
     [HttpPost("generate/llm")]
@@ -37,22 +25,11 @@ public class ReasoningController : ControllerBase
     {
         _logger.LogInformation("[LLM] Generating reasoning for prompt");
 
+        // LLM endpoint uses MAF under the hood since we removed SK
         return await GenerateReasoningAsync(
             request,
-            async (prompt, token) => await InvokeLlmAsync(prompt, token),
+            async (prompt, token) => await InvokeAgentFrameworkAsync(prompt, token),
             "[LLM]",
-            cancellationToken);
-    }
-
-    [HttpPost("generate/sk")]
-    public async Task<ActionResult<string>> GenerateReasoningSkAsync([FromBody] ReasoningRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[SK] Generating reasoning for prompt");
-
-        return await GenerateReasoningAsync(
-            request,
-            async (prompt, token) => await InvokeSemanticKernelAsync(prompt, token),
-            "[SK]",
             cancellationToken);
     }
 
@@ -94,24 +71,6 @@ public class ReasoningController : ControllerBase
         }
 
         return Ok(GenerateFallbackReasoning(request));
-    }
-
-    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
-        return response.Text ?? string.Empty;
-    }
-
-    private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var sb = new StringBuilder();
-        AzureAIAgentThread agentThread = new(_skAgent.Client);
-        await foreach (ChatMessageContent response in _skAgent.InvokeAsync(prompt, agentThread).WithCancellation(cancellationToken))
-        {
-            sb.Append(response.Content);
-        }
-
-        return sb.ToString();
     }
 
     private async Task<string> InvokeAgentFrameworkAsync(string prompt, CancellationToken cancellationToken)
