@@ -9,6 +9,11 @@
     <PackageReference Include="Blazor.Bootstrap" Version="3.5.0" />
     <PackageReference Include="Blazorade.Mermaid" Version="2.0.2" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
+    <!-- DevUI packages for agent debugging and visualization -->
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-preview.251204.1" />
+    <PackageReference Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-preview.251204.1" />
+    <PackageReference Include="Microsoft.Agents.AI.DevUI" Version="1.0.0-preview.251204.1" />
+    <PackageReference Include="Microsoft.Agents.AI.Hosting" Version="1.0.0-preview.251204.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DataEntities\DataEntities.csproj" />
