@@ -1,5 +1,6 @@
 using SharedEntities;
 using System.Text.Json;
+using ZavaWorkingModes;
 
 namespace Store.Services;
 
@@ -20,7 +21,8 @@ public class SingleAgentService
     {
         try
         {
-            var framework = await _frameworkService.GetSelectedFrameworkAsync();
+            var mode = await _frameworkService.GetSelectedModeAsync();
+            var modeShortName = WorkingModeProvider.GetShortName(mode);
             
             using var content = new MultipartFormDataContent();
             
@@ -38,15 +40,18 @@ public class SingleAgentService
             content.Add(new StringContent(request.Prompt), "prompt");
             content.Add(new StringContent(request.CustomerId), "customerId");
 
-            var frameworkPath = framework switch
+            // Map working mode to API endpoint path
+            var frameworkPath = mode switch
             {
-                "agentfx" => "agentfx",
-                "llm" => "llm",
-                _ => "sk"
+                WorkingMode.DirectCall => "directcall",
+                WorkingMode.Llm => "llm",
+                WorkingMode.MafFoundry => "maf_foundry",
+                WorkingMode.MafLocal => "maf_local",
+                _ => "maf_foundry"
             };
             var endpoint = $"/api/singleagent/{frameworkPath}/analyze";
 
-            _logger.LogInformation("Calling single agent service for customer {CustomerId} using {Framework} framework", request.CustomerId, framework);
+            _logger.LogInformation("Calling single agent service for customer {CustomerId} using {Mode} mode", request.CustomerId, modeShortName);
             
             var response = await _httpClient.PostAsync(endpoint, content);
             var responseText = await response.Content.ReadAsStringAsync();
@@ -65,18 +70,19 @@ public class SingleAgentService
             else
             {
                 _logger.LogWarning("Single agent service returned non-success status: {StatusCode}", response.StatusCode);
-                return CreateFallbackResponse(request);
+                return CreateFallbackResponse(request, mode);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calling single agent service for customer {CustomerId}", request.CustomerId);
-            return CreateFallbackResponse(request);
+            return CreateFallbackResponse(request, WorkingModeProvider.DefaultMode);
         }
     }
 
-    private SingleAgentAnalysisResponse CreateFallbackResponse(SingleAgentAnalysisRequest request)
+    private SingleAgentAnalysisResponse CreateFallbackResponse(SingleAgentAnalysisRequest request, WorkingMode mode)
     {
+        var modeDescription = WorkingModeProvider.GetDisplayName(mode);
         return new SingleAgentAnalysisResponse
         {
             Analysis = $"Analysis of your project: {request.Prompt}. The image shows a room that requires surface preparation and painting work.",
@@ -108,7 +114,7 @@ public class SingleAgentService
                     Description = "Plastic drop cloth for floor protection" 
                 }
             },
-            Reasoning = $"Based on your project '{request.Prompt}' and the image analysis, you'll need painting tools to complement your existing basic tools. The recommended items will ensure professional results for your painting project."
+            Reasoning = $"[Fallback Response - {modeDescription}] Based on your project '{request.Prompt}' and the image analysis, you'll need painting tools to complement your existing basic tools. The recommended items will ensure professional results for your painting project."
         };
     }
 }

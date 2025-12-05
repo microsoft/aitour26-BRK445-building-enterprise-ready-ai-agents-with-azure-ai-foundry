@@ -1,15 +1,8 @@
-#pragma warning disable SKEXP0110
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 using SharedEntities;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 
 namespace MatchmakingService.Controllers;
@@ -19,20 +12,14 @@ namespace MatchmakingService.Controllers;
 public class MatchmakingController : ControllerBase
 {
     private readonly ILogger<MatchmakingController> _logger;
-    private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
-    private readonly IChatClient _chatClient;
 
     public MatchmakingController(
         ILogger<MatchmakingController> logger,
-        AzureAIAgent skAgent,
-        AIAgent agentFxAgent,
-        IChatClient chatClient)
+        AIAgent agentFxAgent)
     {
         _logger = logger;
-        _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
-        _chatClient = chatClient;
     }
 
     [HttpPost("alternatives/llm")]
@@ -40,34 +27,23 @@ public class MatchmakingController : ControllerBase
     {
         _logger.LogInformation("[LLM] Finding alternatives for product: {ProductQuery}, User: {UserId}", request.ProductQuery, request.UserId);
 
+        // LLM endpoint uses MAF under the hood since we removed SK
         return await FindAlternativesAsync(
             request,
-            InvokeLlmAsync,
+            InvokeAgentFrameworkAsync,
             "[LLM]",
             cancellationToken);
     }
 
-    [HttpPost("alternatives/sk")]
-    public async Task<ActionResult<MatchmakingResult>> FindAlternativesSkAsync([FromBody] AlternativesRequest request, CancellationToken cancellationToken)
+    [HttpPost("alternatives/maf")]
+    public async Task<ActionResult<MatchmakingResult>> FindAlternativesMAFAsync([FromBody] AlternativesRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[SK] Finding alternatives for product: {ProductQuery}, User: {UserId}", request.ProductQuery, request.UserId);
-
-        return await FindAlternativesAsync(
-            request,
-            InvokeSemanticKernelAsync,
-            "[SK]",
-            cancellationToken);
-    }
-
-    [HttpPost("alternatives/agentfx")]
-    public async Task<ActionResult<MatchmakingResult>> FindAlternativesAgentFxAsync([FromBody] AlternativesRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[AgentFx] Finding alternatives for product: {ProductQuery}, User: {UserId}", request.ProductQuery, request.UserId);
+        _logger.LogInformation("[MAF] Finding alternatives for product: {ProductQuery}, User: {UserId}", request.ProductQuery, request.UserId);
 
         return await FindAlternativesAsync(
             request,
             InvokeAgentFrameworkAsync,
-            "[AgentFx]",
+            "[MAF]",
             cancellationToken);
     }
 
@@ -102,25 +78,6 @@ public class MatchmakingController : ControllerBase
     [HttpGet("health")]
     public IActionResult Health()
         => Ok(new { Status = "Healthy", Service = "MatchmakingService" });
-
-    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
-        return response.Text ?? string.Empty;
-    }
-
-    private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var sb = new StringBuilder();
-        AzureAIAgentThread agentThread = new(_skAgent.Client);
-
-        await foreach (ChatMessageContent response in _skAgent.InvokeAsync(prompt, agentThread).WithCancellation(cancellationToken))
-        {
-            sb.Append(response.Content);
-        }
-
-        return sb.ToString();
-    }
 
     private async Task<string> InvokeAgentFrameworkAsync(string prompt, CancellationToken cancellationToken)
     {

@@ -1,4 +1,4 @@
-using SingleAgentDemo.Models;
+using SharedEntities;
 
 namespace SingleAgentDemo.Services;
 
@@ -17,21 +17,25 @@ public class InventoryService
     /// <summary>
     /// Sets the agent framework to use for service calls
     /// </summary>
-    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    /// <param name="framework">"llm" for LLM Direct Call, or "maf" for Microsoft Agent Framework</param>
     public void SetFramework(string framework)
     {
-        _framework = framework?.ToLowerInvariant() ?? "sk";
+        _framework = framework?.ToLowerInvariant() ?? "maf";
         _logger.LogInformation($"[InventoryService] Framework set to: {_framework}");
     }
 
-    public async Task<InternalToolRecommendation[]> EnrichWithInventoryAsync(InternalToolRecommendation[] tools)
+    public async Task<ToolRecommendation[]> EnrichWithInventoryAsync(ToolRecommendation[] tools)
     {
         try
         {
             var skus = tools.Select(t => t.Sku).ToArray();
-            var searchRequest = new InventorySearchRequest { Skus = skus };
+
+            // create a prompt to search on the inventory service for the given SKUs
+            var searchQuery = $"Search for the following SKUs: {string.Join(", ", skus)}";
+
+            var searchRequest = new InventorySearchRequest { SearchQuery = searchQuery };
             
-            var endpoint = $"/api/search/{_framework}";
+            var endpoint = $"/api/Inventory/search{_framework}";
             _logger.LogInformation($"[InventoryService] Calling endpoint: {endpoint}");
             var response = await _httpClient.PostAsJsonAsync(endpoint, searchRequest);
             
@@ -39,7 +43,7 @@ public class InventoryService
             
             if (response.IsSuccessStatusCode)
             {
-                var inventoryResults = await response.Content.ReadFromJsonAsync<InternalToolRecommendation[]>();
+                var inventoryResults = await response.Content.ReadFromJsonAsync<ToolRecommendation[]>();
                 return inventoryResults ?? tools;
             }
             

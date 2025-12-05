@@ -1,20 +1,19 @@
-﻿using Azure.AI.Agents.Persistent;
+﻿using Azure.AI.Projects;
 using Azure.Identity;
 using Microsoft.Agents.AI;
 
-namespace ZavaAgentFxAgentsProvider;
+namespace ZavaMAFAgentsProvider;
 
-public class AgentFxAgentProvider
+public class MAFAgentProvider
 {
-    private readonly PersistentAgentsClient _agentsClient;
+    private readonly AIProjectClient _projectClient;
     private readonly string _agentId;
 
-    public AgentFxAgentProvider(
-        string azureAIFoundryProjectEndpoint)
+    public MAFAgentProvider(string microsoftFoundryProjectEndpoint)
     {
-        _agentsClient = new PersistentAgentsClient(
-            azureAIFoundryProjectEndpoint!,
-            new AzureCliCredential());
+        _projectClient = new(
+            endpoint: new Uri(microsoftFoundryProjectEndpoint),
+            tokenProvider: new DefaultAzureCredential());
     }
 
     public async Task<AIAgent> GetAIAgentAsync(string agentId = "")
@@ -25,7 +24,7 @@ public class AgentFxAgentProvider
             agentId = _agentId;
         }
 
-        var agent = await _agentsClient.GetAIAgentAsync(agentId);
+        var agent = await _projectClient.GetAIAgentAsync(agentId);
         return agent;
     }
 
@@ -37,7 +36,7 @@ public class AgentFxAgentProvider
             agentId = _agentId;
         }
 
-        return _agentsClient.GetAIAgent(agentId);
+        return _projectClient.GetAIAgent(agentId);
     }
 }
 

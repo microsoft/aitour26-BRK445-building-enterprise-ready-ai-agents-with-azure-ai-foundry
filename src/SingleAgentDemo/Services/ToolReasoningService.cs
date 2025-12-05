@@ -1,4 +1,4 @@
-using SingleAgentDemo.Models;
+using SharedEntities;
 
 namespace SingleAgentDemo.Services;
 
@@ -17,7 +17,7 @@ public class ToolReasoningService
     /// <summary>
     /// Sets the agent framework to use for service calls
     /// </summary>
-    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    /// <param name="framework">"llm" for LLM Direct Call, "sk" for Semantic Kernel, or "maf" for Microsoft Agent Framework</param>
     public void SetFramework(string framework)
     {
         _framework = framework?.ToLowerInvariant() ?? "sk";

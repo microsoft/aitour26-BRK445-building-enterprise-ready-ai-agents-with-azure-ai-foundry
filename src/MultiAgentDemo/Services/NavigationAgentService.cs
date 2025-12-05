@@ -2,11 +2,14 @@ using SharedEntities;
 
 namespace MultiAgentDemo.Services;
 
+/// <summary>
+/// Service for interacting with the navigation/directions external service.
+/// </summary>
 public class NavigationAgentService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<NavigationAgentService> _logger;
-    private string _framework = "sk"; // Default to Semantic Kernel
+    private string _framework = "llm";
 
     public NavigationAgentService(HttpClient httpClient, ILogger<NavigationAgentService> logger)
     {
@@ -15,67 +18,67 @@ public class NavigationAgentService
     }
 
     /// <summary>
-    /// Sets the agent framework to use for service calls
+    /// Sets the agent framework to use for service calls.
     /// </summary>
-    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    /// <param name="framework">"llm" for LLM Direct Call or "maf" for Microsoft Agent Framework.</param>
     public void SetFramework(string framework)
     {
-        _framework = framework?.ToLowerInvariant() ?? "sk";
-        _logger.LogInformation($"[NavigationAgentService] Framework set to: {_framework}");
+        _framework = framework?.ToLowerInvariant() ?? "llm";
+        _logger.LogDebug("NavigationAgentService framework set to: {Framework}", _framework);
     }
 
+    /// <summary>
+    /// Generates navigation directions between two locations.
+    /// </summary>
     public async Task<NavigationInstructions> GenerateDirectionsAsync(Location fromLocation, Location toLocation)
     {
         try
         {
             var request = new { From = fromLocation, To = toLocation };
             var endpoint = $"/api/navigation/directions/{_framework}";
-            _logger.LogInformation($"[NavigationAgentService] Calling endpoint: {endpoint}");
+            
+            _logger.LogDebug("Calling NavigationService endpoint: {Endpoint}", endpoint);
             var response = await _httpClient.PostAsJsonAsync(endpoint, request);
-
-            _logger.LogInformation($"NavigationAgentService HTTP status code: {response.StatusCode}");
+            _logger.LogDebug("NavigationService response status: {StatusCode}", response.StatusCode);
 
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<NavigationInstructions>();
-                return result ?? CreateFallbackNavigationInstructions(fromLocation, toLocation);
+                return result ?? CreateFallbackResult(fromLocation, toLocation);
             }
 
-            _logger.LogWarning("NavigationAgentService returned non-success status: {StatusCode}", response.StatusCode);
+            _logger.LogWarning("NavigationService returned non-success status: {StatusCode}", response.StatusCode);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calling NavigationAgentService");
+            _logger.LogError(ex, "Error calling NavigationService");
         }
 
-        return CreateFallbackNavigationInstructions(fromLocation, toLocation);
+        return CreateFallbackResult(fromLocation, toLocation);
     }
 
-    private NavigationInstructions CreateFallbackNavigationInstructions(Location fromLocation, Location toLocation)
+    private static NavigationInstructions CreateFallbackResult(Location fromLocation, Location toLocation) => new()
     {
-        return new NavigationInstructions
-        {
-            Steps = new[]
+        Steps =
+        [
+            new NavigationStep
             {
-                new NavigationStep
-                {
-                    Direction = "Start",
-                    Description = $"Head towards {toLocation} from {fromLocation}",
-                    Landmark = new NavigationLandmark { Location = fromLocation }
-                },
-                new NavigationStep
-                {
-                    Direction = "Continue",
-                    Description = "Follow the main pathway",
-                    Landmark = null
-                },
-                new NavigationStep
-                {
-                    Direction = "Arrive",
-                    Description = $"You will find your destination at {toLocation}",
-                    Landmark = new NavigationLandmark { Location = toLocation }
-                }
+                Direction = "Start",
+                Description = $"Head towards {toLocation} from {fromLocation}",
+                Landmark = new NavigationLandmark { Location = fromLocation }
+            },
+            new NavigationStep
+            {
+                Direction = "Continue",
+                Description = "Follow the main pathway",
+                Landmark = null
+            },
+            new NavigationStep
+            {
+                Direction = "Arrive",
+                Description = $"You will find your destination at {toLocation}",
+                Landmark = new NavigationLandmark { Location = toLocation }
             }
-        };
-    }
+        ]
+    };
 }

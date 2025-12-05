@@ -1,54 +1,46 @@
+using Microsoft.Agents.AI;
+using SingleAgentDemo.AgentServices;
 using SingleAgentDemo.Services;
-using ZavaAgentFxAgentsProvider;
-using ZavaSemanticKernelProvider;
+using ZavaFoundryAgentsProvider;
+using ZavaMAFAgentsProvider;
+using ZavaMAFLocalAgentsProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Add services to the container.
+// Add services to the container
 builder.Services.AddControllers();
-
-// Add Swagger for API documentation
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register both agent providers - they will be available for their respective controllers
-var openAiConnection = builder.Configuration.GetValue<string>("ConnectionStrings:aifoundry");
+// Register MAF agent providers using extension methods
+var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
+var microsoftFoundryCnnString = builder.Configuration.GetConnectionString("microsoftfoundrycnnstring");
 var chatDeploymentName = builder.Configuration["AI_ChatDeploymentName"] ?? "gpt-5-mini";
-builder.Services.AddSingleton(sp =>
-    new SemanticKernelProvider(openAiConnection, chatDeploymentName));
 
-builder.Services.AddSingleton(sp =>
+// Register MAFAgentProvider for Microsoft Foundry integration
+if (!string.IsNullOrEmpty(microsoftFoundryProjectConnection))
 {
-    var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config!.GetConnectionString("aifoundryproject");
-    return new AgentFxAgentProvider(aiFoundryProjectConnection!);
-});
+    builder.Services.RegisterMAFAgentsFoundry(microsoftFoundryProjectConnection);
+}
 
-builder.Services.AddSingleton(sp => builder.Configuration);
+// Register MAFLocalAgentProvider for local agent creation
+if (!string.IsNullOrEmpty(microsoftFoundryCnnString))
+{
+    builder.Services.RegisterMAFAgentsLocal(microsoftFoundryCnnString, chatDeploymentName);
+}
 
-// Register service layer implementations for external services
-builder.Services.AddHttpClient<AnalyzePhotoService>(
-    client => client.BaseAddress = new Uri("https+http://analyzephotoservice"));
+// Register HTTP clients for external services (used by LLM direct call and DirectCall modes)
+RegisterHttpClients(builder);
 
-builder.Services.AddHttpClient<CustomerInformationService>(
-    client => client.BaseAddress = new Uri("https+http://customerinformationservice"));
-
-builder.Services.AddHttpClient<ToolReasoningService>(
-    client => client.BaseAddress = new Uri("https+http://toolreasoningservice"));
-
-builder.Services.AddHttpClient<InventoryService>(
-    client => client.BaseAddress = new Uri("https+http://inventoryservice"));
-
-builder.Services.AddHttpClient<ProductSearchService>(
-    client => client.BaseAddress = new Uri("https+http://productsearchservice"));
+// Register AI agents from Microsoft Foundry (used by MAF Foundry mode)
+RegisterFoundryAgents(builder);
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -56,9 +48,46 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
+
+/// <summary>
+/// Registers HTTP clients for external service communication (LLM direct call and DirectCall modes).
+/// </summary>
+static void RegisterHttpClients(WebApplicationBuilder builder)
+{
+    builder.Services.AddHttpClient<AnalyzePhotoService>(
+        client => client.BaseAddress = new Uri("https+http://analyzephotoservice"));
+
+    builder.Services.AddHttpClient<CustomerInformationService>(
+        client => client.BaseAddress = new Uri("https+http://customerinformationservice"));
+
+    builder.Services.AddHttpClient<ToolReasoningService>(
+        client => client.BaseAddress = new Uri("https+http://toolreasoningservice"));
+
+    builder.Services.AddHttpClient<InventoryService>(
+        client => client.BaseAddress = new Uri("https+http://inventoryservice"));
+
+    builder.Services.AddHttpClient<ProductSearchService>(
+        client => client.BaseAddress = new Uri("https+http://productsearchservice"));
+}
+
+/// <summary>
+/// Registers AI agents from Microsoft Foundry for MAF Foundry mode.
+/// Each agent is registered as a keyed singleton for dependency injection.
+/// </summary>
+static void RegisterFoundryAgents(WebApplicationBuilder builder)
+{
+    foreach (AgentNamesProvider.AgentName agentName in Enum.GetValues<AgentNamesProvider.AgentName>())
+    {
+        var agentId = AgentNamesProvider.GetAgentName(agentName);
+        
+        builder.Services.AddKeyedSingleton<AIAgent>(agentId, (sp, _) =>
+        {
+            var provider = sp.GetRequiredService<MAFAgentProvider>();
+            return provider.GetAIAgent(agentId);
+        });
+    }
+}

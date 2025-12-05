@@ -1,11 +1,6 @@
-#pragma warning disable SKEXP0110
 using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.AI;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Shared.Models;
-using System.Text;
+using SharedEntities;
 using System.Text.Json;
 
 namespace AnalyzePhotoService.Controllers;
@@ -15,20 +10,14 @@ namespace AnalyzePhotoService.Controllers;
 public class PhotoAnalysisController : ControllerBase
 {
     private readonly ILogger<PhotoAnalysisController> _logger;
-    private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
-    private readonly IChatClient _chatClient;
 
     public PhotoAnalysisController(
         ILogger<PhotoAnalysisController> logger,
-        AzureAIAgent skAzureAIAgent,
-        AIAgent agentFxAgent,
-        IChatClient chatClient)
+        AIAgent agentFxAgent)
     {
         _logger = logger;
-        _skAgent = skAzureAIAgent;
         _agentFxAgent = agentFxAgent;
-        _chatClient = chatClient;
     }
 
     [HttpPost("analyzellm")]
@@ -41,47 +30,30 @@ public class PhotoAnalysisController : ControllerBase
 
         _logger.LogInformation("[LLM] Analyzing photo. Prompt: {Prompt}", prompt);
 
+        // LLM endpoint uses MAF under the hood since we removed SK
         return await AnalyzeWithAgentAsync(
             prompt,
             image.FileName,
-            async (analysisPrompt) => await GetLLMResponseAsync(analysisPrompt),
-            "[SK]",
+            async (analysisPrompt) => await GetAgentFxResponseAsync(analysisPrompt),
+            "[LLM]",
             cancellationToken);
     }
 
-    [HttpPost("analyzesk")]
-    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeSKAsync([FromForm] IFormFile image, [FromForm] string prompt, CancellationToken cancellationToken = default)
+    [HttpPost("analyzemaf")]
+    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeMAFAsync([FromForm] IFormFile image, [FromForm] string prompt, CancellationToken cancellationToken = default)
     {
         if (image is null)
         {
             return BadRequest("No image file was provided.");
         }
 
-        _logger.LogInformation("[SK] Analyzing photo. Prompt: {Prompt}", prompt);
-
-        return await AnalyzeWithAgentAsync(
-            prompt,
-            image.FileName,
-            async (analysisPrompt) => await GetSemanticKernelResponseAsync(analysisPrompt),            
-            "[SK]",
-            cancellationToken);
-    }
-
-    [HttpPost("analyzeagentfx")]
-    public async Task<ActionResult<PhotoAnalysisResult>> AnalyzeAgentFxAsync([FromForm] IFormFile image, [FromForm] string prompt, CancellationToken cancellationToken = default)
-    {
-        if (image is null)
-        {
-            return BadRequest("No image file was provided.");
-        }
-
-        _logger.LogInformation("[AgentFx] Analyzing photo. Prompt: {Prompt}", prompt);
+        _logger.LogInformation("[MAF] Analyzing photo. Prompt: {Prompt}", prompt);
 
         return await AnalyzeWithAgentAsync(
             prompt,
             image.FileName,
             async (analysisPrompt) => await GetAgentFxResponseAsync(analysisPrompt),
-            "[AgentFx]",
+            "[MAF]",
             cancellationToken);
     }
 
@@ -120,27 +92,6 @@ public class PhotoAnalysisController : ControllerBase
             DetectedMaterials = DetermineDetectedMaterials(userPrompt, fileName)
         };
         return Ok(fallback);
-    }
-
-    // LLM Invocation Helper
-    private async Task<string> GetLLMResponseAsync(string prompt)
-    {
-        var sb = new StringBuilder();
-        var response = await _chatClient.GetResponseAsync(prompt);
-        sb.Append(response.Text);
-        return sb.ToString();
-    }
-
-    // SK invocation helper
-    private async Task<string> GetSemanticKernelResponseAsync(string prompt)
-    {
-        var sb = new StringBuilder();
-        AzureAIAgentThread agentThread = new(_skAgent.Client);
-        await foreach (ChatMessageContent response in _skAgent.InvokeAsync(prompt, agentThread))
-        {
-            sb.Append(response.Content);
-        }
-        return sb.ToString();
     }
 
     // Agent invocation helper

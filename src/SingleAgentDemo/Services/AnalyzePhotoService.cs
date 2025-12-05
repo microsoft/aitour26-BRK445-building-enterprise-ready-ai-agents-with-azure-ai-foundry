@@ -1,4 +1,4 @@
-using SingleAgentDemo.Models;
+using SharedEntities;
 
 namespace SingleAgentDemo.Services;
 
@@ -17,7 +17,7 @@ public class AnalyzePhotoService
     /// <summary>
     /// Sets the agent framework to use for service calls
     /// </summary>
-    /// <param name="framework">"sk" for Semantic Kernel or "agentfx" for Microsoft Agent Framework</param>
+    /// <param name="framework">"llm" for LLM Direct Call, "sk" for Semantic Kernel, or "maf" for Microsoft Agent Framework</param>
     public void SetFramework(string framework)
     {
         _framework = framework?.ToLowerInvariant() ?? "sk";
@@ -36,7 +36,7 @@ public class AnalyzePhotoService
             content.Add(streamContent, "image", image.FileName);
             content.Add(new StringContent(prompt), "prompt");
 
-            var endpoint = $"/api/PhotoAnalysis/analyze/{_framework}";
+            var endpoint = $"/api/PhotoAnalysis/analyze{_framework}";
             _logger.LogInformation($"[AnalyzePhotoService] Calling endpoint: {endpoint}");
             var response = await _httpClient.PostAsync(endpoint, content);
             
@@ -63,7 +63,7 @@ public class AnalyzePhotoService
         return new PhotoAnalysisResult 
         { 
             Description = $"Room analysis for prompt: {prompt}. Detected painted walls with preparation needed.",
-            DetectedMaterials = new[] { "paint", "wall", "surface preparation" }
+            DetectedMaterials = ["paint", "wall", "surface preparation"]
         };
     }
 }

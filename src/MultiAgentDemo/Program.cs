@@ -1,85 +1,49 @@
-#pragma warning disable SKEXP0110
-
 using Microsoft.Agents.AI;
-using Microsoft.SemanticKernel.Agents.AzureAI;
+using MultiAgentDemo.AgentServices;
 using MultiAgentDemo.Services;
-using ZavaAgentFxAgentsProvider;
-using ZavaAIFoundrySKAgentsProvider;
-using ZavaSemanticKernelProvider;
-
-// KernelAzureOpenAIConfigurator moved to its own file under Services to avoid mixing
-// type declarations with top-level statements in Program.cs.
+using ZavaFoundryAgentsProvider;
+using ZavaMAFAgentsProvider;
+using ZavaMAFLocalAgentsProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Add services to the container.
+// Add services to the container
 builder.Services.AddControllers();
-
-// Add Swagger for API documentation
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register both agent providers - they will be available for their respective controllers
-var openAiConnection = builder.Configuration.GetValue<string>("ConnectionStrings:aifoundry");
+// Register MAF agent providers using extension methods
+var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
+var microsoftFoundryCnnString = builder.Configuration.GetConnectionString("microsoftfoundrycnnstring");
 var chatDeploymentName = builder.Configuration["AI_ChatDeploymentName"] ?? "gpt-5-mini";
-builder.Services.AddSingleton(sp =>
-    new SemanticKernelProvider(openAiConnection, chatDeploymentName));
 
-builder.Services.AddSingleton(sp =>
+// Register MAFAgentProvider for Microsoft Foundry integration
+if (!string.IsNullOrEmpty(microsoftFoundryProjectConnection))
 {
-    var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
-    return new AIFoundryAgentProvider(aiFoundryProjectConnection, "");
-});
+    builder.Services.RegisterMAFAgentsFoundry(microsoftFoundryProjectConnection);
+}
 
-builder.Services.AddSingleton(sp =>
+// Register MAFLocalAgentProvider for local agent creation
+if (!string.IsNullOrEmpty(microsoftFoundryCnnString))
 {
-    var config = sp.GetService<IConfiguration>();
-    var aiFoundryProjectConnection = config.GetConnectionString("aifoundryproject");
-    return new AgentFxAgentProvider(aiFoundryProjectConnection!);
-});
+    builder.Services.RegisterMAFAgentsLocal(microsoftFoundryCnnString, chatDeploymentName);
+}
 
-builder.Services.AddSingleton(sp => builder.Configuration);
+// Register HTTP clients for external services (used by LLM direct call and DirectCall modes)
+RegisterHttpClients(builder);
 
-// Register service layer implementations for multi-agent external services
-builder.Services.AddHttpClient<InventoryAgentService>(
-    client => client.BaseAddress = new("https+http://inventoryservice"));
+// Register orchestration services for LLM mode
+RegisterOrchestrationServices(builder);
 
-builder.Services.AddHttpClient<MatchmakingAgentService>(
-    client => client.BaseAddress = new Uri("https+http://matchmakingservice"));
-
-builder.Services.AddHttpClient<LocationAgentService>(
-    client => client.BaseAddress = new Uri("https+http://locationservice"));
-
-builder.Services.AddHttpClient<NavigationAgentService>(
-    client => client.BaseAddress = new Uri("https+http://navigationservice"));
-
-// Register orchestration services
-builder.Services.AddScoped<SequentialOrchestrationService>();
-builder.Services.AddScoped<ConcurrentOrchestrationService>();
-builder.Services.AddScoped<HandoffOrchestrationService>();
-builder.Services.AddScoped<GroupChatOrchestrationService>();
-builder.Services.AddScoped<MagenticOrchestrationService>();
-
-// =====================================================================
-// Register agents in the DI using Semantic Kernel and the Microsoft Agent Framework
-AddAgentInSkAndAgentFx(builder, "customerinformationagentid");
-AddAgentInSkAndAgentFx(builder, "inventoryagentid");
-AddAgentInSkAndAgentFx(builder, "locationserviceagentid");
-AddAgentInSkAndAgentFx(builder, "navigationagentid");
-AddAgentInSkAndAgentFx(builder, "photoanalyzeragentid");
-AddAgentInSkAndAgentFx(builder, "productmatchmakingagentid");
-AddAgentInSkAndAgentFx(builder, "productsearchagentid");
-AddAgentInSkAndAgentFx(builder, "toolreasoningagentid");
-// =====================================================================
+// Register AI agents from Microsoft Foundry (used by MAF Foundry mode)
+RegisterFoundryAgents(builder);
 
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -87,28 +51,55 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
 
-// Local function to register agents using the SemanticKernel
-static void AddAgentInSkAndAgentFx(WebApplicationBuilder builder, string key)
+/// <summary>
+/// Registers HTTP clients for external service communication (LLM direct call and DirectCall modes).
+/// </summary>
+static void RegisterHttpClients(WebApplicationBuilder builder)
 {
-    builder.Services.AddKeyedSingleton<AzureAIAgent>(key, (sp, key) =>
+    builder.Services.AddHttpClient<InventoryAgentService>(
+        client => client.BaseAddress = new Uri("https+http://inventoryservice"));
+
+    builder.Services.AddHttpClient<MatchmakingAgentService>(
+        client => client.BaseAddress = new Uri("https+http://matchmakingservice"));
+
+    builder.Services.AddHttpClient<LocationAgentService>(
+        client => client.BaseAddress = new Uri("https+http://locationservice"));
+
+    builder.Services.AddHttpClient<NavigationAgentService>(
+        client => client.BaseAddress = new Uri("https+http://navigationservice"));
+}
+
+/// <summary>
+/// Registers orchestration services for different multi-agent patterns (LLM mode).
+/// </summary>
+static void RegisterOrchestrationServices(WebApplicationBuilder builder)
+{
+    builder.Services.AddScoped<SequentialOrchestrationService>();
+    builder.Services.AddScoped<ConcurrentOrchestrationService>();
+    builder.Services.AddScoped<HandoffOrchestrationService>();
+    builder.Services.AddScoped<GroupChatOrchestrationService>();
+    builder.Services.AddScoped<MagenticOrchestrationService>();
+}
+
+/// <summary>
+/// Registers AI agents from Microsoft Foundry for MAF Foundry mode.
+/// Each agent is registered as a keyed singleton for dependency injection.
+/// </summary>
+static void RegisterFoundryAgents(WebApplicationBuilder builder)
+{
+    foreach (AgentNamesProvider.AgentName agentName in Enum.GetValues<AgentNamesProvider.AgentName>())
     {
-        var config = sp.GetRequiredService<IConfiguration>();
-        var agentId = config.GetConnectionString(key.ToString());
-        var agentSKProvider = sp.GetRequiredService<AIFoundryAgentProvider>();
-        return agentSKProvider.CreateAzureAIAgent(agentId);
-    });
-    builder.Services.AddKeyedSingleton<AIAgent>(key, (sp, key) =>
-    {
-        var config = sp.GetRequiredService<IConfiguration>();
-        var agentId = config.GetConnectionString(key.ToString());
-        var agentFxProvider = sp.GetRequiredService<AgentFxAgentProvider>();
-        return agentFxProvider.GetAIAgent(agentId);
-    });
+        var agentId = AgentNamesProvider.GetAgentName(agentName);
+
+        builder.Services.AddKeyedSingleton<AIAgent>(agentId, (sp, _) =>
+        {
+            var provider = sp.GetRequiredService<MAFAgentProvider>();
+            return provider.GetAIAgent(agentId);
+        });
+    }
 }

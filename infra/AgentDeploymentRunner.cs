@@ -1,5 +1,5 @@
-using Azure.AI.Agents.Persistent;
-using Infra.AgentDeployment;
+using Azure.AI.Projects;
+using Spectre.Console;
 
 namespace Infra.AgentDeployment;
 
@@ -9,9 +9,10 @@ namespace Infra.AgentDeployment;
 /// </summary>
 public class AgentDeploymentRunner
 {
-    private readonly PersistentAgentsClient _client;
+    private readonly AIProjectClient _client;
     private readonly string _modelDeploymentName;
     private readonly string _configPath;
+    private readonly TaskTracker? _taskTracker;
     private readonly IAgentDefinitionLoader _definitionLoader;
     private readonly IAgentDeletionService _deletionService;
     private readonly IAgentFileUploader _fileUploader;
@@ -19,24 +20,28 @@ public class AgentDeploymentRunner
     private readonly IAgentPersistenceService _persistenceService;
 
     public AgentDeploymentRunner(
-        PersistentAgentsClient client,
+        AIProjectClient client,
         string modelDeploymentName,
-        string configPath)
+        string configPath,
+        TaskTracker? taskTracker = null)
         : this(
             client,
             modelDeploymentName,
             configPath,
+            taskTracker,
             new JsonAgentDefinitionLoader(configPath),
-            new AgentDeletionService(client),
-            new AgentFileUploader(client),
-            new AgentCreationService(client, modelDeploymentName),
-            new AgentPersistenceService()) { }
+            new AgentDeletionService(client, taskTracker),
+            new AgentFileUploader(client, taskTracker),
+            new AgentCreationService(client, modelDeploymentName, taskTracker),
+            new AgentPersistenceService(taskTracker))
+    { }
 
     // Internal primary constructor for DI / testing; keeps helper abstractions internal.
     internal AgentDeploymentRunner(
-        PersistentAgentsClient client,
+        AIProjectClient client,
         string modelDeploymentName,
         string configPath,
+        TaskTracker? taskTracker,
         IAgentDefinitionLoader definitionLoader,
         IAgentDeletionService deletionService,
         IAgentFileUploader fileUploader,
@@ -46,6 +51,7 @@ public class AgentDeploymentRunner
         _client = client;
         _modelDeploymentName = modelDeploymentName;
         _configPath = configPath;
+        _taskTracker = taskTracker;
         _definitionLoader = definitionLoader;
         _deletionService = deletionService;
         _fileUploader = fileUploader;
@@ -58,23 +64,58 @@ public class AgentDeploymentRunner
         var definitions = _definitionLoader.LoadDefinitions();
         if (definitions.Length == 0)
         {
-            Console.WriteLine("No agent definitions to process.");
+            if (_taskTracker != null)
+                _taskTracker.AddLog("[yellow]No agent definitions to process.[/]");
+            else
+                AnsiConsole.MarkupLine("[yellow]No agent definitions to process.[/]");
             return;
         }
 
-        bool deleteRequested = ShouldDelete(deleteFlag);
-        if (deleteRequested)
+        if (_taskTracker != null)
+            _taskTracker.AddLog($"[cyan]Found {definitions.Length} agent definition(s) to process.[/]");
+        else
+            AnsiConsole.MarkupLine($"[cyan]Found {definitions.Length} agent definition(s) to process.[/]");
+
+        // Calculate operation counts for progress tracking
+        int agentsCount = definitions.Length;
+        int indexesCount = definitions.Count(d => d.Files?.Any() == true);
+        int datasetsCount = definitions.SelectMany(d => d.Files ?? Enumerable.Empty<string>()).Distinct().Count();
+
+        // Ask for each deletion type separately
+        bool deleteAgents = ShouldDeleteAgents(deleteFlag);
+        bool deleteIndexes = ShouldDeleteIndexes(deleteFlag);
+        bool deleteDatasets = ShouldDeleteDatasets(deleteFlag);
+
+        // Set operation counts for accurate progress tracking
+        if (_taskTracker != null)
         {
-            _deletionService.DeleteExisting(definitions);
+            _taskTracker.SetOperationCounts(
+                deleteAgents ? agentsCount : 0,
+                deleteIndexes ? indexesCount : 0,
+                deleteDatasets ? datasetsCount : 0,
+                datasetsCount,
+                indexesCount,
+                agentsCount);
+        }
+
+        if (deleteAgents || deleteIndexes || deleteDatasets)
+        {
+            _deletionService.DeleteExisting(definitions, deleteAgents, deleteIndexes, deleteDatasets);
         }
         else
         {
-            Console.WriteLine("Skipping deletion of existing agents.\n");
+            if (_taskTracker != null)
+                _taskTracker.AddLog("[yellow]Skipping all deletion operations.[/]");
+            else
+                AnsiConsole.MarkupLine("[yellow]Skipping all deletion operations.[/]\n");
         }
 
         if (!ConfirmCreation())
         {
-            Console.WriteLine("Agent creation canceled by user.");
+            if (_taskTracker != null)
+                _taskTracker.AddLog("[red]Agent creation canceled by user.[/]");
+            else
+                AnsiConsole.MarkupLine("[red]Agent creation canceled by user.[/]");
             return;
         }
 
@@ -85,21 +126,42 @@ public class AgentDeploymentRunner
         _persistenceService.PersistCreated(createdAgents);
     }
 
-    private bool ShouldDelete(bool? flag)
+    private bool ShouldDeleteAgents(bool? flag)
     {
         if (flag.HasValue) return flag.Value; // command line override
+        if (_taskTracker != null)
+        {
+            return _taskTracker.PromptYesNo("Delete existing agents?", true);
+        }
+        return AnsiConsole.Confirm("[yellow]Delete existing agents?[/]", true);
+    }
 
-        Console.Write("Delete existing agents matching definitions? (Y/n): ");
-        var input = Console.ReadLine();
-        // Default YES when empty
-        return string.IsNullOrWhiteSpace(input) || input.Trim().Equals("y", StringComparison.OrdinalIgnoreCase);
+    private bool ShouldDeleteIndexes(bool? flag)
+    {
+        if (flag.HasValue) return flag.Value; // command line override
+        if (_taskTracker != null)
+        {
+            return _taskTracker.PromptYesNo("Delete existing indexes (vector stores)?", true);
+        }
+        return AnsiConsole.Confirm("[yellow]Delete existing indexes (vector stores)?[/]", true);
+    }
+
+    private bool ShouldDeleteDatasets(bool? flag)
+    {
+        if (flag.HasValue) return flag.Value; // command line override
+        if (_taskTracker != null)
+        {
+            return _taskTracker.PromptYesNo("Delete existing datasets (files)?", true);
+        }
+        return AnsiConsole.Confirm("[yellow]Delete existing datasets (files)?[/]", true);
     }
 
     private bool ConfirmCreation()
     {
-        Console.Write("Proceed to create agents now? (Y/n): ");
-        var input = Console.ReadLine();
-        // Default YES when empty
-        return string.IsNullOrWhiteSpace(input) || input.Trim().Equals("y", StringComparison.OrdinalIgnoreCase);
+        if (_taskTracker != null)
+        {
+            return _taskTracker.PromptYesNo("Proceed to create agents now?", true);
+        }
+        return AnsiConsole.Confirm("[cyan]Proceed to create agents now?[/]", true);
     }
 }

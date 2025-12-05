@@ -1,5 +1,6 @@
 @page "/settings"
 @inject IJSRuntime JSRuntime
+@using ZavaWorkingModes
 @rendermode InteractiveServer
 
 <PageTitle>Settings - Zava Store</PageTitle>
@@ -20,94 +21,72 @@
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <span class="bi bi-robot me-2"></span>
-                        Agent Framework Selection
+                        Working Mode Selection
                     </h5>
                 </div>
                 <div class="card-body">
                     <p class="text-muted">
-                        Choose which agent framework to use for the demos. All frameworks connect to Azure AI Foundry services.
+                        Choose which working mode to use for the demos.
                     </p>
 
                     <div class="mb-4">
-                        <label class="form-label"><strong>Select Framework:</strong></label>
-                        <select class="form-select" @bind="selectedFramework" @bind:after="OnFrameworkChanged">
-                            <option value="llm">LLM Direct Call</option>
-                            <option value="sk">Semantic Kernel (SK)</option>
-                            <option value="agentfx">Microsoft Agent Framework (AgentFx)</option>
+                        <label class="form-label"><strong>Select Working Mode:</strong></label>
+                        <select class="form-select" @bind="selectedMode" @bind:after="OnModeChanged">
+                            @foreach (var (mode, shortName, displayName, description) in WorkingModeProvider.GetAllModeMetadata())
+                            {
+                                var isDefault = mode == WorkingModeProvider.DefaultMode;
+                                <option value="@shortName">@displayName @(isDefault ? "(Default)" : "")</option>
+                            }
                         </select>
                         <small class="text-muted mt-2 d-block">
-                            @GetFrameworkDescription()
+                            @GetModeDescription()
                         </small>
                     </div>
 
                     <div class="alert alert-info" role="alert">
                         <span class="bi bi-info-circle me-2"></span>
-                        <strong>Current Selection:</strong> @GetFrameworkDisplayName()
+                        <strong>Current Selection:</strong> @GetModeDisplayName()
                     </div>
 
                     @if (showSavedMessage)
                     {
                         <div class="alert alert-success" role="alert">
                             <span class="bi bi-check-circle me-2"></span>
-                            Settings saved! The new framework will be used for all agent demos.
+                            Settings saved! The new working mode will be used for all demos.
                         </div>
                     }
 
                     <hr />
 
-                    <h6 class="mb-3">Framework Comparison</h6>
+                    <h6 class="mb-3">Working Mode Comparison</h6>
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead>
                                 <tr>
-                                    <th>Framework</th>
+                                    <th>Mode</th>
                                     <th>Status</th>
                                     <th>Description</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr class="@(selectedFramework == "llm" ? "table-primary" : "")">
-                                    <td><strong>LLM Direct Call</strong></td>
-                                    <td>
-                                        @if (selectedFramework == "llm")
-                                        {
-                                            <span class="badge bg-success">Active</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Inactive</span>
-                                        }
-                                    </td>
-                                    <td>Direct LLM calls using Microsoft.Extensions.AI</td>
-                                </tr>
-                                <tr class="@(selectedFramework == "sk" ? "table-primary" : "")">
-                                    <td><strong>Semantic Kernel</strong></td>
-                                    <td>
-                                        @if (selectedFramework == "sk")
-                                        {
-                                            <span class="badge bg-success">Active</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Inactive</span>
-                                        }
-                                    </td>
-                                    <td>Framework using Microsoft.SemanticKernel</td>
-                                </tr>
-                                <tr class="@(selectedFramework == "agentfx" ? "table-primary" : "")">
-                                    <td><strong>Microsoft Agent Framework</strong></td>
-                                    <td>
-                                        @if (selectedFramework == "agentfx")
-                                        {
-                                            <span class="badge bg-success">Active</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Inactive</span>
-                                        }
-                                    </td>
-                                    <td>Framework using Microsoft.Agents.AI</td>
-                                </tr>
+                                @foreach (var (mode, shortName, displayName, description) in WorkingModeProvider.GetAllModeMetadata())
+                                {
+                                    var isSelected = selectedMode == shortName;
+                                    <tr class="@(isSelected ? "table-primary" : "")">
+                                        <td><strong>@displayName</strong></td>
+                                        <td>
+                                            @if (isSelected)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            }
+                                        </td>
+                                        <td style="max-width: 300px;">@GetShortDescription(mode)</td>
+                                    </tr>
+                                }
                             </tbody>
                         </table>
                     </div>
@@ -118,7 +97,7 @@
 </div>
 
 @code {
-    private string selectedFramework = "agentfx";
+    private string selectedMode = WorkingModeProvider.GetShortName(WorkingModeProvider.DefaultMode);
     private bool showSavedMessage = false;
 
     protected override async Task OnInitializedAsync()
@@ -126,20 +105,23 @@
         // Load saved preference from localStorage
         try
         {
-            var savedFramework = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "agentFramework");
-            selectedFramework = string.IsNullOrEmpty(savedFramework) ? "agentfx" : savedFramework.ToLowerInvariant();
+            var savedMode = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "agentFramework");
+            if (!string.IsNullOrEmpty(savedMode))
+            {
+                selectedMode = savedMode.ToLowerInvariant();
+            }
         }
         catch
         {
-            // Default to AgentFx if localStorage is not available
-            selectedFramework = "agentfx";
+            // Default to MafFoundry if localStorage is not available
+            selectedMode = WorkingModeProvider.GetShortName(WorkingModeProvider.DefaultMode);
         }
     }
 
-    private async Task OnFrameworkChanged()
+    private async Task OnModeChanged()
     {
         // Save to localStorage
-        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "agentFramework", selectedFramework);
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "agentFramework", selectedMode);
         
         // Show saved message
         showSavedMessage = true;
@@ -151,25 +133,27 @@
         StateHasChanged();
     }
 
-    private string GetFrameworkDisplayName()
+    private string GetModeDisplayName()
     {
-        return selectedFramework switch
-        {
-            "llm" => "LLM Direct Call",
-            "sk" => "Semantic Kernel (SK)",
-            "agentfx" => "Microsoft Agent Framework (AgentFx)",
-            _ => "Unknown"
-        };
+        var mode = WorkingModeProvider.Parse(selectedMode);
+        return WorkingModeProvider.GetDisplayName(mode);
     }
 
-    private string GetFrameworkDescription()
+    private string GetModeDescription()
     {
-        return selectedFramework switch
+        var mode = WorkingModeProvider.Parse(selectedMode);
+        return WorkingModeProvider.GetDescription(mode);
+    }
+
+    private string GetShortDescription(WorkingMode mode)
+    {
+        return mode switch
         {
-            "llm" => "Using direct LLM calls - Direct interaction with language models using Microsoft.Extensions.AI IChatClient",
-            "sk" => "Using Semantic Kernel - Framework for AI orchestration with Microsoft.SemanticKernel",
-            "agentfx" => "Using Microsoft Agent Framework - Framework for building AI agents with Microsoft.Agents.AI",
-            _ => "Unknown framework"
+            WorkingMode.DirectCall => "Direct HTTP calls without AI",
+            WorkingMode.Llm => "Direct LLM calls via IChatClient",
+            WorkingMode.MafFoundry => "MAF with cloud-hosted agents",
+            WorkingMode.MafLocal => "MAF with locally created agents",
+            _ => "Unknown mode"
         };
     }
 }

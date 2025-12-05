@@ -1,14 +1,6 @@
-#pragma warning disable SKEXP0110
-
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Agents.AI;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 using SharedEntities;
-using System.Text;
-using ZavaAIFoundrySKAgentsProvider;
-using ZavaAgentFxAgentsProvider;
+using ZavaMAFAgentsProvider;
 
 namespace AgentsCatalogService.Controllers;
 
@@ -17,17 +9,14 @@ namespace AgentsCatalogService.Controllers;
 public class AgentCatalogController : ControllerBase
 {
     private readonly ILogger<AgentCatalogController> _logger;
-    private readonly AIFoundryAgentProvider _aIFoundryAgentProvider;
-    private readonly AgentFxAgentProvider _agentFxAgentProvider;
+    private readonly MAFAgentProvider _MAFAgentProvider;
 
     public AgentCatalogController(
         ILogger<AgentCatalogController> logger,
-        AIFoundryAgentProvider aIFoundryAgentProvider,
-        AgentFxAgentProvider agentFxAgentProvider)
+        MAFAgentProvider MAFAgentProvider)
     {
         _logger = logger;
-        _aIFoundryAgentProvider = aIFoundryAgentProvider;
-        _agentFxAgentProvider = agentFxAgentProvider;
+        _MAFAgentProvider = MAFAgentProvider;
     }
 
     [HttpGet("agents")]
@@ -51,27 +40,15 @@ public class AgentCatalogController : ControllerBase
         }
     }
 
-    [HttpPost("testsk")]
-    public async Task<ActionResult<AgentTesterResponse>> TestAgentSkAsync([FromBody] AgentTesterRequest request, CancellationToken cancellationToken)
+    [HttpPost("testmaf")]
+    public async Task<ActionResult<AgentTesterResponse>> TestMAFAsync([FromBody] AgentTesterRequest request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[SK] Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
-
-        return await TestAgentAsync(
-            request,
-            InvokeSemanticKernelAsync,
-            "[SK]",
-            cancellationToken);
-    }
-
-    [HttpPost("testagentfx")]
-    public async Task<ActionResult<AgentTesterResponse>> TestAgentFxAsync([FromBody] AgentTesterRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[AgentFx] Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
+        _logger.LogInformation("[MAF] Testing agent {AgentId} with question: {Question}", request.AgentId, request.Question);
 
         return await TestAgentAsync(
             request,
             InvokeAgentFrameworkAsync,
-            "[AgentFx]",
+            "[MAF]",
             cancellationToken);
     }
 
@@ -131,26 +108,11 @@ public class AgentCatalogController : ControllerBase
         }
     }
 
-    private async Task<string> InvokeSemanticKernelAsync(string agentId, string prompt, CancellationToken cancellationToken)
-    {
-        var agent = await _aIFoundryAgentProvider.CreateAzureAIAgentAsync(agentId);
-        AzureAIAgentThread agentThread = new(agent.Client);
-
-        var sb = new StringBuilder();
-        ChatMessageContent message = new(AuthorRole.User, prompt);
-        await foreach (ChatMessageContent response in agent.InvokeAsync(message, agentThread).WithCancellation(cancellationToken))
-        {
-            sb.Append(response.Content);
-        }
-
-        return sb.ToString();
-    }
-
     private async Task<string> InvokeAgentFrameworkAsync(string agentId, string prompt, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var agent = await _agentFxAgentProvider.GetAIAgentAsync(agentId);
+        var agent = await _MAFAgentProvider.GetAIAgentAsync(agentId);
         var thread = agent.GetNewThread();
         var response = await agent.RunAsync(prompt, thread);
         return response?.Text ?? string.Empty;

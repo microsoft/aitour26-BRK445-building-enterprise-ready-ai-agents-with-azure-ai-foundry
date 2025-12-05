@@ -1,13 +1,7 @@
-#pragma warning disable SKEXP0110
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 using SharedEntities;
 using System.Collections.Generic;
-using System.Text;
 using System.Text.Json;
 
 namespace LocationService.Controllers;
@@ -17,20 +11,14 @@ namespace LocationService.Controllers;
 public class LocationController : ControllerBase
 {
     private readonly ILogger<LocationController> _logger;
-    private readonly AzureAIAgent _skAgent;
     private readonly AIAgent _agentFxAgent;
-    private readonly IChatClient _chatClient;
 
     public LocationController(
         ILogger<LocationController> logger,
-        AzureAIAgent skAgent,
-        AIAgent agentFxAgent,
-        IChatClient chatClient)
+        AIAgent agentFxAgent)
     {
         _logger = logger;
-        _skAgent = skAgent;
         _agentFxAgent = agentFxAgent;
-        _chatClient = chatClient;
     }
 
     [HttpGet("find/llm")]
@@ -38,34 +26,23 @@ public class LocationController : ControllerBase
     {
         _logger.LogInformation("[LLM] Finding location for product: {Product}", product);
 
+        // LLM endpoint uses MAF under the hood since we removed SK
         return await FindProductLocationAsync(
             product,
-            InvokeLlmAsync,
+            InvokeAgentFrameworkAsync,
             "[LLM]",
             cancellationToken);
     }
 
-    [HttpGet("find/sk")]
-    public async Task<ActionResult<LocationResult>> FindProductLocationSkAsync([FromQuery] string product, CancellationToken cancellationToken)
+    [HttpGet("find/maf")]
+    public async Task<ActionResult<LocationResult>> FindProductLocationMAFAsync([FromQuery] string product, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[SK] Finding location for product: {Product}", product);
-
-        return await FindProductLocationAsync(
-            product,
-            InvokeSemanticKernelAsync,
-            "[SK]",
-            cancellationToken);
-    }
-
-    [HttpGet("find/agentfx")]
-    public async Task<ActionResult<LocationResult>> FindProductLocationAgentFxAsync([FromQuery] string product, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("[AgentFx] Finding location for product: {Product}", product);
+        _logger.LogInformation("[MAF] Finding location for product: {Product}", product);
 
         return await FindProductLocationAsync(
             product,
             InvokeAgentFrameworkAsync,
-            "[AgentFx]",
+            "[MAF]",
             cancellationToken);
     }
 
@@ -106,26 +83,6 @@ public class LocationController : ControllerBase
     public IActionResult Health()
     {
         return Ok(new { Status = "Healthy", Service = "LocationService" });
-    }
-
-    private async Task<string> InvokeLlmAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
-        return response.Text ?? string.Empty;
-    }
-
-    private async Task<string> InvokeSemanticKernelAsync(string prompt, CancellationToken cancellationToken)
-    {
-        var sb = new StringBuilder();
-        AzureAIAgentThread agentThread = new(_skAgent.Client);
-
-        ChatMessageContent message = new(AuthorRole.User, prompt);
-        await foreach (ChatMessageContent response in _skAgent.InvokeAsync(message, agentThread).WithCancellation(cancellationToken))
-        {
-            sb.Append(response.Content);
-        }
-
-        return sb.ToString();
     }
 
     private async Task<string> InvokeAgentFrameworkAsync(string prompt, CancellationToken cancellationToken)
