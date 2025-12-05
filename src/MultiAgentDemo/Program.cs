@@ -14,21 +14,22 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register MAFAgentProvider for Microsoft Foundry integration
+// Register MAF agent providers using extension methods
 var microsoftFoundryProjectConnection = builder.Configuration.GetConnectionString("microsoftfoundryproject");
-builder.Services.AddSingleton(_ => new MAFAgentProvider(microsoftFoundryProjectConnection!));
-
-// Register MAFLocalAgentProvider for local agent creation
 var microsoftFoundryCnnString = builder.Configuration.GetConnectionString("microsoftfoundrycnnstring");
 var chatDeploymentName = builder.Configuration["AI_ChatDeploymentName"] ?? "gpt-5-mini";
-if (!string.IsNullOrEmpty(microsoftFoundryCnnString))
+
+// Register MAFAgentProvider for Microsoft Foundry integration
+if (!string.IsNullOrEmpty(microsoftFoundryProjectConnection))
 {
-    builder.Services.AddSingleton(_ => new MAFLocalAgentProvider(microsoftFoundryCnnString, chatDeploymentName));
+    builder.Services.RegisterMAFAgentsFoundry(microsoftFoundryProjectConnection);
 }
 
-// Register MAF agents using extension methods for cleaner DI
-builder.Services.RegisterMAFAgentsLocal();
-builder.Services.RegisterMAFAgentsFoundry();
+// Register MAFLocalAgentProvider for local agent creation
+if (!string.IsNullOrEmpty(microsoftFoundryCnnString))
+{
+    builder.Services.RegisterMAFAgentsLocal(microsoftFoundryCnnString, chatDeploymentName);
+}
 
 // Register HTTP clients for external services (used by LLM direct call and DirectCall modes)
 RegisterHttpClients(builder);
