@@ -1,6 +1,0 @@
-@SingleAgentDemo_HostAddress = http://localhost:5087
-
-GET {{SingleAgentDemo_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
