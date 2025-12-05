@@ -1,4 +1,5 @@
 using Microsoft.Agents.AI;
+using SingleAgentDemo.AgentServices;
 using SingleAgentDemo.Services;
 using ZavaFoundryAgentsProvider;
 using ZavaMAFAgentsProvider;
@@ -24,6 +25,10 @@ if (!string.IsNullOrEmpty(microsoftFoundryCnnString))
 {
     builder.Services.AddSingleton(_ => new MAFLocalAgentProvider(microsoftFoundryCnnString, chatDeploymentName));
 }
+
+// Register MAF agents using extension methods for cleaner DI
+builder.Services.RegisterMAFAgentsLocal();
+builder.Services.RegisterMAFAgentsFoundry();
 
 // Register HTTP clients for external services (used by LLM direct call and DirectCall modes)
 RegisterHttpClients(builder);

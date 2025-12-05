@@ -1,3 +1,4 @@
+using Microsoft.Agents.AI.DevUI;
 using Store.Components;
 using Store.Services;
 
@@ -23,6 +24,13 @@ builder.Services.AddHttpClient<MultiAgentService>(
 builder.Services.AddHttpClient<AgentCatalogService>(
     static client => client.BaseAddress = new("https+http://agentscatalogservice"));
 
+// Register services for OpenAI responses and conversations (required for DevUI)
+builder.Services.AddOpenAIResponses();
+builder.Services.AddOpenAIConversations();
+
+// Add DevUI for agent debugging and visualization
+builder.AddDevUI();
+
 // blazor bootstrap
 builder.Services.AddBlazorBootstrap();
 
@@ -47,6 +55,14 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+// Map DevUI endpoints for agent debugging (development only)
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenAIResponses();
+    app.MapOpenAIConversations();
+    app.MapDevUI();
+}
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
