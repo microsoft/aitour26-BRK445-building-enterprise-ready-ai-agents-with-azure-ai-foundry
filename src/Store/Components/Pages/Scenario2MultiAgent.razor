@@ -2,6 +2,7 @@
 @using Store.Models
 @using Store.Services
 @using SharedEntities
+@using ZavaWorkingModes
 @inject MultiAgentService MultiAgentService
 @inject ILogger<Scenario2MultiAgent> Logger
 
@@ -19,17 +20,9 @@
             <div class="alert alert-info d-flex align-items-center" role="alert">
                 <span class="bi bi-info-circle me-2"></span>
                 <div>
-                    <strong>Current Working Mode:</strong> @currentFramework
+                    <strong>Current Working Mode:</strong> @WorkingModeProvider.GetDisplayName(currentMode)
                     <small class="ms-2 text-muted">
-                        @{
-                            string frameworkLabel = currentFramework switch
-                            {
-                                "SK" => "(Semantic Kernel)",
-                                "llm" => "(LLM Framework)",
-                                _ => "(Microsoft Agent Framework)"
-                            };
-                        }
-                        @frameworkLabel
+                        (@WorkingModeProvider.GetShortName(currentMode))
                     </small>
                 </div>
             </div>
@@ -384,11 +377,11 @@
     private double longitude = -122.3321;
     private const string DefaultProductQuery = "I can't find the product 'Paint Sprayer - TurboSpray 750', I'm in this store, can you help?";
     private bool showMermaidViewer = false;
-    private string currentFramework = "SK";
+    private WorkingMode currentMode = WorkingModeProvider.DefaultMode;
     
     protected override async Task OnInitializedAsync()
     {
-        currentFramework = await AgentFrameworkService.GetSelectedFrameworkAsync();
+        currentMode = await AgentFrameworkService.GetSelectedModeAsync();
     }
     
     private void ToggleMermaidViewer()
